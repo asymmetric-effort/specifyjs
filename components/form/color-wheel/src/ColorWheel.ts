@@ -10,6 +10,7 @@
 
 import { createElement } from '../../../../core/src/index';
 import { useState, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface ColorWheelProps {
   /** Current color value (hex string) */
@@ -24,9 +25,12 @@ export interface ColorWheelProps {
   disabled?: boolean;
   /** Label text */
   label?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 export function ColorWheel(props: ColorWheelProps) {
+  const inputId = props.id ?? `cw-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value = '#000000',
     onChange,
@@ -79,40 +83,39 @@ export function ColorWheel(props: ColorWheelProps) {
     padding: '0',
   };
 
-  return createElement(
-    'div',
-    { style: containerStyle },
-    label
-      ? createElement(
-          'label',
-          { style: { fontSize: '12px', color: '#64748b', fontWeight: '500' } },
-          label,
-        )
-      : null,
+  return createElement(FormFieldWrapper, {
+    label,
+    htmlFor: inputId,
+  },
     createElement(
       'div',
-      { style: swatchStyle },
-      createElement('input', {
-        ref: inputRef,
-        type: 'color',
-        value: color,
-        onInput: handleChange,
-        disabled,
-        style: inputStyle,
-      }),
-    ),
-    showLabel
-      ? createElement(
-          'span',
-          {
-            style: {
-              fontSize: '11px',
-              fontFamily: 'monospace',
-              color: '#64748b',
+      { style: containerStyle },
+      createElement(
+        'div',
+        { style: swatchStyle },
+        createElement('input', {
+          id: inputId,
+          ref: inputRef,
+          type: 'color',
+          value: color,
+          onInput: handleChange,
+          disabled,
+          style: inputStyle,
+        }),
+      ),
+      showLabel
+        ? createElement(
+            'span',
+            {
+              style: {
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                color: '#64748b',
+              },
             },
-          },
-          color,
-        )
-      : null,
+            color,
+          )
+        : null,
+    ),
   );
 }

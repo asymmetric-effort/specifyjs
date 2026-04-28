@@ -99,10 +99,10 @@ describe('PolarGraph2D — interaction', () => {
       onPointClick: handler,
     });
     const circles = collectByType(el, 'circle');
-    const pointCircle = circles.find((c: any) => c.props.onclick);
+    const pointCircle = circles.find((c: any) => c.props.onClick);
     expect(pointCircle).toBeDefined();
     const fakeEvent = new Event('click');
-    pointCircle.props.onclick(fakeEvent);
+    pointCircle.props.onClick(fakeEvent);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ r: 1, theta: 0, index: 0, event: fakeEvent }),
@@ -116,10 +116,10 @@ describe('PolarGraph2D — interaction', () => {
       onPointHover: handler,
     });
     const circles = collectByType(el, 'circle');
-    const pointCircle = circles.find((c: any) => c.props.onmouseenter);
+    const pointCircle = circles.find((c: any) => c.props.onMouseEnter);
     expect(pointCircle).toBeDefined();
     const fakeEvent = new Event('mouseenter');
-    pointCircle.props.onmouseenter(fakeEvent);
+    pointCircle.props.onMouseEnter(fakeEvent);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ r: 2, theta: Math.PI, index: 0, event: fakeEvent }),
@@ -128,14 +128,14 @@ describe('PolarGraph2D — interaction', () => {
 
   it('has mouse event handlers for pan interaction', () => {
     const el = PolarGraph2D({});
-    expect(el.props.onmousedown).toBeDefined();
-    expect(el.props.onmousemove).toBeDefined();
-    expect(el.props.onmouseup).toBeDefined();
-    expect(el.props.onmouseleave).toBeDefined();
+    expect(el.props.onMouseDown).toBeDefined();
+    expect(el.props.onMouseMove).toBeDefined();
+    expect(el.props.onMouseUp).toBeDefined();
+    expect(el.props.onMouseLeave).toBeDefined();
   });
 
   it('has wheel handler for zoom', () => {
     const el = PolarGraph2D({});
-    expect(el.props.onwheel).toBeDefined();
+    expect(el.props.onWheel).toBeDefined();
   });
 });

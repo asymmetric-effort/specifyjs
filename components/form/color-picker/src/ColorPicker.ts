@@ -25,6 +25,8 @@ export interface ColorPickerProps {
   disabled?: boolean;
   /** Label text */
   label?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 const DEFAULT_PRESETS = [
@@ -46,6 +48,7 @@ function normalizeHex(s: string): string {
 }
 
 export function ColorPicker(props: ColorPickerProps) {
+  const inputId = props.id ?? `cp-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value,
     onChange,
@@ -213,6 +216,7 @@ export function ColorPicker(props: ColorPickerProps) {
   return createElement(FormFieldWrapper, {
     label,
     disabled,
+    htmlFor: inputId,
   },
     createElement(
       'div',
@@ -223,7 +227,7 @@ export function ColorPicker(props: ColorPickerProps) {
           style: triggerContainerStyle,
           onClick: disabled ? undefined : () => setIsOpen(!isOpen),
         },
-        createElement('div', { style: swatchTriggerStyle }),
+        createElement('div', { id: inputId, style: swatchTriggerStyle }),
         showInput
           ? createElement('span', { style: { fontSize: '14px', fontFamily: 'monospace', color: '#1f2937' } }, value)
           : null,

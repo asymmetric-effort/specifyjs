@@ -1656,6 +1656,9 @@ function MandelbrotDemo() {
   );
 }
 
+// Module-level function reference to avoid unstable useEffect deps
+const polarRoseFn = (theta: number) => Math.cos(3 * theta);
+
 function PolarRoseDemo() {
   return createElement(
     "div",
@@ -1663,9 +1666,10 @@ function PolarRoseDemo() {
     createElement(PolarGraph2D, {
       width: 220,
       height: 200,
-      plotFunction: (theta: number) => Math.cos(3 * theta),
+      plotFunction: polarRoseFn,
       plotResolution: 270,
       showGrid: true,
+      sync: true,
       curveColor: "#8b5cf6",
       pointColor: "#8b5cf6",
     }),

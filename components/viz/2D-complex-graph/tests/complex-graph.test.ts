@@ -59,43 +59,43 @@ describe('ComplexGraph2D — interaction', () => {
   it('fires onPointClick with complex coordinates', () => {
     const handler = vi.fn();
     const el = ComplexGraph2D({ onPointClick: handler });
-    expect(el.props.onclick).toBeDefined();
+    expect(el.props.onClick).toBeDefined();
     // The onclick handler expects a MouseEvent with target.getBoundingClientRect
     // We verify it is wired up
-    expect(typeof el.props.onclick).toBe('function');
+    expect(typeof el.props.onClick).toBe('function');
   });
 
   it('fires onPointHover with complex coordinates', () => {
     const handler = vi.fn();
     const el = ComplexGraph2D({ onPointHover: handler });
-    expect(el.props.onmousemove).toBeDefined();
-    expect(typeof el.props.onmousemove).toBe('function');
+    expect(el.props.onMouseMove).toBeDefined();
+    expect(typeof el.props.onMouseMove).toBe('function');
   });
 
   it('has mouse event handlers for pan interaction', () => {
     const el = ComplexGraph2D({});
-    expect(el.props.onmousedown).toBeDefined();
-    expect(el.props.onmousemove).toBeDefined();
-    expect(el.props.onmouseup).toBeDefined();
-    expect(el.props.onmouseleave).toBeDefined();
+    expect(el.props.onMouseDown).toBeDefined();
+    expect(el.props.onMouseMove).toBeDefined();
+    expect(el.props.onMouseUp).toBeDefined();
+    expect(el.props.onMouseLeave).toBeDefined();
   });
 
   it('has wheel handler for zoom', () => {
     const el = ComplexGraph2D({});
-    expect(el.props.onwheel).toBeDefined();
+    expect(el.props.onWheel).toBeDefined();
   });
 
   it('has double-click handler when onPointDoubleClick provided', () => {
     const handler = vi.fn();
     const el = ComplexGraph2D({ onPointDoubleClick: handler });
-    expect(el.props.ondblclick).toBeDefined();
-    expect(typeof el.props.ondblclick).toBe('function');
+    expect(el.props.onDblClick).toBeDefined();
+    expect(typeof el.props.onDblClick).toBe('function');
   });
 
   it('has context menu handler when onPointContextMenu provided', () => {
     const handler = vi.fn();
     const el = ComplexGraph2D({ onPointContextMenu: handler });
-    expect(el.props.oncontextmenu).toBeDefined();
-    expect(typeof el.props.oncontextmenu).toBe('function');
+    expect(el.props.onContextMenu).toBeDefined();
+    expect(typeof el.props.onContextMenu).toBe('function');
   });
 });

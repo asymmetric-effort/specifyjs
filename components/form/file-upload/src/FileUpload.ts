@@ -27,6 +27,8 @@ export interface FileUploadProps {
   label?: string;
   /** Help text */
   helpText?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 function formatFileSize(bytes: number): string {
@@ -38,6 +40,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export function FileUpload(props: FileUploadProps) {
+  const inputId = props.id ?? `fu-${Math.random().toString(36).slice(2, 8)}`;
   const {
     onChange,
     accept,
@@ -160,6 +163,7 @@ export function FileUpload(props: FileUploadProps) {
   };
 
   const hiddenInput = createElement('input', {
+    id: inputId,
     ref: inputRef,
     type: 'file',
     accept,
@@ -251,6 +255,7 @@ export function FileUpload(props: FileUploadProps) {
     helpText,
     error: error || undefined,
     disabled,
+    htmlFor: inputId,
   },
     createElement(
       'div',

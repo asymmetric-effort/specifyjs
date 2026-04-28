@@ -40,9 +40,12 @@ export interface SliderProps {
   label?: string;
   /** Error message */
   error?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 export function Slider(props: SliderProps) {
+  const inputId = props.id ?? `sl-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value,
     onChange,
@@ -216,6 +219,7 @@ export function Slider(props: SliderProps) {
     return createElement(
       'div',
       {
+        id: handleType === 'single' || handleType === 'start' ? inputId : undefined,
         style: thumbStyle,
         onMouseDown: handleMouseDown(handleType),
         role: 'slider',
@@ -293,6 +297,7 @@ export function Slider(props: SliderProps) {
   return createElement(FormFieldWrapper, {
     label,
     error,
+    htmlFor: inputId,
   },
     createElement(
       'div',

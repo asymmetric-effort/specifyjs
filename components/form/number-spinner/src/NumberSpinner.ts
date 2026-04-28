@@ -33,9 +33,12 @@ export interface NumberSpinnerProps {
   label?: string;
   /** Error message */
   error?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 export function NumberSpinner(props: NumberSpinnerProps) {
+  const inputId = props.id ?? `ns-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value,
     onChange,
@@ -170,6 +173,7 @@ export function NumberSpinner(props: NumberSpinnerProps) {
     : null;
 
   const input = createElement('input', {
+    id: inputId,
     type: 'text',
     value: String(value),
     onInput: handleInputChange,
@@ -212,6 +216,7 @@ export function NumberSpinner(props: NumberSpinnerProps) {
     label,
     error,
     disabled,
+    htmlFor: inputId,
   },
     createElement('div', { style: containerStyle }, ...innerChildren),
   );

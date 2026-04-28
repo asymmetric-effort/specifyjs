@@ -43,9 +43,12 @@ export interface SelectProps {
   label?: string;
   /** Help text */
   helpText?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 export function Select(props: SelectProps) {
+  const inputId = props.id ?? `sel-${Math.random().toString(36).slice(2, 8)}`;
   const {
     options,
     value,
@@ -294,6 +297,7 @@ export function Select(props: SelectProps) {
     'div',
     {
       style: triggerStyle,
+      id: inputId,
       onClick: disabled ? undefined : () => { setIsOpen(!isOpen); setFocusedIndex(-1); },
       onKeyDown: handleKeyDown,
       tabIndex: disabled ? -1 : 0,
@@ -360,6 +364,7 @@ export function Select(props: SelectProps) {
     error,
     helpText,
     disabled,
+    htmlFor: inputId,
   },
     createElement(
       'div',

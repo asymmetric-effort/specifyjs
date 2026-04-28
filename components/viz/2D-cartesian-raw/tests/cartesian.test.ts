@@ -105,11 +105,11 @@ describe('CartesianGraph2D — interaction', () => {
     });
     const circles = collectByType(el, 'circle');
     // Find the data point circle (has onclick)
-    const pointCircle = circles.find((c: any) => c.props.onclick);
+    const pointCircle = circles.find((c: any) => c.props.onClick);
     expect(pointCircle).toBeDefined();
     // Simulate click
     const fakeEvent = new Event('click');
-    pointCircle.props.onclick(fakeEvent);
+    pointCircle.props.onClick(fakeEvent);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ x: 1, y: 2, index: 0, event: fakeEvent }),
@@ -123,10 +123,10 @@ describe('CartesianGraph2D — interaction', () => {
       onPointHover: handler,
     });
     const circles = collectByType(el, 'circle');
-    const pointCircle = circles.find((c: any) => c.props.onmouseover);
+    const pointCircle = circles.find((c: any) => c.props.onMouseOver);
     expect(pointCircle).toBeDefined();
     const fakeEvent = new Event('mouseover');
-    pointCircle.props.onmouseover(fakeEvent);
+    pointCircle.props.onMouseOver(fakeEvent);
     expect(handler).toHaveBeenCalledTimes(1);
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ x: 3, y: 4, index: 0, event: fakeEvent }),
@@ -135,14 +135,14 @@ describe('CartesianGraph2D — interaction', () => {
 
   it('has mouse event handlers for pan interaction', () => {
     const el = CartesianGraph2D({});
-    expect(el.props.onmousedown).toBeDefined();
-    expect(el.props.onmousemove).toBeDefined();
-    expect(el.props.onmouseup).toBeDefined();
-    expect(el.props.onmouseleave).toBeDefined();
+    expect(el.props.onMouseDown).toBeDefined();
+    expect(el.props.onMouseMove).toBeDefined();
+    expect(el.props.onMouseUp).toBeDefined();
+    expect(el.props.onMouseLeave).toBeDefined();
   });
 
   it('has wheel handler for zoom', () => {
     const el = CartesianGraph2D({});
-    expect(el.props.onwheel).toBeDefined();
+    expect(el.props.onWheel).toBeDefined();
   });
 });

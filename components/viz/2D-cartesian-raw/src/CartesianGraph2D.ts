@@ -421,23 +421,23 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
       key: `pt-${i}`,
     };
     if (onPointClick)
-      circleProps.onclick = makeHandler("click", onPointClick, i, pt);
+      circleProps.onClick = makeHandler("click", onPointClick, i, pt);
     if (onPointDoubleClick)
-      circleProps.ondblclick = makeHandler(
+      circleProps.onDblClick = makeHandler(
         "dblclick",
         onPointDoubleClick,
         i,
         pt,
       );
     if (onPointContextMenu)
-      circleProps.oncontextmenu = makeHandler(
+      circleProps.onContextMenu = makeHandler(
         "contextmenu",
         onPointContextMenu,
         i,
         pt,
       );
     if (onPointHover)
-      circleProps.onmouseover = makeHandler("mouseover", onPointHover, i, pt);
+      circleProps.onMouseOver = makeHandler("mouseover", onPointHover, i, pt);
     children.push(createElement("circle", circleProps));
   }
 
@@ -465,11 +465,11 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
       height,
       viewBox: `0 0 ${width} ${height}`,
       style: "user-select: none; touch-action: none;",
-      onmousedown: onMouseDown,
-      onmousemove: onMouseMove,
-      onmouseup: onMouseUp,
-      onmouseleave: onMouseUp,
-      onwheel: onWheel,
+      onMouseDown: onMouseDown,
+      onMouseMove: onMouseMove,
+      onMouseUp: onMouseUp,
+      onMouseLeave: onMouseUp,
+      onWheel: onWheel,
     },
     defs,
     ...children,

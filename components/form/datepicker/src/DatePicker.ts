@@ -31,6 +31,8 @@ export interface DatePickerProps {
   label?: string;
   /** Error message */
   error?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 const MONTH_NAMES = [
@@ -66,6 +68,7 @@ function toISODateString(d: Date): string {
 }
 
 export function DatePicker(props: DatePickerProps) {
+  const inputId = props.id ?? `dp-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value,
     onChange,
@@ -267,6 +270,7 @@ export function DatePicker(props: DatePickerProps) {
     label,
     error,
     disabled,
+    htmlFor: inputId,
   },
     createElement(
       'div',
@@ -274,6 +278,7 @@ export function DatePicker(props: DatePickerProps) {
       createElement(
         'div',
         {
+          id: inputId,
           style: triggerStyle,
           onClick: disabled ? undefined : () => setIsOpen(!isOpen),
           tabIndex: disabled ? -1 : 0,

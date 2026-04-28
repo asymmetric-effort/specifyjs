@@ -47,6 +47,8 @@ export interface TimePickerProps {
   timezones?: string[];
   /** Callback when timezone changes */
   onTimezoneChange?: (tz: string) => void;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 function pad2(n: number): string {
@@ -63,6 +65,7 @@ function parseTime(val: string): { hour: number; minute: number; second: number 
 }
 
 export function TimePicker(props: TimePickerProps) {
+  const inputId = props.id ?? `tp-${Math.random().toString(36).slice(2, 8)}`;
   const {
     value,
     onChange,
@@ -347,10 +350,12 @@ export function TimePicker(props: TimePickerProps) {
     label,
     error,
     disabled,
+    htmlFor: inputId,
   },
     createElement(
       'div',
       {
+        id: inputId,
         style: containerStyle,
       },
       ...children,

@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/decomposition-tree",
+  "version": "0.0.1",
+  "description": "Decomposition tree visualization component for SpecifyJS — renders hierarchical tree layouts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "decomposition-tree", "hierarchy", "tree", "visualization", "svg"]
+}

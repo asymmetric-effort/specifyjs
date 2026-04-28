@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/box-plot",
+  "version": "0.0.1",
+  "description": "Box plot visualization component for SpecifyJS — renders box-and-whisker plots as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "box-plot", "chart", "visualization", "svg", "statistics"]
+}

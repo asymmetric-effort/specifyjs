@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/sunburst",
+  "version": "0.0.1",
+  "description": "Sunburst visualization component for SpecifyJS — renders multi-level donut/ring charts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "sunburst", "donut", "ring", "visualization", "svg"]
+}

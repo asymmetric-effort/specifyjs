@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/force-graph",
+  "version": "0.0.1",
+  "description": "Force-directed graph visualization component for SpecifyJS — renders node-link diagrams as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "force-graph", "network", "visualization", "svg", "graph"]
+}

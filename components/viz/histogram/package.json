@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/histogram",
+  "version": "0.0.1",
+  "description": "Histogram visualization component for SpecifyJS — bins raw data and renders as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "histogram", "chart", "visualization", "svg"]
+}

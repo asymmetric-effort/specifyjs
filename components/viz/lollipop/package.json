@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/lollipop-chart",
+  "version": "0.0.1",
+  "description": "Lollipop chart visualization component for SpecifyJS — renders stem-and-dot charts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "lollipop", "chart", "visualization", "svg"]
+}

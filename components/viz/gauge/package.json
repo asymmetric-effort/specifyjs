@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/gauge",
+  "version": "0.0.1",
+  "description": "Gauge visualization component for SpecifyJS — renders semicircular gauges with needle and colored arcs as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "gauge", "meter", "visualization", "svg", "dashboard"]
+}

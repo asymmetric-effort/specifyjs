@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/bubble-chart",
+  "version": "0.0.1",
+  "description": "Bubble chart visualization component for SpecifyJS — renders scatter plots with sized bubbles as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "bubble-chart", "chart", "visualization", "svg", "scatter"]
+}

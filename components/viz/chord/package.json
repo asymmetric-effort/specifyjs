@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/chord",
+  "version": "0.0.1",
+  "description": "Chord diagram visualization component for SpecifyJS — renders circular flow diagrams as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "chord", "diagram", "circular", "visualization", "svg"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/partition",
+  "version": "0.0.1",
+  "description": "Partition/icicle diagram visualization component for SpecifyJS — renders hierarchical rectangles as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "partition", "icicle", "hierarchy", "visualization", "svg"]
+}

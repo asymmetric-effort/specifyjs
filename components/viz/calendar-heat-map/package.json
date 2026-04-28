@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/calendar-heat-map",
+  "version": "0.0.1",
+  "description": "GitHub-style calendar heat map visualization component for SpecifyJS — renders date-value data as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "calendar", "heat-map", "contribution-graph", "visualization", "svg"]
+}

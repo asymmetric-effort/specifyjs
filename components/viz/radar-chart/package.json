@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/radar-chart",
+  "version": "0.0.1",
+  "description": "Radar/spider chart visualization component for SpecifyJS — renders multi-series radial charts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "radar-chart", "spider-chart", "visualization", "svg"]
+}

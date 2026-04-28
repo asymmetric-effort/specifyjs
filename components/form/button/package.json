@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/button",
+  "version": "0.0.1",
+  "description": "Button component for SpecifyJS — configurable variants, sizes, and states",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "button", "form", "ui"]
+}

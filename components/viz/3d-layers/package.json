@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/3d-layers",
+  "version": "0.0.1",
+  "description": "Pseudo-3D stacked surface/layer visualization component for SpecifyJS — renders isometric layer plots as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "3d-layers", "isometric", "surface", "visualization", "svg"]
+}

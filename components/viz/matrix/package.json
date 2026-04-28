@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/matrix",
+  "version": "0.0.1",
+  "description": "Correlation/confusion matrix visualization component for SpecifyJS — renders colored grids as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "matrix", "correlation", "confusion-matrix", "visualization", "svg"]
+}

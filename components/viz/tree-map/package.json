@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/tree-map",
+  "version": "0.0.1",
+  "description": "Treemap visualization component for SpecifyJS — renders proportional area charts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "treemap", "tree-map", "visualization", "svg"]
+}

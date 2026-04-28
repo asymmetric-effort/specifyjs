@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/waterfall-chart",
+  "version": "0.0.1",
+  "description": "Waterfall chart visualization component for SpecifyJS — renders cascading cumulative bars as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "waterfall", "chart", "visualization", "svg"]
+}

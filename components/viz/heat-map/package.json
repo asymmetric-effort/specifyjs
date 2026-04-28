@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/heat-map",
+  "version": "0.0.1",
+  "description": "Heat map visualization component for SpecifyJS — renders 2D data grids as colored SVG cells",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "heat-map", "heatmap", "visualization", "svg"]
+}

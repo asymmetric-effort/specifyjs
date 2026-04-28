@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/gantt-chart",
+  "version": "0.0.1",
+  "description": "Gantt chart visualization component for SpecifyJS — renders timeline bar charts as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "gantt-chart", "timeline", "visualization", "svg"]
+}

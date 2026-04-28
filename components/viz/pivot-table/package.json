@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/pivot-table",
+  "version": "0.0.1",
+  "description": "Pivot table visualization component for SpecifyJS — renders cross-tabulation tables as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "pivot-table", "cross-tabulation", "visualization", "svg"]
+}

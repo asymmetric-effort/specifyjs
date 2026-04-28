@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/funnel-chart",
+  "version": "0.0.1",
+  "description": "Funnel chart visualization component for SpecifyJS — renders pipeline/funnel visualizations as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "funnel", "chart", "visualization", "svg"]
+}

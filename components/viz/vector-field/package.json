@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/vector-field",
+  "version": "0.0.1",
+  "description": "Vector field visualization component for SpecifyJS — renders arrow plots as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "vector-field", "arrows", "visualization", "svg", "math"]
+}

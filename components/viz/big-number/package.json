@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/big-number",
+  "version": "0.0.1",
+  "description": "Big number KPI card visualization component for SpecifyJS — renders large metrics with trend and sparkline as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "big-number", "kpi", "metric", "visualization", "svg", "dashboard"]
+}

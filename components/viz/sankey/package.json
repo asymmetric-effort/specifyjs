@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/sankey",
+  "version": "0.0.1",
+  "description": "Sankey flow diagram visualization component for SpecifyJS — renders flow diagrams as SVG",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "sankey", "flow", "diagram", "visualization", "svg"]
+}

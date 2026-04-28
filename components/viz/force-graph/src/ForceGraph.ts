@@ -16,11 +16,14 @@
  * Zero runtime dependencies — pure SpecifyJS + SVG.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from "../../../../core/src/index";
 import {
+  useState,
+  useEffect,
   useMemo,
   useCallback,
-} from '../../../../core/src/hooks/index';
+  useRef,
+} from "../../../../core/src/hooks/index";
 
 // -- Data types ---------------------------------------------------------------
 
@@ -89,8 +92,16 @@ interface SimNode {
 // -- Default palette ----------------------------------------------------------
 
 const DEFAULT_PALETTE = [
-  '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+  "#3b82f6",
+  "#ef4444",
+  "#22c55e",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
+  "#6366f1",
+  "#84cc16",
 ];
 
 function defaultColor(index: number): string {
@@ -118,8 +129,8 @@ function initSimNodes(
       id: n.id,
       label: n.label ?? n.id,
       color: n.color ?? defaultColor(i),
-      x: n.x ?? (cx + radius * Math.cos(angle)),
-      y: n.y ?? (cy + radius * Math.sin(angle)),
+      x: n.x ?? cx + radius * Math.cos(angle),
+      y: n.y ?? cy + radius * Math.sin(angle),
       vx: 0,
       vy: 0,
       fixed: n.fixed ?? false,
@@ -267,7 +278,7 @@ export function ForceGraph(props: ForceGraphProps) {
     attractionForce = 0.01,
     damping = 0.9,
     edgeLength = 100,
-    edgeColor = '#94a3b8',
+    edgeColor = "#94a3b8",
     edgeWidth = 1.5,
     title,
   } = props;
@@ -275,57 +286,132 @@ export function ForceGraph(props: ForceGraphProps) {
   // Handle empty data
   if (!nodes || nodes.length === 0) {
     return createElement(
-      'svg',
+      "svg",
       {
         width: String(width),
         height: String(height),
         viewBox: `0 0 ${width} ${height}`,
-        xmlns: 'http://www.w3.org/2000/svg',
-        role: 'img',
-        'aria-label': title ?? 'Empty force-directed graph',
+        xmlns: "http://www.w3.org/2000/svg",
+        role: "img",
+        "aria-label": title ?? "Empty force-directed graph",
       },
       title
         ? createElement(
-            'text',
+            "text",
             {
               x: String(width / 2),
               y: String(height / 2),
-              'text-anchor': 'middle',
-              'font-size': '16',
-              'font-weight': 'bold',
-              'font-family': 'sans-serif',
-              fill: '#111827',
+              "text-anchor": "middle",
+              "font-size": "16",
+              "font-weight": "bold",
+              "font-family": "sans-serif",
+              fill: "#111827",
             },
             title,
           )
         : createElement(
-            'text',
+            "text",
             {
               x: String(width / 2),
               y: String(height / 2),
-              'text-anchor': 'middle',
-              'font-size': '14',
-              'font-family': 'sans-serif',
-              fill: '#6b7280',
+              "text-anchor": "middle",
+              "font-size": "14",
+              "font-family": "sans-serif",
+              fill: "#6b7280",
             },
-            'No data',
+            "No data",
           ),
     );
   }
 
-  // Compute a stable, settled layout (iterative — no animation)
-  const simNodes = useMemo(() => {
-    let current = initSimNodes(nodes, width, height);
-    const maxIterations = 300;
-    for (let i = 0; i < maxIterations; i++) {
-      current = simulationTick(
-        current, edges, width, height,
-        repulsionForce, attractionForce, damping, edgeLength,
+  // ── Animated physics simulation ────────────────────────────────────
+  // Simulation state lives in a ref to avoid re-render loops.
+  // A tick counter in useState triggers re-renders at animation frame rate.
+  const simRef = useRef<SimNode[]>(initSimNodes(nodes, width, height));
+  const [tick, setTick] = useState(0);
+  const runningRef = useRef(true);
+  const settledRef = useRef(false);
+
+  // Store edges/config in refs so the animation effect has stable deps
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+  const configRef = useRef({
+    repulsionForce,
+    attractionForce,
+    damping,
+    edgeLength,
+    width,
+    height,
+  });
+  configRef.current = {
+    repulsionForce,
+    attractionForce,
+    damping,
+    edgeLength,
+    width,
+    height,
+  };
+
+  // Re-initialize when nodes change
+  useEffect(() => {
+    simRef.current = initSimNodes(nodes, width, height);
+    settledRef.current = false;
+    runningRef.current = true;
+    setTick((t: number) => t + 1);
+  }, [nodes.length]);
+
+  // Animation loop — runs once, reads from refs
+  useEffect(() => {
+    let frameId = 0;
+    const animate = () => {
+      if (!runningRef.current) return;
+      const cfg = configRef.current;
+      const next = simulationTick(
+        simRef.current,
+        edgesRef.current,
+        cfg.width,
+        cfg.height,
+        cfg.repulsionForce,
+        cfg.attractionForce,
+        cfg.damping,
+        cfg.edgeLength,
       );
-      if (kineticEnergy(current) < 0.01) break;
+      simRef.current = next;
+
+      if (kineticEnergy(next) < 0.01) {
+        settledRef.current = true;
+        // Do one final render then stop
+        setTick((t: number) => t + 1);
+        return;
+      }
+
+      setTick((t: number) => t + 1);
+      frameId = requestAnimationFrame(animate) as unknown as number;
+    };
+    frameId = requestAnimationFrame(animate) as unknown as number;
+    return () => {
+      runningRef.current = false;
+      cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  // Current snapshot for rendering (read from ref, driven by tick counter)
+  const simNodes = simRef.current;
+  // Suppress unused variable warning — tick drives re-renders
+  void tick;
+
+  // Toggle fixed state on click
+  const toggleFixed = useCallback((id: string) => {
+    simRef.current = simRef.current.map((n) =>
+      n.id === id ? { ...n, fixed: !n.fixed, vx: 0, vy: 0 } : n,
+    );
+    if (settledRef.current) {
+      // Restart animation if settled
+      settledRef.current = false;
+      runningRef.current = true;
+      setTick((t: number) => t + 1);
     }
-    return current;
-  }, [nodes, edges, width, height, repulsionForce, attractionForce, damping, edgeLength]);
+  }, []);
 
   // Build node index for edge lookups
   const nodeIndex = useMemo(() => {
@@ -334,7 +420,7 @@ export function ForceGraph(props: ForceGraphProps) {
       map.set(simNodes[i]!.id, simNodes[i]!);
     }
     return map;
-  }, [simNodes]);
+  }, [tick]);
 
   // ---- Arrow marker defs ----------------------------------------------------
 
@@ -342,21 +428,23 @@ export function ForceGraph(props: ForceGraphProps) {
     if (!showArrows) return [];
     return [
       createElement(
-        'defs',
-        { key: 'arrow-defs' },
-        createElement('marker', {
-          key: 'arrowhead',
-          id: 'arrowhead',
-          markerWidth: '10',
-          markerHeight: '7',
-          refX: String(10 + nodeRadius),
-          refY: '3.5',
-          orient: 'auto',
-          markerUnits: 'userSpaceOnUse',
-        },
-          createElement('polygon', {
-            key: 'arrow-poly',
-            points: '0 0, 10 3.5, 0 7',
+        "defs",
+        { key: "arrow-defs" },
+        createElement(
+          "marker",
+          {
+            key: "arrowhead",
+            id: "arrowhead",
+            markerWidth: "10",
+            markerHeight: "7",
+            refX: String(10 + nodeRadius),
+            refY: "3.5",
+            orient: "auto",
+            markerUnits: "userSpaceOnUse",
+          },
+          createElement("polygon", {
+            key: "arrow-poly",
+            points: "0 0, 10 3.5, 0 7",
             fill: edgeColor,
           }),
         ),
@@ -389,19 +477,19 @@ export function ForceGraph(props: ForceGraphProps) {
         x2: String(targetNode.x),
         y2: String(targetNode.y),
         stroke: edge.color ?? edgeColor,
-        'stroke-width': String(strokeWidth),
-        'stroke-opacity': '0.6',
+        "stroke-width": String(strokeWidth),
+        "stroke-opacity": "0.6",
       };
 
       if (showArrows) {
-        lineProps['marker-end'] = 'url(#arrowhead)';
+        lineProps["marker-end"] = "url(#arrowhead)";
       }
 
-      elements.push(createElement('line', lineProps));
+      elements.push(createElement("line", lineProps));
     }
 
     return elements;
-  }, [edges, nodeIndex, edgeColor, edgeWidth, showArrows]);
+  }, [tick, edgeColor, edgeWidth, showArrows]);
 
   // ---- Build nodes ----------------------------------------------------------
 
@@ -411,18 +499,21 @@ export function ForceGraph(props: ForceGraphProps) {
     for (let i = 0; i < simNodes.length; i++) {
       const n = simNodes[i]!;
 
-      // Node circle
+      // Node circle — click to toggle fixed/unfixed
       elements.push(
-        createElement('circle', {
+        createElement("circle", {
           key: `node-${n.id}`,
           cx: String(n.x),
           cy: String(n.y),
           r: String(nodeRadius),
           fill: n.color,
-          stroke: '#fff',
-          'stroke-width': '2',
-          role: 'img',
-          'aria-label': `Node: ${n.label}`,
+          stroke: n.fixed ? "#0f172a" : "#fff",
+          "stroke-width": n.fixed ? "3" : "2",
+          style: { cursor: "pointer" },
+          onClick: () => toggleFixed(n.id),
+          role: "button",
+          tabIndex: 0,
+          "aria-label": `Node: ${n.label}${n.fixed ? " (locked)" : ""}`,
         }),
       );
 
@@ -430,16 +521,16 @@ export function ForceGraph(props: ForceGraphProps) {
       if (showLabels) {
         elements.push(
           createElement(
-            'text',
+            "text",
             {
               key: `label-${n.id}`,
               x: String(n.x),
               y: String(n.y + nodeRadius + 14),
-              'text-anchor': 'middle',
-              'font-size': '11',
-              'font-family': 'sans-serif',
-              fill: '#374151',
-              'pointer-events': 'none',
+              "text-anchor": "middle",
+              "font-size": "11",
+              "font-family": "sans-serif",
+              fill: "#374151",
+              "pointer-events": "none",
             },
             n.label,
           ),
@@ -448,7 +539,7 @@ export function ForceGraph(props: ForceGraphProps) {
     }
 
     return elements;
-  }, [simNodes, nodeRadius, showLabels]);
+  }, [tick, nodeRadius, showLabels, toggleFixed]);
 
   // ---- Title ----------------------------------------------------------------
 
@@ -456,16 +547,16 @@ export function ForceGraph(props: ForceGraphProps) {
     if (!title) return [];
     return [
       createElement(
-        'text',
+        "text",
         {
-          key: 'title',
+          key: "title",
           x: String(width / 2),
-          y: '24',
-          'text-anchor': 'middle',
-          'font-size': '16',
-          'font-weight': 'bold',
-          'font-family': 'sans-serif',
-          fill: '#111827',
+          y: "24",
+          "text-anchor": "middle",
+          "font-size": "16",
+          "font-weight": "bold",
+          "font-family": "sans-serif",
+          fill: "#111827",
         },
         title,
       ),
@@ -480,15 +571,15 @@ export function ForceGraph(props: ForceGraphProps) {
   const titleEl = buildTitle();
 
   return createElement(
-    'svg',
+    "svg",
     {
       width: String(width),
       height: String(height),
       viewBox: `0 0 ${width} ${height}`,
-      xmlns: 'http://www.w3.org/2000/svg',
-      role: 'img',
-      'aria-label': title ?? 'Force-directed graph',
-      style: { fontFamily: 'sans-serif' },
+      xmlns: "http://www.w3.org/2000/svg",
+      role: "img",
+      "aria-label": title ?? "Force-directed graph",
+      style: { fontFamily: "sans-serif" },
     },
     ...defs,
     ...titleEl,

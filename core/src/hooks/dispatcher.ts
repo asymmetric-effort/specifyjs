@@ -12,11 +12,14 @@ import {
   areDepsEqual,
   pushEffect,
   getCurrentFiber,
+  getCurrentHookIndex,
   EffectHookTag,
 } from './hook-state';
 import { scheduleUpdate } from '../core/scheduler';
 import { requestUpdateLane, startTransition as startTransitionFn } from '../core/transitions';
 import { mergeLanes } from '../core/lanes';
+import { trackStateUpdate, trackEffectDeps } from '../shared/render-guard';
+import { getComponentName } from '../shared/component-registry';
 
 // ---------------------------------------------------------------------------
 // Fiber render trigger — set by the work loop
@@ -83,6 +86,13 @@ export function useStateImpl<T>(
   const fiber = getCurrentFiberForDispatch();
 
   const setState = (action: T | ((prev: T) => T)) => {
+    // Dev-time: detect rapid setState floods
+    const compName =
+      (typeof fiber.type === 'function'
+        ? getComponentName(fiber.type) || (fiber.type as { name?: string }).name
+        : '') || 'Anonymous';
+    trackStateUpdate(fiber, compName);
+
     const lane = requestUpdateLane();
     /* v8 ignore start -- overflow guard tested in security regression tests */
     if (queue.length >= 10000) {
@@ -133,6 +143,13 @@ export function useReducerImpl<S, A>(
   const fiber = getCurrentFiberForDispatch();
 
   const dispatch = (action: A) => {
+    // Dev-time: detect rapid dispatch floods
+    const dName =
+      (typeof fiber.type === 'function'
+        ? getComponentName(fiber.type) || (fiber.type as { name?: string }).name
+        : '') || 'Anonymous';
+    trackStateUpdate(fiber, dName);
+
     const lane = requestUpdateLane();
     queue.push({ action });
     markFiberWithLane(fiber, lane);
@@ -154,6 +171,7 @@ function useEffectImpl(
   deps?: readonly unknown[],
 ): void {
   const hook = allocateHook();
+  const hIdx = getCurrentHookIndex();
 
   // On update, read the previous effect's destroy from the effect object itself
   // (runEffects sets destroy on the effect, not on hook.memoizedState)
@@ -164,7 +182,19 @@ function useEffectImpl(
   const prevDestroy = prevState?.effect?.destroy ?? null;
 
   if (prevState !== null && deps !== undefined) {
-    if (areDepsEqual(prevState.deps, deps)) {
+    const depsMatch = areDepsEqual(prevState.deps, deps);
+
+    // Dev-time: track dependency stability
+    const fiber = getCurrentFiber();
+    if (fiber) {
+      const cName =
+        (typeof fiber.type === 'function'
+          ? getComponentName(fiber.type) || (fiber.type as { name?: string }).name
+          : '') || 'Anonymous';
+      trackEffectDeps(fiber, hIdx, deps as unknown[] | undefined, !depsMatch, cName);
+    }
+
+    if (depsMatch) {
       // Deps haven't changed, skip
       pushEffect(EffectHookTag.NoEffect, create, prevDestroy, deps);
       return;

@@ -49,6 +49,13 @@ import {
 } from '../core/scheduler-host-config';
 import { registerComponentInstance, getComponentName } from '../shared/component-registry';
 import { checkAriaCompliance } from '../shared/aria-warnings';
+import {
+  beginRenderCycle,
+  trackRender,
+  beginCommitCycle,
+  trackEffect,
+  beginFrame,
+} from '../shared/render-guard';
 
 // ---------------------------------------------------------------------------
 // Root container state
@@ -137,6 +144,10 @@ function installPersistentRerenderCallback(): void {
 }
 
 function performWork(root: FiberRoot): void {
+  // Begin a new render cycle — resets per-fiber render counters
+  beginRenderCycle();
+  beginFrame();
+
   // Ensure re-render callback is active
   installPersistentRerenderCallback();
 
@@ -476,6 +487,10 @@ function reconcileFunctionComponent(fiber: Fiber): void {
   setCurrentFiber(fiber);
 
   const Component = fiber.type as FunctionComponent;
+  const componentName = getComponentName(Component) || Component.name || 'Anonymous';
+
+  // Dev-time: track renders per fiber per cycle to detect infinite loops
+  trackRender(fiber, componentName);
 
   // StrictMode double-render: call component twice to detect side effects.
   // The first invocation's result is discarded.
@@ -986,6 +1001,9 @@ function appendAllChildren(parent: HTMLElement, fiber: Fiber): void {
 // ---------------------------------------------------------------------------
 
 function commitRoot(root: FiberRoot, finishedWork: Fiber): void {
+  // Begin commit cycle — resets per-fiber effect counters
+  beginCommitCycle();
+
   // Commit deletions first
   commitDeletions(finishedWork);
 
@@ -1201,6 +1219,11 @@ function commitEffects(rootFiber: Fiber): void {
     ) {
       const effectList = node.dependencies as EffectHook | null;
       if (effectList) {
+        // Dev-time: track effect executions per fiber per commit cycle
+        const effName =
+          (typeof node.type === 'function' ? getComponentName(node.type) || node.type.name : '') ||
+          'Anonymous';
+        trackEffect(node, effName);
         runEffects(effectList);
       }
     }

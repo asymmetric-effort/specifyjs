@@ -57,6 +57,10 @@ export function getCurrentFiber(): Fiber | null {
   return currentlyRenderingFiber;
 }
 
+export function getCurrentHookIndex(): number {
+  return hookIndex;
+}
+
 /* v8 ignore start -- internal utility, tested indirectly */
 export function getHookIndex(): number {
   return hookIndex;

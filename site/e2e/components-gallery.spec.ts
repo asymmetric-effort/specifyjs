@@ -18,8 +18,8 @@ test.describe('Components Gallery', () => {
   });
 
   test('toggle component responds to clicks', async ({ page }) => {
-    // Toggle component renders a label element with role="switch"
-    const toggle = page.locator('.dialog-body .preview-body').first().locator('label').first();
+    // Toggle component renders a div[role="switch"] with label text
+    const toggle = page.locator('.dialog-body .preview-body').first().locator('[role="switch"]').first();
     await expect(toggle).toContainText('Off');
     await toggle.click();
     await expect(toggle).toContainText('On');

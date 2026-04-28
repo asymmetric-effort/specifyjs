@@ -27,6 +27,11 @@ export interface ComplexGraph2DProps {
   maxIterations?: number;
   colorScheme?: 'classic' | 'fire' | 'ocean';
   computeFunction?: (re: number, im: number, maxIter: number) => number;
+  /** Precomputed iteration grid (rows x cols). When provided, renders as SVG
+   *  instead of canvas. Each value is the iteration count at that pixel. */
+  data?: number[][];
+  /** Pixel resolution for precomputed SVG rendering (default: 2) */
+  resolution?: number;
   onPointClick?: (info: ComplexPointInfo) => void;
   onPointHover?: (info: ComplexPointInfo) => void;
   onPointDoubleClick?: (info: ComplexPointInfo) => void;
@@ -81,6 +86,31 @@ function iterToColor(iter: number, maxIter: number, scheme: string): [number, nu
 // Component
 // ---------------------------------------------------------------------------
 
+/**
+ * Precompute a Mandelbrot iteration grid at a given resolution.
+ * Returns a 2D array of iteration counts (rows x cols).
+ */
+export function computeMandelbrotGrid(
+  cols: number,
+  rows: number,
+  realRange: [number, number] = [-2.5, 1],
+  imagRange: [number, number] = [-1.25, 1.25],
+  maxIter: number = 80,
+  computeFn: (re: number, im: number, maxIter: number) => number = mandelbrot,
+): number[][] {
+  const grid: number[][] = [];
+  for (let py = 0; py < rows; py++) {
+    const row: number[] = [];
+    const im = imagRange[1] - (py / rows) * (imagRange[1] - imagRange[0]);
+    for (let px = 0; px < cols; px++) {
+      const re = realRange[0] + (px / cols) * (realRange[1] - realRange[0]);
+      row.push(computeFn(re, im, maxIter));
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
 export function ComplexGraph2D(props: ComplexGraph2DProps) {
   const {
     width = 400,
@@ -90,11 +120,50 @@ export function ComplexGraph2D(props: ComplexGraph2DProps) {
     maxIterations = 100,
     colorScheme = 'classic',
     computeFunction = mandelbrot,
+    data,
+    resolution = 2,
     onPointClick,
     onPointHover,
     onPointDoubleClick,
     onPointContextMenu,
   } = props;
+
+  // ── SVG rendering mode (precomputed data) ──────────────────────────
+  if (data) {
+    const rows = data.length;
+    const cols = rows > 0 ? data[0]!.length : 0;
+    const cellW = cols > 0 ? width / cols : 1;
+    const cellH = rows > 0 ? height / rows : 1;
+
+    const rects: ReturnType<typeof createElement>[] = [];
+    for (let py = 0; py < rows; py++) {
+      const row = data[py]!;
+      for (let px = 0; px < cols; px++) {
+        const iter = row[px] ?? 0;
+        const [r, g, b] = iterToColor(iter, maxIterations, colorScheme);
+        rects.push(createElement('rect', {
+          key: `${py}-${px}`,
+          x: String(px * cellW),
+          y: String(py * cellH),
+          width: String(Math.ceil(cellW)),
+          height: String(Math.ceil(cellH)),
+          fill: `rgb(${r},${g},${b})`,
+        }));
+      }
+    }
+
+    return createElement('svg', {
+      width: String(width),
+      height: String(height),
+      viewBox: `0 0 ${width} ${height}`,
+      xmlns: 'http://www.w3.org/2000/svg',
+      role: 'img',
+      'aria-label': 'Complex plane visualization',
+      style: { cursor: 'crosshair', borderRadius: '6px' },
+    }, ...rects);
+  }
+
+  // ── Canvas rendering mode (runtime compute) ────────────────────────
 
   const [realMin, setRealMin] = useState(initReal[0]);
   const [realMax, setRealMax] = useState(initReal[1]);

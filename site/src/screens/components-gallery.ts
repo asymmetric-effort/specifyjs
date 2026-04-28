@@ -57,7 +57,7 @@ import { Splitter } from '../../../components/layout/splitter/src/index';
 import { BarGraph } from '../../../components/viz/2D-bar-graph/src/index';
 import { LineGraph } from '../../../components/viz/2D-line-graph/src/index';
 import { CartesianGraph2D } from '../../../components/viz/2D-cartesian-raw/src/index';
-import { ComplexGraph2D } from '../../../components/viz/2D-complex-graph/src/index';
+import { ComplexGraph2D, computeMandelbrotGrid } from '../../../components/viz/2D-complex-graph/src/index';
 import { PolarGraph2D } from '../../../components/viz/2D-polar-graph/src/index';
 import { HypercubeGraph } from '../../../components/viz/graph/src/index';
 import { PieGraph } from '../../../components/viz/2D-pie-graph/src/index';
@@ -111,7 +111,11 @@ function PreviewCard(props: { title: string; component: () => ReturnType<typeof 
       'div',
       {
         className: 'preview-header',
+        role: 'button',
+        tabIndex: 0,
+        'aria-expanded': collapsed ? 'false' : 'true',
         onDblClick: () => setCollapsed(!collapsed),
+        onKeyDown: (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') setCollapsed(!collapsed); },
         style: { cursor: 'pointer', userSelect: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
       },
       createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
@@ -129,7 +133,11 @@ function PreviewCard(props: { title: string; component: () => ReturnType<typeof 
       ),
       createElement('span', { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
         createElement('span', {
+          role: 'button',
+          tabIndex: 0,
+          'aria-label': maximized ? 'Minimize' : 'Maximize',
           onClick: (e: Event) => { e.stopPropagation(); setMaximized(!maximized); },
+          onKeyDown: (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') { e.stopPropagation(); setMaximized(!maximized); } },
           style: { fontSize: '12px', color: '#94a3b8', cursor: 'pointer', padding: '0 4px' },
           title: maximized ? 'Minimize' : 'Maximize',
         }, maximized ? '\u2716' : '\u26f6'),
@@ -326,6 +334,7 @@ function RadioGroupDemo() {
   const [selected, setSelected] = useState('small');
   return createElement(RadioGroup, {
     name: 'size-demo',
+    label: 'Size',
     value: selected,
     onChange: setSelected,
     options: [
@@ -341,6 +350,7 @@ function SelectDemo() {
   return createElement(Select, {
     value,
     onChange: (v: string | string[]) => setValue(v as string),
+    label: 'Fruit',
     placeholder: 'Select a fruit...',
     options: [
       { value: 'apple', label: 'Apple' },
@@ -890,16 +900,18 @@ function CartesianRoseDemo() {
   );
 }
 
+// Precompute Mandelbrot data at module level (static, computed once)
+const MANDELBROT_DATA = computeMandelbrotGrid(130, 100, [-2.5, 1], [-1.2, 1.2], 80);
+
 function MandelbrotDemo() {
   return createElement('div', null,
     createElement(ComplexGraph2D, {
       width: 260, height: 200,
-      realRange: [-2.5, 1],
-      imagRange: [-1.2, 1.2],
+      data: MANDELBROT_DATA,
       maxIterations: 80,
       colorScheme: 'classic',
     }),
-    createElement('p', { style: { fontSize: '11px', color: '#94a3b8', marginTop: '4px' } }, 'Mandelbrot set — hover for coordinates, click to zoom'),
+    createElement('p', { style: { fontSize: '11px', color: '#94a3b8', marginTop: '4px' } }, 'Mandelbrot set — precomputed 130x100 grid, SVG rendering'),
   );
 }
 
@@ -1431,14 +1443,30 @@ function VectorFieldDemo() {
 }
 
 function ThreeDLayersDemo() {
+  // Generate a 6x6 surface with a peak in the center
+  const surface1: number[][] = [];
+  const surface2: number[][] = [];
+  for (let r = 0; r < 6; r++) {
+    const row1: number[] = [];
+    const row2: number[] = [];
+    for (let c = 0; c < 6; c++) {
+      const dx = c - 2.5, dy = r - 2.5;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      row1.push(Math.max(0, 4 - dist));
+      row2.push(Math.max(0, 3 - dist * 0.8) * 0.7);
+    }
+    surface1.push(row1);
+    surface2.push(row2);
+  }
   return createElement(ThreeDLayers, {
     layers: [
-      { label: 'Layer 1', color: '#3b82f6', data: [[2,3,4,3],[3,5,6,4],[4,6,7,5],[3,4,5,3]] },
-      { label: 'Layer 2', color: '#10b981', data: [[1,2,3,2],[2,4,5,3],[3,5,6,4],[2,3,4,2]] },
+      { label: 'Surface A', color: '#3b82f6', data: surface1, opacity: 0.8 },
+      { label: 'Surface B', color: '#10b981', data: surface2, opacity: 0.7 },
     ],
-    width: 280, height: 180,
+    width: 320, height: 240,
     showLabels: true, showAxes: true,
-    rotateX: 30, rotateY: -30,
+    rotateX: 35, rotateY: 45,
+    layerSpacing: 3,
   });
 }
 

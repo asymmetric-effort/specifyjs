@@ -42,11 +42,11 @@ const listStyle: Record<string, string> = {
 
 const itemBaseStyle: Record<string, string> = {
   padding: '10px 14px',
-  color: '#1f2937',
+  color: 'var(--color-text, #1f2937)',
 };
 
 const dividerStyle: Record<string, string> = {
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: '1px solid var(--color-border, #e5e7eb)',
 };
 
 const hoverableStyle: Record<string, string> = {
@@ -55,23 +55,23 @@ const hoverableStyle: Record<string, string> = {
 };
 
 const selectedStyle: Record<string, string> = {
-  backgroundColor: '#eff6ff',
+  backgroundColor: 'var(--color-bg-muted, #eff6ff)',
 };
 
 const emptyStyle: Record<string, string> = {
   padding: '24px',
   textAlign: 'center',
-  color: '#9ca3af',
+  color: 'var(--color-text-muted, #9ca3af)',
   fontSize: '14px',
 };
 
 const sectionStyle: Record<string, string> = {
   padding: '10px 14px',
-  borderBottom: '1px solid #e5e7eb',
-  backgroundColor: '#f9fafb',
+  borderBottom: '1px solid var(--color-border, #e5e7eb)',
+  backgroundColor: 'var(--color-bg-subtle, #f9fafb)',
   fontWeight: '600',
   fontSize: '13px',
-  color: '#6b7280',
+  color: 'var(--color-text-muted, #6b7280)',
 };
 
 export function ListView(props: ListViewProps) {

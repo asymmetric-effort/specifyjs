@@ -131,4 +131,39 @@ describe('evaluateFunction', () => {
     expect(points).toBeNull();
     cancel();
   });
+
+  it('completes async evaluation and calls onResult', async () => {
+    const onResult = vi.fn();
+    evaluateFunction(
+      { fn: (x) => x * 3, range: { start: 0, end: 2, step: 1 }, batchSize: 10 },
+      onResult,
+    );
+    // Wait for async batches to complete
+    await new Promise((r) => setTimeout(r, 200));
+    expect(onResult).toHaveBeenCalledWith([
+      { input: 0, output: 0 },
+      { input: 1, output: 3 },
+      { input: 2, output: 6 },
+    ]);
+  });
+});
+
+describe('computeAsync progress', () => {
+  it('calls onProgress with partial results during computation', async () => {
+    const fn = (x: number) => x;
+    const inputs = Array.from({ length: 50 }, (_, i) => i);
+    const progressCalls: number[] = [];
+
+    await new Promise<void>((resolve) => {
+      computeAsync(fn, inputs, 10, (results, done) => {
+        progressCalls.push(results.length);
+        if (done) resolve();
+      });
+    });
+
+    // Should have had multiple progress calls
+    expect(progressCalls.length).toBeGreaterThan(1);
+    // Final call should have all 50 results
+    expect(progressCalls[progressCalls.length - 1]).toBe(50);
+  });
 });

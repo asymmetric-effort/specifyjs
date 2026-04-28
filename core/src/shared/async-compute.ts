@@ -126,6 +126,7 @@ export function computeAsync(
  * Schedule the next batch using the best available API.
  */
 function scheduleNextBatch(fn: () => void): void {
+  /* v8 ignore next 3 -- requestIdleCallback not available in jsdom test environment */
   if (typeof requestIdleCallback === 'function') {
     requestIdleCallback(() => fn(), { timeout: 16 });
   } else {

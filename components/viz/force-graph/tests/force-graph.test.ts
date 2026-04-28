@@ -65,8 +65,8 @@ describe('ForceGraph — happy path', () => {
     expect(el).not.toBeNull();
   });
 
-  it('renders with animate disabled', () => {
-    const el = ForceGraph({ nodes: sampleNodes, edges: sampleEdges, animate: false });
+  it('renders with custom edge length', () => {
+    const el = ForceGraph({ nodes: sampleNodes, edges: sampleEdges, edgeLength: 50 });
     expect(el).not.toBeNull();
   });
 

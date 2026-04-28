@@ -577,7 +577,7 @@ function ForceGraphDemo() {
       { source: 'B', target: 'D' },
     ],
     width: 240, height: 160,
-    showLabels: true, animate: true,
+    showLabels: true,
   });
 }
 

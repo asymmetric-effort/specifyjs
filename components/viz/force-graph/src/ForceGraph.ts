@@ -18,11 +18,8 @@
 
 import { createElement } from '../../../../core/src/index';
 import {
-  useState,
-  useEffect,
   useMemo,
   useCallback,
-  useRef,
 } from '../../../../core/src/hooks/index';
 
 // -- Data types ---------------------------------------------------------------
@@ -72,8 +69,6 @@ export interface ForceGraphProps {
   edgeColor?: string;
   /** Default edge stroke width (default: 1.5) */
   edgeWidth?: number;
-  /** Enable animation (default: true) */
-  animate?: boolean;
   /** Chart title */
   title?: string;
 }
@@ -274,7 +269,6 @@ export function ForceGraph(props: ForceGraphProps) {
     edgeLength = 100,
     edgeColor = '#94a3b8',
     edgeWidth = 1.5,
-    animate = true,
     title,
   } = props;
 
@@ -319,64 +313,19 @@ export function ForceGraph(props: ForceGraphProps) {
     );
   }
 
-  // Initialize simulation state
-  const [simNodes, setSimNodes] = useState<SimNode[]>(() =>
-    initSimNodes(nodes, width, height),
-  );
-
-  const animFrameRef = useRef<number>(0);
-
-  // Reset simulation when nodes/edges change
-  useEffect(() => {
-    setSimNodes(initSimNodes(nodes, width, height));
-  }, [nodes, width, height]);
-
-  // Animation loop
-  useEffect(() => {
-    if (!animate) {
-      // Run a fixed number of ticks to settle the layout
-      let current = initSimNodes(nodes, width, height);
-      const maxIterations = 200;
-      for (let i = 0; i < maxIterations; i++) {
-        current = simulationTick(
-          current, edges, width, height,
-          repulsionForce, attractionForce, damping, edgeLength,
-        );
-        if (kineticEnergy(current) < 0.01) break;
-      }
-      setSimNodes(current);
-      return;
-    }
-
-    let running = true;
-    let current = simNodes;
-
-    const tick = () => {
-      if (!running) return;
+  // Compute a stable, settled layout (iterative — no animation)
+  const simNodes = useMemo(() => {
+    let current = initSimNodes(nodes, width, height);
+    const maxIterations = 300;
+    for (let i = 0; i < maxIterations; i++) {
       current = simulationTick(
         current, edges, width, height,
         repulsionForce, attractionForce, damping, edgeLength,
       );
-      setSimNodes(current);
-
-      // Stop animating when settled
-      if (kineticEnergy(current) < 0.01) {
-        running = false;
-        return;
-      }
-
-      animFrameRef.current = requestAnimationFrame(tick) as unknown as number;
-    };
-
-    animFrameRef.current = requestAnimationFrame(tick) as unknown as number;
-
-    return () => {
-      running = false;
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
-    };
-  }, [animate, edges, repulsionForce, attractionForce, damping, edgeLength]);
+      if (kineticEnergy(current) < 0.01) break;
+    }
+    return current;
+  }, [nodes, edges, width, height, repulsionForce, attractionForce, damping, edgeLength]);
 
   // Build node index for edge lookups
   const nodeIndex = useMemo(() => {

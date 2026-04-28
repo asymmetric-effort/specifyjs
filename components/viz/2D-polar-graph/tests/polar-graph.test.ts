@@ -48,6 +48,7 @@ describe('PolarGraph2D — happy path', () => {
     // r = 1 + cos(theta), a cardioid
     const el = PolarGraph2D({
       plotFunction: (theta: number) => 1 + Math.cos(theta),
+      sync: true,
     });
     const paths = collectByType(el, 'path');
     expect(paths.length).toBeGreaterThanOrEqual(1);

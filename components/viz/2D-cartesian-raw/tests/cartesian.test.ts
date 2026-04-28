@@ -60,6 +60,7 @@ describe('CartesianGraph2D — happy path', () => {
   it('renders plotFunction curve (path element)', () => {
     const el = CartesianGraph2D({
       plotFunction: (x: number) => x * x,
+      sync: true,
     });
     const paths = collectByType(el, 'path');
     expect(paths.length).toBeGreaterThanOrEqual(1);

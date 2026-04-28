@@ -37,6 +37,9 @@ export interface ComplexGraph2DProps {
   data?: number[][];
   /** Pixel resolution for precomputed SVG rendering (default: 2) */
   resolution?: number;
+  /** If true, compute values synchronously (blocks render).
+   *  Default: false — uses canvas useEffect for runtime computation. */
+  sync?: boolean;
   onPointClick?: (info: ComplexPointInfo) => void;
   onPointHover?: (info: ComplexPointInfo) => void;
   onPointDoubleClick?: (info: ComplexPointInfo) => void;

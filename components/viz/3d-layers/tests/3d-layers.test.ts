@@ -140,10 +140,10 @@ describe('ThreeDLayers — sad path', () => {
 // ---------------------------------------------------------------------------
 
 describe('ThreeDLayers — defaults', () => {
-  it('uses default width and height', () => {
+  it('uses responsive width with viewBox', () => {
     const el = ThreeDLayers({ layers: sampleLayers });
-    expect(el.props.width).toBe('700');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
+    expect(el.props.viewBox).toBe('0 0 700 500');
   });
 
   it('uses role="img"', () => {

@@ -2427,39 +2427,35 @@ function VectorFieldDemo() {
 }
 
 function ThreeDLayersDemo() {
-  // Generate an 8x8 surface with a peak in the center
+  // Generate a 10x10 surface with a peak in the center
   const surface1: number[][] = [];
   const surface2: number[][] = [];
-  for (let r = 0; r < 8; r++) {
+  for (let r = 0; r < 10; r++) {
     const row1: number[] = [];
     const row2: number[] = [];
-    for (let c = 0; c < 8; c++) {
-      const dx = c - 3.5,
-        dy = r - 3.5;
+    for (let c = 0; c < 10; c++) {
+      const dx = c - 4.5,
+        dy = r - 4.5;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      row1.push(Math.max(0, 5 - dist * 1.2));
-      row2.push(Math.max(0, 3.5 - dist) * 0.8);
+      row1.push(Math.max(0, 5 - dist));
+      row2.push(Math.max(0, 3.5 - dist * 0.8) * 0.7);
     }
     surface1.push(row1);
     surface2.push(row2);
   }
-  return createElement(
-    "div",
-    { style: { width: "100%" } },
-    createElement(ThreeDLayers, {
-      layers: [
-        { label: "Surface A", color: "#3b82f6", data: surface1, opacity: 0.8 },
-        { label: "Surface B", color: "#10b981", data: surface2, opacity: 0.7 },
-      ],
-      width: 500,
-      height: 350,
-      showLabels: true,
-      showAxes: true,
-      rotateX: 35,
-      rotateY: 45,
-      layerSpacing: 3,
-    }),
-  );
+  return createElement(ThreeDLayers, {
+    layers: [
+      { label: "Surface A", color: "#3b82f6", data: surface1, opacity: 0.8 },
+      { label: "Surface B", color: "#10b981", data: surface2, opacity: 0.7 },
+    ],
+    width: 600,
+    height: 400,
+    showLabels: true,
+    showAxes: true,
+    rotateX: 35,
+    rotateY: 45,
+    layerSpacing: 3,
+  });
 }
 
 // ─── Page Layouts ────────────────────────────────────────────────────

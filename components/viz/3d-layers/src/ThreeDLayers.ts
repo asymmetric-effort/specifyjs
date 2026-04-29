@@ -225,7 +225,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
       gridInfo.maxRows * gridInfo.maxRows +
       totalVerticalExtent * totalVerticalExtent,
     );
-    const viewportMin = Math.min(width, height) * 0.35;
+    const viewportMin = Math.min(width, height) * 0.75;
     return sceneDiagonal > 0 ? viewportMin / sceneDiagonal : 1;
   }, [gridInfo, layers.length, layerSpacing, width, height]);
 
@@ -603,13 +603,13 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? '3D layer visualization',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: 'sans-serif', maxWidth: '100%' },
     },
     ...titleEl,
     ...emptyMessage,

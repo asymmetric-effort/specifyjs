@@ -45,6 +45,8 @@ export interface ThreeDLayersProps {
   rotateX?: number;
   /** Y-axis rotation in degrees (default: 45) */
   rotateY?: number;
+  /** Z-axis rotation in degrees (default: 0) */
+  rotateZ?: number;
   /** Show layer labels (default: true) */
   showLabels?: boolean;
   /** Show 3D axes (default: true) */
@@ -90,6 +92,7 @@ function project3D(
   z: number,
   rotX: number,
   rotY: number,
+  rotZ: number,
   _perspective: number,
   centerX: number,
   centerY: number,
@@ -99,13 +102,19 @@ function project3D(
   const sinX = Math.sin(rotX * DEG_TO_RAD);
   const cosY = Math.cos(rotY * DEG_TO_RAD);
   const sinY = Math.sin(rotY * DEG_TO_RAD);
+  const cosZ = Math.cos(rotZ * DEG_TO_RAD);
+  const sinZ = Math.sin(rotZ * DEG_TO_RAD);
 
-  // Rotate around Y axis first
-  const x1 = x * cosY - y * sinY;
-  const y1 = x * sinY + y * cosY;
+  // Rotate around Z axis first (roll)
+  const x0 = x * cosZ - y * sinZ;
+  const y0 = x * sinZ + y * cosZ;
+
+  // Rotate around Y axis (yaw)
+  const x1 = x0 * cosY - y0 * sinY;
+  const y1 = x0 * sinY + y0 * cosY;
   const z1 = z;
 
-  // Then rotate around X axis
+  // Rotate around X axis (pitch)
   const x2 = x1;
   const y2 = y1 * cosX - z1 * sinX;
   const z2 = y1 * sinX + z1 * cosX;
@@ -179,6 +188,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
     perspective = 0.5,
     rotateX = 35,
     rotateY = 45,
+    rotateZ = 0,
     showLabels = true,
     showAxes = true,
     layerSpacing = 2,
@@ -235,8 +245,8 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
   // Helper to project a point using current scene parameters
   const proj = useCallback(
     (x: number, y: number, z: number) =>
-      project3D(x, y, z, rotateX, rotateY, perspective, centerX, centerY, sceneScale),
-    [rotateX, rotateY, perspective, centerX, centerY, sceneScale],
+      project3D(x, y, z, rotateX, rotateY, rotateZ, perspective, centerX, centerY, sceneScale),
+    [rotateX, rotateY, rotateZ, perspective, centerX, centerY, sceneScale],
   );
 
   // ---- Axes -----------------------------------------------------------------

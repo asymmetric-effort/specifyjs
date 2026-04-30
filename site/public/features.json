@@ -5,5 +5,5 @@
   "feature-flags-demo": true,
   "dark-mode": true,
   "experimental-3d": true,
-  "page-layouts": false
+  "page-layouts": true
 }

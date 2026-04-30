@@ -2435,6 +2435,10 @@ function VectorFieldDemo() {
 }
 
 function ThreeDLayersDemo() {
+  const [rx, setRx] = useState(35);
+  const [ry, setRy] = useState(45);
+  const [rz, setRz] = useState(0);
+
   // Generate a 10x10 surface with a peak in the center
   const surface1: number[][] = [];
   const surface2: number[][] = [];
@@ -2451,19 +2455,69 @@ function ThreeDLayersDemo() {
     surface1.push(row1);
     surface2.push(row2);
   }
-  return createElement(ThreeDLayers, {
-    layers: [
-      { label: "Surface A", color: "#3b82f6", data: surface1, opacity: 0.8 },
-      { label: "Surface B", color: "#10b981", data: surface2, opacity: 0.7 },
-    ],
-    width: 600,
-    height: 400,
-    showLabels: true,
-    showAxes: true,
-    rotateX: 35,
-    rotateY: 45,
-    layerSpacing: 3,
-  });
+  return createElement(
+    FlexContainer,
+    { gap: "16px", alignItems: "flex-start", style: { flexWrap: "wrap" } },
+    // Visualization (takes remaining space)
+    createElement(
+      "div",
+      { style: { flex: "1", minWidth: "200px" } },
+      createElement(ThreeDLayers, {
+        layers: [
+          { label: "Surface A", color: "#3b82f6", data: surface1, opacity: 0.8 },
+          { label: "Surface B", color: "#10b981", data: surface2, opacity: 0.7 },
+        ],
+        width: 600,
+        height: 400,
+        showLabels: true,
+        showAxes: true,
+        rotateX: rx,
+        rotateY: ry,
+        rotateZ: rz,
+        layerSpacing: 3,
+      }),
+    ),
+    // Rotation controls
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          minWidth: "120px",
+          paddingTop: "8px",
+        },
+      },
+      createElement(NumberSpinner, {
+        value: rx,
+        onChange: setRx,
+        min: -90,
+        max: 90,
+        step: 5,
+        label: "X axis",
+        suffix: "\u00b0",
+      }),
+      createElement(NumberSpinner, {
+        value: ry,
+        onChange: setRy,
+        min: -90,
+        max: 90,
+        step: 5,
+        label: "Y axis",
+        suffix: "\u00b0",
+      }),
+      createElement(NumberSpinner, {
+        value: rz,
+        onChange: setRz,
+        min: -90,
+        max: 90,
+        step: 5,
+        label: "Z axis",
+        suffix: "\u00b0",
+      }),
+    ),
+  );
 }
 
 // ─── Page Layouts ────────────────────────────────────────────────────

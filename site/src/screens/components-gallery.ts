@@ -408,7 +408,7 @@ export function ComponentsGallery() {
     accordionSection("3D & Advanced", "3 components", openSection, toggle, [
       preview("Hypercube (4D)", HypercubeDemo, "components/viz/graph"),
       preview("3D Layers", ThreeDLayersDemo, "components/viz/3d-layers"),
-      preview("Double Pendulum", DoublePendulumDemo, "components/viz/force-graph"),
+      preview("Pendulum Physics", DoublePendulumDemo, "components/viz/force-graph"),
     ]),
     createElement(
       FeatureGate,
@@ -2524,101 +2524,193 @@ function ThreeDLayersDemo() {
   );
 }
 
-// ─── Double Pendulum (custom force demo) ─────────────────────────────
+// ─── N-Joint Pendulum Physics Demo ───────────────────────────────────
+
+const PENDULUM_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
+const PENDULUM_ARM_LEN = 60;
+const PENDULUM_GRAVITY = 0.5;
+const PENDULUM_DAMPING = 0.999;
+const CONSTRAINT_ITERATIONS = 10;
 
 /**
- * Double pendulum physics using Lagrangian mechanics.
- * Returns a custom force function for ForceGraph.
+ * Create an N-joint pendulum force function using Verlet integration
+ * with distance constraints. This approach scales to any number of
+ * joints and produces physically plausible chaotic motion.
  *
- * The system has 3 nodes:
- *   - pivot (fixed at top center)
- *   - m1 (first mass, connected to pivot)
- *   - m2 (second mass, connected to m1)
+ * The Verlet method:
+ *  1. Save current positions
+ *  2. Apply gravity to velocities
+ *  3. Update positions: new = current + (current - previous) * damping
+ *  4. Enforce rigid rod constraints by iteratively correcting positions
+ *     so adjacent masses maintain fixed distances
  */
-function createDoublePendulumForce(
-  L1: number,
-  L2: number,
-  m1: number,
-  m2: number,
-  g: number,
+function createPendulumForce(
+  jointCount: number,
 ): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[] {
-  // Internal angular state — persists across frames
-  let theta1 = Math.PI / 2;
-  let theta2 = Math.PI / 1.5;
-  let omega1 = 0;
-  let omega2 = 0;
-  const dt = 0.03;
+  // Previous positions for Verlet integration (indexed by node id)
+  const prevPos = new Map<string, { x: number; y: number }>();
+  let initialized = false;
 
   return (nodes: ForceSimNode[]) => {
     const pivot = nodes.find((n) => n.id === "pivot");
     if (!pivot) return nodes;
 
-    // Lagrangian equations of motion for double pendulum
-    const sin12 = Math.sin(theta1 - theta2);
-    const cos12 = Math.cos(theta1 - theta2);
-    const s1 = Math.sin(theta1);
-    const s2 = Math.sin(theta2);
+    // Initialize previous positions on first frame
+    if (!initialized) {
+      for (let i = 0; i < nodes.length; i++) {
+        const n = nodes[i]!;
+        prevPos.set(n.id, { x: n.x, y: n.y });
+      }
+      initialized = true;
+    }
 
-    const denom1 = L1 * (2 * m1 + m2 - m2 * Math.cos(2 * (theta1 - theta2)));
-    const denom2 = L2 * (2 * m1 + m2 - m2 * Math.cos(2 * (theta1 - theta2)));
+    const result = nodes.map((n) => ({ ...n }));
 
-    const alpha1 =
-      (-g * (2 * m1 + m2) * s1 -
-        m2 * g * Math.sin(theta1 - 2 * theta2) -
-        2 * sin12 * m2 * (omega2 * omega2 * L2 + omega1 * omega1 * L1 * cos12)) /
-      denom1;
+    // Verlet integration for non-fixed nodes
+    for (let i = 0; i < result.length; i++) {
+      const n = result[i]!;
+      if (n.fixed) continue;
+      const prev = prevPos.get(n.id) ?? { x: n.x, y: n.y };
+      const vx = (n.x - prev.x) * PENDULUM_DAMPING;
+      const vy = (n.y - prev.y) * PENDULUM_DAMPING + PENDULUM_GRAVITY;
+      prevPos.set(n.id, { x: n.x, y: n.y });
+      n.x += vx;
+      n.y += vy;
+    }
 
-    const alpha2 =
-      (2 *
-        sin12 *
-        (omega1 * omega1 * L1 * (m1 + m2) +
-          g * (m1 + m2) * Math.cos(theta1) +
-          omega2 * omega2 * L2 * m2 * cos12)) /
-      denom2;
+    // Enforce distance constraints iteratively
+    // Nodes are ordered: pivot, m1, m2, ..., mN
+    // Constraint: dist(node[i], node[i+1]) = PENDULUM_ARM_LEN
+    for (let iter = 0; iter < CONSTRAINT_ITERATIONS; iter++) {
+      for (let i = 0; i < result.length - 1; i++) {
+        const a = result[i]!;
+        const b = result[i + 1]!;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.001) continue;
+        const diff = (dist - PENDULUM_ARM_LEN) / dist;
+        const offsetX = dx * diff * 0.5;
+        const offsetY = dy * diff * 0.5;
+        if (!a.fixed) {
+          a.x += offsetX;
+          a.y += offsetY;
+        }
+        if (!b.fixed) {
+          b.x -= offsetX;
+          b.y -= offsetY;
+        }
+      }
+    }
 
-    omega1 += alpha1 * dt;
-    omega2 += alpha2 * dt;
-    theta1 += omega1 * dt;
-    theta2 += omega2 * dt;
-
-    // Convert angles to Cartesian positions
-    const x1 = pivot.x + L1 * Math.sin(theta1);
-    const y1 = pivot.y + L1 * Math.cos(theta1);
-    const x2 = x1 + L2 * Math.sin(theta2);
-    const y2 = y1 + L2 * Math.cos(theta2);
-
-    return nodes.map((n) => {
-      if (n.id === "m1") return { ...n, x: x1, y: y1 };
-      if (n.id === "m2") return { ...n, x: x2, y: y2 };
-      return n;
-    });
+    return result;
   };
 }
 
-// Module-level force function (stable reference — no unstable deps)
-const pendulumForce = createDoublePendulumForce(80, 80, 2, 1, 9.81);
+// Force function cache by joint count to maintain stable references
+const pendulumForceCache = new Map<
+  number,
+  (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[]
+>();
+
+function getPendulumForce(
+  jointCount: number,
+): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[] {
+  let fn = pendulumForceCache.get(jointCount);
+  if (!fn) {
+    fn = createPendulumForce(jointCount);
+    pendulumForceCache.set(jointCount, fn);
+  }
+  return fn;
+}
+
+function buildPendulumNodes(jointCount: number, pivotX: number, pivotY: number) {
+  const nodes = [{ id: "pivot", fixed: true, x: pivotX, y: pivotY, color: "#64748b" }];
+  for (let i = 0; i < jointCount; i++) {
+    const angle = Math.PI / 4 + (i * 0.3);
+    nodes.push({
+      id: `m${i + 1}`,
+      x: pivotX + (i + 1) * PENDULUM_ARM_LEN * Math.sin(angle),
+      y: pivotY + (i + 1) * PENDULUM_ARM_LEN * Math.cos(angle),
+      color: PENDULUM_COLORS[i % PENDULUM_COLORS.length]!,
+    });
+  }
+  return nodes;
+}
+
+function buildPendulumEdges(jointCount: number) {
+  const edges = [];
+  const ids = ["pivot", ...Array.from({ length: jointCount }, (_, i) => `m${i + 1}`)];
+  for (let i = 0; i < ids.length - 1; i++) {
+    edges.push({
+      source: ids[i]!,
+      target: ids[i + 1]!,
+      color: "var(--color-text-muted, #94a3b8)",
+    });
+  }
+  return edges;
+}
 
 function DoublePendulumDemo() {
-  return createElement(ForceGraph, {
-    nodes: [
-      { id: "pivot", fixed: true, x: 200, y: 60, color: "#64748b" },
-      { id: "m1", x: 280, y: 140, color: "#3b82f6" },
-      { id: "m2", x: 280, y: 220, color: "#ef4444" },
-    ],
-    edges: [
-      { source: "pivot", target: "m1", color: "var(--color-text-muted, #94a3b8)" },
-      { source: "m1", target: "m2", color: "var(--color-text-muted, #94a3b8)" },
-    ],
-    customForce: pendulumForce,
-    trails: [
-      { nodeId: "m2", color: "#ef4444", maxPoints: 300, width: 1, opacity: 0.4 },
-    ],
-    width: 400,
-    height: 350,
-    nodeRadius: 8,
-    showLabels: false,
-    edgeWidth: 2,
-  });
+  const [jointCount, setJointCount] = useState(3);
+  const forceRef = useRef(getPendulumForce(jointCount));
+
+  // When joint count changes, create a new force function and clear cache
+  const handleJointChange = useCallback((n: number) => {
+    pendulumForceCache.delete(n);
+    forceRef.current = createPendulumForce(n);
+    setJointCount(n);
+  }, []);
+
+  const nodes = buildPendulumNodes(jointCount, 200, 50);
+  const edges = buildPendulumEdges(jointCount);
+  const lastMassId = `m${jointCount}`;
+  const lastColor = PENDULUM_COLORS[(jointCount - 1) % PENDULUM_COLORS.length]!;
+
+  return createElement(
+    FlexContainer,
+    { gap: "12px", alignItems: "flex-start", style: { flexWrap: "wrap" } },
+    createElement(
+      "div",
+      { style: { flex: "1", minWidth: "250px" } },
+      createElement(ForceGraph, {
+        nodes,
+        edges,
+        customForce: forceRef.current,
+        trails: [
+          { nodeId: lastMassId, color: lastColor, maxPoints: 400, width: 1, opacity: 0.35 },
+        ],
+        width: 400,
+        height: 350,
+        nodeRadius: 7,
+        showLabels: false,
+        edgeWidth: 2,
+      }),
+    ),
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+          minWidth: "70px",
+          maxWidth: "80px",
+          paddingTop: "4px",
+          fontSize: "10px",
+          color: "var(--color-text, #1f2937)",
+        },
+      },
+      createElement(NumberSpinner, {
+        value: jointCount,
+        onChange: handleJointChange,
+        min: 2,
+        max: 5,
+        step: 1,
+        label: "Joints",
+      }),
+    ),
+  );
 }
 
 // ─── Page Layouts ────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ test.describe('Components Gallery', () => {
 
   test('displays all accordion sections', async ({ page }) => {
     const sections = page.locator('.dialog-body .accordion-section');
-    await expect(sections).toHaveCount(10);
+    await expect(sections).toHaveCount(11);
   });
 
   test('toggle component responds to clicks', async ({ page }) => {

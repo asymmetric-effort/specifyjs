@@ -400,17 +400,61 @@ export function ForceGraph(props: ForceGraphProps) {
   // Suppress unused variable warning — tick drives re-renders
   void tick;
 
-  // Toggle fixed state on click
+  // Toggle fixed state on double-click
   const toggleFixed = useCallback((id: string) => {
     simRef.current = simRef.current.map((n) =>
       n.id === id ? { ...n, fixed: !n.fixed, vx: 0, vy: 0 } : n,
     );
     if (settledRef.current) {
-      // Restart animation if settled
       settledRef.current = false;
       runningRef.current = true;
       setTick((t: number) => t + 1);
     }
+  }, []);
+
+  // Drag support — use refs to avoid re-render loops
+  const draggingIdRef = useRef<string | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const getSvgPoint = useCallback((e: Event): { x: number; y: number } => {
+    const me = e as MouseEvent;
+    const svg = svgRef.current;
+    if (!svg) return { x: me.clientX, y: me.clientY };
+    const rect = (svg as unknown as Element).getBoundingClientRect();
+    // Scale mouse coords to viewBox space
+    const scaleX = width / rect.width;
+    const scaleY = height / rect.height;
+    return { x: (me.clientX - rect.left) * scaleX, y: (me.clientY - rect.top) * scaleY };
+  }, [width, height]);
+
+  const handleNodeMouseDown = useCallback((id: string, e: Event) => {
+    e.stopPropagation();
+    draggingIdRef.current = id;
+    simRef.current = simRef.current.map(n =>
+      n.id === id ? { ...n, fixed: true, vx: 0, vy: 0 } : n,
+    );
+  }, []);
+
+  const handleMouseMove = useCallback((e: Event) => {
+    if (!draggingIdRef.current) return;
+    const pt = getSvgPoint(e);
+    const id = draggingIdRef.current;
+    const margin = 20;
+    simRef.current = simRef.current.map(n =>
+      n.id === id
+        ? { ...n, x: Math.max(margin, Math.min(width - margin, pt.x)), y: Math.max(margin, Math.min(height - margin, pt.y)) }
+        : n,
+    );
+    // Restart simulation so other nodes react
+    if (settledRef.current) {
+      settledRef.current = false;
+      runningRef.current = true;
+    }
+    setTick((t: number) => t + 1);
+  }, [width, height, getSvgPoint]);
+
+  const handleMouseUp = useCallback(() => {
+    draggingIdRef.current = null;
   }, []);
 
   // Build node index for edge lookups
@@ -499,7 +543,7 @@ export function ForceGraph(props: ForceGraphProps) {
     for (let i = 0; i < simNodes.length; i++) {
       const n = simNodes[i]!;
 
-      // Node circle — click to toggle fixed/unfixed
+      // Node circle — drag to move, double-click to lock/unlock
       elements.push(
         createElement("circle", {
           key: `node-${n.id}`,
@@ -509,11 +553,12 @@ export function ForceGraph(props: ForceGraphProps) {
           fill: n.color,
           stroke: n.fixed ? "#0f172a" : "#fff",
           "stroke-width": n.fixed ? "3" : "2",
-          style: { cursor: "pointer" },
-          onClick: () => toggleFixed(n.id),
+          style: { cursor: draggingIdRef.current === n.id ? "grabbing" : "grab" },
+          onMouseDown: (e: Event) => handleNodeMouseDown(n.id, e),
+          onDblClick: () => toggleFixed(n.id),
           role: "button",
           tabIndex: 0,
-          "aria-label": `Node: ${n.label}${n.fixed ? " (locked)" : ""}`,
+          "aria-label": `Node: ${n.label}${n.fixed ? " (locked)" : ""} — drag to move, double-click to lock`,
         }),
       );
 
@@ -573,13 +618,17 @@ export function ForceGraph(props: ForceGraphProps) {
   return createElement(
     "svg",
     {
+      ref: svgRef,
       width: '100%',
       viewBox: `0 0 ${width} ${height}`,
       preserveAspectRatio: 'xMidYMid meet',
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
-      "aria-label": title ?? "Force-directed graph",
-      style: { fontFamily: "sans-serif" },
+      "aria-label": title ?? "Force-directed graph — drag nodes to move, double-click to lock",
+      style: { fontFamily: "sans-serif", cursor: draggingIdRef.current ? "grabbing" : "default" },
+      onMouseMove: handleMouseMove,
+      onMouseUp: handleMouseUp,
+      onMouseLeave: handleMouseUp,
     },
     ...defs,
     ...titleEl,

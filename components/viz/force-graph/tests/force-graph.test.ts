@@ -143,7 +143,7 @@ describe('ForceGraph — defaults', () => {
 
   it('uses default aria-label when no title', () => {
     const el = ForceGraph({ nodes: sampleNodes, edges: sampleEdges });
-    expect(el.props['aria-label']).toBe('Force-directed graph');
+    expect(el.props['aria-label']).toContain('Force-directed graph');
   });
 
   it('uses title as aria-label when provided', () => {

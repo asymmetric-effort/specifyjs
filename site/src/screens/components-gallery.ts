@@ -88,7 +88,7 @@ import { TreeMap } from "../../../components/viz/tree-map/src/index";
 import { Sunburst } from "../../../components/viz/sunburst/src/index";
 import { Partition } from "../../../components/viz/partition/src/index";
 import { PivotTable } from "../../../components/viz/pivot-table/src/index";
-import { ForceGraph } from "../../../components/viz/force-graph/src/index";
+import { ForceGraph, type ForceSimNode, type ForceEdge as ForceEdgeType } from "../../../components/viz/force-graph/src/index";
 import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";
@@ -405,9 +405,10 @@ export function ComponentsGallery() {
         "components/viz/2D-polar-graph",
       ),
     ]),
-    accordionSection("3D & Advanced", "2 components", openSection, toggle, [
+    accordionSection("3D & Advanced", "3 components", openSection, toggle, [
       preview("Hypercube (4D)", HypercubeDemo, "components/viz/graph"),
       preview("3D Layers", ThreeDLayersDemo, "components/viz/3d-layers"),
+      preview("Double Pendulum", DoublePendulumDemo, "components/viz/force-graph"),
     ]),
     createElement(
       FeatureGate,
@@ -2521,6 +2522,103 @@ function ThreeDLayersDemo() {
       }),
     ),
   );
+}
+
+// ─── Double Pendulum (custom force demo) ─────────────────────────────
+
+/**
+ * Double pendulum physics using Lagrangian mechanics.
+ * Returns a custom force function for ForceGraph.
+ *
+ * The system has 3 nodes:
+ *   - pivot (fixed at top center)
+ *   - m1 (first mass, connected to pivot)
+ *   - m2 (second mass, connected to m1)
+ */
+function createDoublePendulumForce(
+  L1: number,
+  L2: number,
+  m1: number,
+  m2: number,
+  g: number,
+): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[] {
+  // Internal angular state — persists across frames
+  let theta1 = Math.PI / 2;
+  let theta2 = Math.PI / 1.5;
+  let omega1 = 0;
+  let omega2 = 0;
+  const dt = 0.03;
+
+  return (nodes: ForceSimNode[]) => {
+    const pivot = nodes.find((n) => n.id === "pivot");
+    if (!pivot) return nodes;
+
+    // Lagrangian equations of motion for double pendulum
+    const sin12 = Math.sin(theta1 - theta2);
+    const cos12 = Math.cos(theta1 - theta2);
+    const s1 = Math.sin(theta1);
+    const s2 = Math.sin(theta2);
+
+    const denom1 = L1 * (2 * m1 + m2 - m2 * Math.cos(2 * (theta1 - theta2)));
+    const denom2 = L2 * (2 * m1 + m2 - m2 * Math.cos(2 * (theta1 - theta2)));
+
+    const alpha1 =
+      (-g * (2 * m1 + m2) * s1 -
+        m2 * g * Math.sin(theta1 - 2 * theta2) -
+        2 * sin12 * m2 * (omega2 * omega2 * L2 + omega1 * omega1 * L1 * cos12)) /
+      denom1;
+
+    const alpha2 =
+      (2 *
+        sin12 *
+        (omega1 * omega1 * L1 * (m1 + m2) +
+          g * (m1 + m2) * Math.cos(theta1) +
+          omega2 * omega2 * L2 * m2 * cos12)) /
+      denom2;
+
+    omega1 += alpha1 * dt;
+    omega2 += alpha2 * dt;
+    theta1 += omega1 * dt;
+    theta2 += omega2 * dt;
+
+    // Convert angles to Cartesian positions
+    const x1 = pivot.x + L1 * Math.sin(theta1);
+    const y1 = pivot.y + L1 * Math.cos(theta1);
+    const x2 = x1 + L2 * Math.sin(theta2);
+    const y2 = y1 + L2 * Math.cos(theta2);
+
+    return nodes.map((n) => {
+      if (n.id === "m1") return { ...n, x: x1, y: y1 };
+      if (n.id === "m2") return { ...n, x: x2, y: y2 };
+      return n;
+    });
+  };
+}
+
+// Module-level force function (stable reference — no unstable deps)
+const pendulumForce = createDoublePendulumForce(80, 80, 2, 1, 9.81);
+
+function DoublePendulumDemo() {
+  return createElement(ForceGraph, {
+    nodes: [
+      { id: "pivot", fixed: true, x: 200, y: 60, color: "#64748b" },
+      { id: "m1", x: 280, y: 140, color: "#3b82f6" },
+      { id: "m2", x: 280, y: 220, color: "#ef4444" },
+    ],
+    edges: [
+      { source: "pivot", target: "m1", color: "var(--color-text-muted, #94a3b8)" },
+      { source: "m1", target: "m2", color: "var(--color-text-muted, #94a3b8)" },
+    ],
+    customForce: pendulumForce,
+    trails: [
+      { nodeId: "m2", color: "#ef4444", maxPoints: 300, width: 1, opacity: 0.4 },
+    ],
+    width: 400,
+    height: 350,
+    nodeRadius: 8,
+    showLabels: false,
+    edgeWidth: 2,
+  });
 }
 
 // ─── Page Layouts ────────────────────────────────────────────────────

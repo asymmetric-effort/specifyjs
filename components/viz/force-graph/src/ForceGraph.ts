@@ -45,6 +45,45 @@ export interface ForceEdge {
 
 // -- Props --------------------------------------------------------------------
 
+/** Simulation node state — exported so custom force functions can use it */
+export interface ForceSimNode {
+  id: string;
+  label: string;
+  color: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  fixed: boolean;
+}
+
+/**
+ * Custom force function signature.
+ * Receives current node states, edges, and viewport dimensions.
+ * Must return the updated node states (new positions/velocities).
+ * Called once per animation frame.
+ */
+export type CustomForceFunction = (
+  nodes: ForceSimNode[],
+  edges: ForceEdge[],
+  width: number,
+  height: number,
+) => ForceSimNode[];
+
+/** Trail configuration for a specific node */
+export interface TrailConfig {
+  /** Node ID to trail */
+  nodeId: string;
+  /** Trail color */
+  color?: string;
+  /** Max number of trail points (default: 200) */
+  maxPoints?: number;
+  /** Trail line width (default: 1) */
+  width?: number;
+  /** Trail opacity (default: 0.5) */
+  opacity?: number;
+}
+
 export interface ForceGraphProps {
   /** Array of nodes to render */
   nodes: ForceNode[];
@@ -74,20 +113,17 @@ export interface ForceGraphProps {
   edgeWidth?: number;
   /** Chart title */
   title?: string;
+  /** Custom force function — replaces the default spring/repulsion physics.
+   *  When provided, repulsionForce/attractionForce/damping/edgeLength are ignored.
+   *  The function is called once per animation frame and must return updated nodes. */
+  customForce?: CustomForceFunction;
+  /** Trail configurations — render fading path trails for specific nodes */
+  trails?: TrailConfig[];
 }
 
-// -- Internal simulation state ------------------------------------------------
+// -- Internal simulation state uses exported ForceSimNode ---------------------
 
-interface SimNode {
-  id: string;
-  label: string;
-  color: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  fixed: boolean;
-}
+type SimNode = ForceSimNode;
 
 // -- Default palette ----------------------------------------------------------
 
@@ -281,6 +317,8 @@ export function ForceGraph(props: ForceGraphProps) {
     edgeColor = "#94a3b8",
     edgeWidth = 1.5,
     title,
+    customForce,
+    trails,
   } = props;
 
   // Handle empty data
@@ -332,9 +370,11 @@ export function ForceGraph(props: ForceGraphProps) {
   const runningRef = useRef(true);
   const settledRef = useRef(false);
 
-  // Store edges/config in refs so the animation effect has stable deps
+  // Store edges/config/customForce in refs so the animation effect has stable deps
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
+  const customForceRef = useRef(customForce);
+  customForceRef.current = customForce;
   const configRef = useRef({
     repulsionForce,
     attractionForce,
@@ -352,11 +392,15 @@ export function ForceGraph(props: ForceGraphProps) {
     height,
   };
 
+  // Trail history — stored in ref to avoid re-render loops
+  const trailHistoryRef = useRef<Map<string, { x: number; y: number }[]>>(new Map());
+
   // Re-initialize when nodes change
   useEffect(() => {
     simRef.current = initSimNodes(nodes, width, height);
     settledRef.current = false;
     runningRef.current = true;
+    trailHistoryRef.current = new Map();
     setTick((t: number) => t + 1);
   }, [nodes.length]);
 
@@ -366,21 +410,44 @@ export function ForceGraph(props: ForceGraphProps) {
     const animate = () => {
       if (!runningRef.current) return;
       const cfg = configRef.current;
-      const next = simulationTick(
-        simRef.current,
-        edgesRef.current,
-        cfg.width,
-        cfg.height,
-        cfg.repulsionForce,
-        cfg.attractionForce,
-        cfg.damping,
-        cfg.edgeLength,
-      );
+      const forceFn = customForceRef.current;
+
+      const next = forceFn
+        ? forceFn(simRef.current, edgesRef.current, cfg.width, cfg.height)
+        : simulationTick(
+            simRef.current,
+            edgesRef.current,
+            cfg.width,
+            cfg.height,
+            cfg.repulsionForce,
+            cfg.attractionForce,
+            cfg.damping,
+            cfg.edgeLength,
+          );
       simRef.current = next;
 
-      if (kineticEnergy(next) < 0.01) {
+      // Record trail positions
+      if (trails) {
+        for (let t = 0; t < trails.length; t++) {
+          const tc = trails[t]!;
+          const node = next.find(n => n.id === tc.nodeId);
+          if (!node) continue;
+          let history = trailHistoryRef.current.get(tc.nodeId);
+          if (!history) {
+            history = [];
+            trailHistoryRef.current.set(tc.nodeId, history);
+          }
+          history.push({ x: node.x, y: node.y });
+          const maxPts = tc.maxPoints ?? 200;
+          if (history.length > maxPts) {
+            history.splice(0, history.length - maxPts);
+          }
+        }
+      }
+
+      // Custom force functions never settle (e.g., chaotic systems)
+      if (!forceFn && kineticEnergy(next) < 0.01) {
         settledRef.current = true;
-        // Do one final render then stop
         setTick((t: number) => t + 1);
         return;
       }
@@ -608,9 +675,44 @@ export function ForceGraph(props: ForceGraphProps) {
     ];
   }, [title, width]);
 
+  // ---- Build trails ----------------------------------------------------------
+
+  const buildTrails = useCallback(() => {
+    if (!trails || trails.length === 0) return [];
+    const elements: ReturnType<typeof createElement>[] = [];
+
+    for (let t = 0; t < trails.length; t++) {
+      const tc = trails[t]!;
+      const history = trailHistoryRef.current.get(tc.nodeId);
+      if (!history || history.length < 2) continue;
+
+      const pathParts: string[] = [];
+      for (let i = 0; i < history.length; i++) {
+        const pt = history[i]!;
+        pathParts.push(`${i === 0 ? 'M' : 'L'}${pt.x.toFixed(1)},${pt.y.toFixed(1)}`);
+      }
+
+      elements.push(
+        createElement('path', {
+          key: `trail-${tc.nodeId}`,
+          d: pathParts.join(' '),
+          fill: 'none',
+          stroke: tc.color ?? '#3b82f6',
+          'stroke-width': String(tc.width ?? 1),
+          opacity: String(tc.opacity ?? 0.5),
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+        }),
+      );
+    }
+
+    return elements;
+  }, [tick, trails]);
+
   // ---- Assemble SVG ---------------------------------------------------------
 
   const defs = buildDefs();
+  const trailElements = buildTrails();
   const edgeElements = buildEdges();
   const nodeElements = buildNodes();
   const titleEl = buildTitle();
@@ -632,6 +734,7 @@ export function ForceGraph(props: ForceGraphProps) {
     },
     ...defs,
     ...titleEl,
+    ...trailElements,
     ...edgeElements,
     ...nodeElements,
   );

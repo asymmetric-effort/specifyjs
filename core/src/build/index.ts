@@ -3,5 +3,9 @@
 
 export { specifyJsSeoPlugin } from './seo-plugin';
 export type { SeoPluginConfig } from './seo-plugin';
-export { specifyJsNoscriptPlugin } from './noscript-plugin';
+export {
+  specifyJsNoscriptPlugin,
+  generateNoscriptHtml,
+  stripInteractiveElements,
+} from './noscript-plugin';
 export type { NoscriptPluginConfig, NoscriptSection } from './noscript-plugin';

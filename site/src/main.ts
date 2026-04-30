@@ -22,3 +22,6 @@ if (typeof window !== 'undefined') {
 
 const root = createRoot(document.getElementById('root')!);
 root.render(createElement(App, null));
+
+// Remove <noscript> SEO fallback after SPA mounts — frees parsed DOM from memory
+document.querySelector('noscript')?.remove();

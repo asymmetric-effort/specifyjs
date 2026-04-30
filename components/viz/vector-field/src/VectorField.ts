@@ -456,9 +456,9 @@ export function VectorField(props: VectorFieldProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Vector field plot',

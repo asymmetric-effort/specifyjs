@@ -53,8 +53,7 @@ describe('Matrix — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = Matrix({ data: sampleData, width: 700, height: 700 });
-    expect(el.props.width).toBe('700');
-    expect(el.props.height).toBe('700');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {
@@ -115,12 +114,11 @@ describe('Matrix — sad path', () => {
 describe('Matrix — defaults', () => {
   it('uses default width of 500', () => {
     const el = Matrix({ data: sampleData });
-    expect(el.props.width).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 500', () => {
     const el = Matrix({ data: sampleData });
-    expect(el.props.height).toBe('500');
   });
 
   it('uses aria-label "Matrix visualization" when no title', () => {

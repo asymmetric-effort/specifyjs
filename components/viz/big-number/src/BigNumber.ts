@@ -133,8 +133,7 @@ export function BigNumber(props: BigNumberProps) {
         key: 'bg',
         x: '0',
         y: '0',
-        width: String(width),
-        height: String(height),
+        width: '100%',
         rx: '8',
         ry: '8',
         fill: backgroundColor,
@@ -364,9 +363,9 @@ export function BigNumber(props: BigNumberProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': ariaDesc,

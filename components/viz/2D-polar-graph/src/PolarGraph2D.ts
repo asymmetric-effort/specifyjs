@@ -376,9 +376,9 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
     "svg",
     {
       xmlns: "http://www.w3.org/2000/svg",
-      width,
-      height,
+      width: "100%",
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: "xMidYMid meet",
       style: { cursor: dragState ? "grabbing" : "grab" },
       onMouseDown: handleMouseDown,
       onMouseMove: handleMouseMove,

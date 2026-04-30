@@ -142,8 +142,7 @@ describe('VectorField — sad path', () => {
 describe('VectorField — defaults', () => {
   it('uses default width and height', () => {
     const el = VectorField({ data: sampleData });
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="img"', () => {

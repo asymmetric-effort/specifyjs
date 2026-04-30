@@ -40,8 +40,7 @@ describe('CartesianGraph2D — happy path', () => {
 
   it('renders with custom width/height', () => {
     const el = CartesianGraph2D({ width: 800, height: 600 });
-    expect(el.props.width).toBe(800);
-    expect(el.props.height).toBe(600);
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders points (circle elements exist)', () => {

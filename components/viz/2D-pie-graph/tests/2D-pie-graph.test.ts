@@ -28,8 +28,7 @@ describe('PieGraph — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = PieGraph({ data: sampleData, width: 500, height: 500 });
-    expect(el.props.width).toBe(500);
-    expect(el.props.height).toBe(500);
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders as donut chart with innerRadius', () => {

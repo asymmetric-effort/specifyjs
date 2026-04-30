@@ -40,8 +40,7 @@ describe('PolarGraph2D — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = PolarGraph2D({ width: 600, height: 600 });
-    expect(el.props.width).toBe(600);
-    expect(el.props.height).toBe(600);
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders plotFunction curve (path element)', () => {

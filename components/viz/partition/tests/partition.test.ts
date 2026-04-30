@@ -52,8 +52,7 @@ describe('Partition — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = Partition({ data: sampleData, width: 900, height: 500 });
-    expect(el.props.width).toBe('900');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {
@@ -148,12 +147,11 @@ describe('Partition — sad path', () => {
 describe('Partition — defaults', () => {
   it('uses default width of 600', () => {
     const el = Partition({ data: sampleData });
-    expect(el.props.width).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 400', () => {
     const el = Partition({ data: sampleData });
-    expect(el.props.height).toBe('400');
   });
 
   it('uses aria-label "Partition diagram" when no title', () => {

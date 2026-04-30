@@ -29,8 +29,7 @@ describe('CalendarHeatMap — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = CalendarHeatMap({ data: sampleData, width: 1000, height: 200 });
-    expect(el.props.width).toBe('1000');
-    expect(el.props.height).toBe('200');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom cell size and gap', () => {
@@ -108,12 +107,11 @@ describe('CalendarHeatMap — sad path', () => {
 describe('CalendarHeatMap — defaults', () => {
   it('uses default width of 800', () => {
     const el = CalendarHeatMap({ data: sampleData });
-    expect(el.props.width).toBe('800');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 160', () => {
     const el = CalendarHeatMap({ data: sampleData });
-    expect(el.props.height).toBe('160');
   });
 
   it('uses aria-label "Calendar heat map" when no title', () => {

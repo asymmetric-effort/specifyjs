@@ -201,8 +201,7 @@ export function LineGraph(props: LineGraphProps) {
     createElement('rect', {
       x: 0,
       y: 0,
-      width,
-      height,
+      width: '100%',
       fill: 'white',
       key: 'bg',
     }),
@@ -565,9 +564,9 @@ export function LineGraph(props: LineGraphProps) {
     'svg',
     {
       xmlns: 'http://www.w3.org/2000/svg',
-      width,
-      height,
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
     },
     ...children,
   );

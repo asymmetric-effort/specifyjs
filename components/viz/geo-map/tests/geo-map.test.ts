@@ -156,8 +156,7 @@ describe('generateUSMapOutline', () => {
 describe('GeoMap — defaults', () => {
   it('uses default width and height', () => {
     const el = GeoMap({ regions: sampleRegions });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="img"', () => {

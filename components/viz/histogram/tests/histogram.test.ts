@@ -24,8 +24,7 @@ describe('Histogram — happy path', () => {
   it('renders with default props', () => {
     const el = Histogram({ data: sampleData });
     expect(el).not.toBeNull();
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('400');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom bins count', () => {
@@ -42,8 +41,7 @@ describe('Histogram — happy path', () => {
   it('renders with custom dimensions', () => {
     const el = Histogram({ data: sampleData, width: 800, height: 500 });
     expect(el).not.toBeNull();
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom bar color', () => {

@@ -123,8 +123,7 @@ describe('SankeyDiagram — sad path', () => {
 describe('SankeyDiagram — defaults', () => {
   it('uses default width and height', () => {
     const el = SankeyDiagram({ nodes: sampleNodes, links: sampleLinks });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="img"', () => {

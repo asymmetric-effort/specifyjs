@@ -27,14 +27,12 @@ describe('Gauge — happy path', () => {
 
   it('renders with default dimensions', () => {
     const el = Gauge({ value: 50 });
-    expect(el.props.width).toBe('300');
-    expect(el.props.height).toBe('200');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom dimensions', () => {
     const el = Gauge({ value: 50, width: 400, height: 300 });
-    expect(el.props.width).toBe('400');
-    expect(el.props.height).toBe('300');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom colors array', () => {

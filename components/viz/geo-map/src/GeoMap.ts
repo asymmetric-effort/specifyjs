@@ -342,8 +342,7 @@ export function GeoMap(props: GeoMapProps) {
         key: 'bg',
         x: '0',
         y: '0',
-        width: String(width),
-        height: String(height),
+        width: '100%',
         fill: backgroundColor,
         rx: '4',
         ry: '4',
@@ -588,9 +587,9 @@ export function GeoMap(props: GeoMapProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Geographic map',

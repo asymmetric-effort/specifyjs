@@ -27,14 +27,12 @@ describe('BigNumber — happy path', () => {
 
   it('renders with default dimensions', () => {
     const el = BigNumber({ value: 100 });
-    expect(el.props.width).toBe('280');
-    expect(el.props.height).toBe('160');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom dimensions', () => {
     const el = BigNumber({ value: 100, width: 400, height: 200 });
-    expect(el.props.width).toBe('400');
-    expect(el.props.height).toBe('200');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with label', () => {

@@ -28,14 +28,12 @@ describe('BubbleChart — happy path', () => {
 
   it('renders with default dimensions', () => {
     const el = BubbleChart({ data: sampleData });
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('400');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom dimensions', () => {
     const el = BubbleChart({ data: sampleData, width: 800, height: 500 });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {

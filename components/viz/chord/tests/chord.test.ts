@@ -120,8 +120,7 @@ describe('ChordDiagram — sad path', () => {
 describe('ChordDiagram — defaults', () => {
   it('uses default width and height', () => {
     const el = ChordDiagram({ matrix: sampleMatrix, labels: sampleLabels });
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="img"', () => {

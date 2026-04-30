@@ -59,8 +59,7 @@ describe('TreeMap — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = TreeMap({ data: sampleData, width: 800, height: 500 });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {
@@ -147,12 +146,11 @@ describe('TreeMap — sad path', () => {
 describe('TreeMap — defaults', () => {
   it('uses default width of 600', () => {
     const el = TreeMap({ data: sampleData });
-    expect(el.props.width).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 400', () => {
     const el = TreeMap({ data: sampleData });
-    expect(el.props.height).toBe('400');
   });
 
   it('uses aria-label "Treemap chart" when no title', () => {

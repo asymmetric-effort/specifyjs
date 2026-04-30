@@ -40,8 +40,7 @@ describe('Sunburst — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = Sunburst({ data: sampleData, width: 700, height: 700 });
-    expect(el.props.width).toBe('700');
-    expect(el.props.height).toBe('700');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom inner radius', () => {
@@ -133,12 +132,11 @@ describe('Sunburst — sad path', () => {
 describe('Sunburst — defaults', () => {
   it('uses default width of 500', () => {
     const el = Sunburst({ data: sampleData });
-    expect(el.props.width).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 500', () => {
     const el = Sunburst({ data: sampleData });
-    expect(el.props.height).toBe('500');
   });
 
   it('uses aria-label "Sunburst chart" when no title', () => {

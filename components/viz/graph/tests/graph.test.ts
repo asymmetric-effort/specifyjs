@@ -26,8 +26,7 @@ describe('HypercubeGraph — happy path', () => {
 
   it('renders with custom size', () => {
     const el = HypercubeGraph({ width: 400, height: 400 });
-    expect(el.props.width).toBe('400');
-    expect(el.props.height).toBe('400');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom colors', () => {

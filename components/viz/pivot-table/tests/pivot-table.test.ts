@@ -192,8 +192,7 @@ describe('PivotTable — defaults', () => {
       columns: ['product'],
       values: ['revenue'],
     });
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('400');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="table"', () => {

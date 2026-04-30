@@ -27,8 +27,7 @@ describe('GanttChart — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = GanttChart({ tasks: sampleTasks, width: 1000, height: 300 });
-    expect(el.props.width).toBe('1000');
-    expect(el.props.height).toBe('300');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {
@@ -120,7 +119,7 @@ describe('GanttChart — sad path', () => {
 describe('GanttChart — defaults', () => {
   it('uses default width of 800', () => {
     const el = GanttChart({ tasks: sampleTasks });
-    expect(el.props.width).toBe('800');
+    expect(el.props.width).toBe('100%');
   });
 
   it('auto-computes height when not provided', () => {

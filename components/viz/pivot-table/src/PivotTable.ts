@@ -213,9 +213,9 @@ export function PivotTable(props: PivotTableProps) {
     return createElement(
       'svg',
       {
-        width: String(width),
-        height: String(height),
+        width: '100%',
         viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
         xmlns: 'http://www.w3.org/2000/svg',
         role: 'table',
         'aria-label': title ?? 'Empty pivot table',
@@ -580,9 +580,9 @@ export function PivotTable(props: PivotTableProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'table',
       'aria-label': title ?? 'Pivot table',

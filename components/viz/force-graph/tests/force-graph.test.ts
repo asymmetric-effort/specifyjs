@@ -133,8 +133,7 @@ describe('ForceGraph — sad path', () => {
 describe('ForceGraph — defaults', () => {
   it('uses default width and height', () => {
     const el = ForceGraph({ nodes: sampleNodes, edges: sampleEdges });
-    expect(el.props.width).toBe('600');
-    expect(el.props.height).toBe('400');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses role="img"', () => {

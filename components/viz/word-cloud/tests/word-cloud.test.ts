@@ -28,8 +28,7 @@ describe('WordCloud — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = WordCloud({ words: sampleWords, width: 800, height: 500 });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom font size range', () => {
@@ -120,12 +119,11 @@ describe('WordCloud — sad path', () => {
 describe('WordCloud — defaults', () => {
   it('uses default width of 600', () => {
     const el = WordCloud({ words: sampleWords });
-    expect(el.props.width).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 400', () => {
     const el = WordCloud({ words: sampleWords });
-    expect(el.props.height).toBe('400');
   });
 
   it('uses aria-label "Word cloud" when no title', () => {

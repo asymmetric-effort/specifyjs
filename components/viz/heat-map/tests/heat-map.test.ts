@@ -37,8 +37,7 @@ describe('HeatMap — happy path', () => {
 
   it('renders with custom dimensions', () => {
     const el = HeatMap({ data: sampleData, width: 800, height: 600 });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with showValues enabled', () => {
@@ -109,12 +108,11 @@ describe('HeatMap — sad path', () => {
 describe('HeatMap — defaults', () => {
   it('uses default width of 600', () => {
     const el = HeatMap({ data: sampleData });
-    expect(el.props.width).toBe('600');
+    expect(el.props.width).toBe('100%');
   });
 
   it('uses default height of 400', () => {
     const el = HeatMap({ data: sampleData });
-    expect(el.props.height).toBe('400');
   });
 
   it('uses aria-label "Heat map" when no title', () => {

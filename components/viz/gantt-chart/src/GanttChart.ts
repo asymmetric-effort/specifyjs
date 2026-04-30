@@ -109,7 +109,7 @@ export function GanttChart(props: GanttChartProps) {
     return createElement(
       'svg',
       {
-        width: String(width),
+        width: '100%',
         height: String(propHeight ?? 100),
         viewBox: `0 0 ${width} ${propHeight ?? 100}`,
         xmlns: 'http://www.w3.org/2000/svg',
@@ -377,7 +377,7 @@ export function GanttChart(props: GanttChartProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
+      width: '100%',
       height: String(computedHeight),
       viewBox: `0 0 ${width} ${computedHeight}`,
       xmlns: 'http://www.w3.org/2000/svg',

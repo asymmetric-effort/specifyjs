@@ -256,9 +256,9 @@ export function HypercubeGraph(props: HypercubeGraphProps) {
   return createElement(
     'svg',
     {
-      width: String(width),
-      height: String(height),
+      width: '100%',
       viewBox: `0 0 ${width} ${height}`,
+      preserveAspectRatio: 'xMidYMid meet',
       style: {
         backgroundColor,
         cursor: dragging ? 'grabbing' : 'grab',

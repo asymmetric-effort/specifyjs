@@ -34,14 +34,12 @@ describe('RadarChart — happy path', () => {
 
   it('renders with default dimensions', () => {
     const el = RadarChart({ axes: sampleAxes, series: sampleSeries });
-    expect(el.props.width).toBe('500');
-    expect(el.props.height).toBe('500');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with custom dimensions', () => {
     const el = RadarChart({ axes: sampleAxes, series: sampleSeries, width: 800, height: 800 });
-    expect(el.props.width).toBe('800');
-    expect(el.props.height).toBe('800');
+    expect(el.props.width).toBe('100%');
   });
 
   it('renders with title', () => {

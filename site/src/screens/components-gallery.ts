@@ -2477,16 +2477,19 @@ function ThreeDLayersDemo() {
         layerSpacing: 3,
       }),
     ),
-    // Rotation controls
+    // Rotation controls — compact, dark-mode aware
     createElement(
       "div",
       {
         style: {
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
-          minWidth: "120px",
-          paddingTop: "8px",
+          gap: "4px",
+          minWidth: "70px",
+          maxWidth: "80px",
+          paddingTop: "4px",
+          fontSize: "10px",
+          color: "var(--color-text, #1f2937)",
         },
       },
       createElement(NumberSpinner, {
@@ -2495,7 +2498,7 @@ function ThreeDLayersDemo() {
         min: -90,
         max: 90,
         step: 5,
-        label: "X axis",
+        label: "X",
         suffix: "\u00b0",
       }),
       createElement(NumberSpinner, {
@@ -2504,7 +2507,7 @@ function ThreeDLayersDemo() {
         min: -90,
         max: 90,
         step: 5,
-        label: "Y axis",
+        label: "Y",
         suffix: "\u00b0",
       }),
       createElement(NumberSpinner, {
@@ -2513,7 +2516,7 @@ function ThreeDLayersDemo() {
         min: -90,
         max: 90,
         step: 5,
-        label: "Z axis",
+        label: "Z",
         suffix: "\u00b0",
       }),
     ),

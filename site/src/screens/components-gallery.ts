@@ -892,12 +892,16 @@ function ForceGraphDemo() {
 }
 
 function HypercubeDemo() {
+  const isDark =
+    typeof document !== "undefined" &&
+    document.documentElement.getAttribute("data-theme") === "dark";
   return createElement(HypercubeGraph, {
     dimension: 4,
     width: 240,
     height: 160,
     vertexColors: "auto",
-    backgroundColor: "#0f172a",
+    edgeColor: isDark ? "#cbd5e1" : "#1e293b",
+    backgroundColor: isDark ? "#0f172a" : "#f8fafc",
     showLabels: false,
   });
 }

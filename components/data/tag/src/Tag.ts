@@ -164,6 +164,13 @@ export function Tag(props: TagProps) {
     role: onClick ? 'button' : undefined,
     tabIndex: onClick && !disabled ? '0' : undefined,
     onClick: !disabled && onClick ? onClick : undefined,
+    onKeyDown: onClick && !disabled ? (e: Event) => {
+      const key = (e as KeyboardEvent).key;
+      if (key === 'Enter' || key === ' ') {
+        e.preventDefault();
+        onClick();
+      }
+    } : undefined,
     'aria-disabled': disabled ? 'true' : undefined,
   }, ...children);
 }

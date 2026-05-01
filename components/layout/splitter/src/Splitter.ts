@@ -152,8 +152,30 @@ export function Splitter(props: SplitterProps) {
       className: 'splitter__divider',
       style: dividerStyle,
       onMouseDown,
+      onKeyDown: (e: Event) => {
+        const key = (e as KeyboardEvent).key;
+        const step = 2; // percent per keypress
+        if (isHorizontal && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+          e.preventDefault();
+          setSplitPercent((prev: number) => {
+            const delta = key === 'ArrowRight' ? step : -step;
+            return Math.max(5, Math.min(95, prev + delta));
+          });
+        } else if (!isHorizontal && (key === 'ArrowUp' || key === 'ArrowDown')) {
+          e.preventDefault();
+          setSplitPercent((prev: number) => {
+            const delta = key === 'ArrowDown' ? step : -step;
+            return Math.max(5, Math.min(95, prev + delta));
+          });
+        }
+      },
       role: 'separator',
+      tabIndex: 0,
       'aria-orientation': isHorizontal ? 'vertical' : 'horizontal',
+      'aria-valuenow': String(Math.round(splitPercent)),
+      'aria-valuemin': '0',
+      'aria-valuemax': '100',
+      'aria-label': 'Resize panels',
     }),
     // Second pane
     createElement(

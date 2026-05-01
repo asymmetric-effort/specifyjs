@@ -337,6 +337,15 @@ export function DataGrid(props: DataGridProps) {
         key: col.key,
         style: cellStyle,
         onClick: col.sortable ? () => handleSort(col.key) : undefined,
+        onKeyDown: col.sortable ? (e: Event) => {
+          const key = (e as KeyboardEvent).key;
+          if (key === 'Enter' || key === ' ') {
+            e.preventDefault();
+            handleSort(col.key);
+          }
+        } : undefined,
+        tabIndex: col.sortable ? 0 : undefined,
+        role: col.sortable ? 'columnheader' : undefined,
         'aria-sort': sortByKey === col.key ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined,
       }, ...children),
     );

@@ -266,3 +266,29 @@ All feature work must meet the following criteria before it is considered comple
 - All changes require tests
 - Feature branches merged via PR
 - **Every version bump must be tagged** — the CI/CD pipeline only publishes to npm on tagged builds (`v*`). After committing a version bump, immediately create and push an annotated tag (e.g., `git tag -a v0.1.3 -m "v0.1.3"` then push). Failing to tag means the version is never published.
+
+### API Stability & Versioning
+
+SpecifyJS follows [Semantic Versioning](https://semver.org/):
+
+- **Major version (X.0.0)** — Breaking API changes: removing exports, changing function signatures, removing props
+- **Minor version (0.X.0)** — New features, new components, new props — always backwards compatible
+- **Patch version (0.0.X)** — Bug fixes, performance improvements, documentation updates
+
+**Deprecation Policy:**
+- All breaking changes require a deprecation period
+- The old API is marked deprecated in version N with a dev-time warning (using `deprecate()` from `shared/warnings.ts`)
+- The old API is removed no earlier than version N+1 (major)
+
+**Public API Surface** — everything exported from:
+- `core/src/index.ts`
+- `core/src/dom/index.ts`
+- `core/src/hooks/index.ts`
+- `core/src/server/index.ts`
+- `core/src/build/index.ts`
+
+**Internal modules** (`shared/`, `core/`) are not part of the public API and may change without notice.
+
+**Component props interfaces are public API** — removing or renaming a prop is a breaking change.
+
+See [STABILITY.md](STABILITY.md) for the full stability policy.

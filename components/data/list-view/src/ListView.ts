@@ -117,7 +117,15 @@ export function ListView(props: ListViewProps) {
         key,
         style,
         onClick: onSelect ? () => onSelect(i) : undefined,
+        onKeyDown: onSelect ? (e: Event) => {
+          const k = (e as KeyboardEvent).key;
+          if (k === 'Enter' || k === ' ') {
+            e.preventDefault();
+            onSelect(i);
+          }
+        } : undefined,
         role: onSelect ? 'option' : undefined,
+        tabIndex: onSelect ? 0 : undefined,
         'aria-selected': onSelect ? String(isSelected) : undefined,
       }, renderItem(item, i)),
     );

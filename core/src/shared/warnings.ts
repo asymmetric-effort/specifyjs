@@ -34,6 +34,18 @@ export function error(message: string): void {
 }
 
 /**
+ * Issue a deprecation warning (one-time, deduplicated).
+ * @param oldApi - The deprecated API name
+ * @param newApi - The replacement API name
+ * @param removeVersion - The version when the deprecated API will be removed
+ */
+export function deprecate(oldApi: string, newApi: string, removeVersion: string): void {
+  warn(
+    `DEPRECATED: "${oldApi}" is deprecated and will be removed in v${removeVersion}. Use "${newApi}" instead.`,
+  );
+}
+
+/**
  * Reset warned messages (for testing).
  */
 export function resetWarnings(): void {

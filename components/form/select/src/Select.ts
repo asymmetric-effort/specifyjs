@@ -318,8 +318,17 @@ export function Select(props: SelectProps) {
             'span',
             {
               onClick: handleClear,
+              onKeyDown: (e: Event) => {
+                const key = (e as KeyboardEvent).key;
+                if (key === 'Enter' || key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleClear(e);
+                }
+              },
               style: { cursor: 'pointer', color: '#9ca3af', fontSize: '14px', lineHeight: '1' },
               role: 'button',
+              tabIndex: 0,
               'aria-label': 'Clear selection',
             },
             '\u2715',

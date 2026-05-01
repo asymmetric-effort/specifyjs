@@ -73,6 +73,15 @@ export function Panel(props: PanelProps) {
     setCollapsed((prev: boolean) => !prev);
   }, [props.collapsible]);
 
+  const handleHeaderKeyDown = useCallback((e: Event) => {
+    if (!props.collapsible) return;
+    const key = (e as KeyboardEvent).key;
+    if (key === 'Enter' || key === ' ') {
+      e.preventDefault();
+      toggle();
+    }
+  }, [props.collapsible, toggle]);
+
   const containerStyle = useMemo<Record<string, string>>(() => {
     const s: Record<string, string> = {
       borderRadius: '6px',
@@ -133,7 +142,9 @@ export function Panel(props: PanelProps) {
         className: 'panel__header',
         style: headerStyle,
         onClick: toggle,
+        onKeyDown: handleHeaderKeyDown,
         role: props.collapsible ? 'button' : undefined,
+        tabIndex: props.collapsible ? 0 : undefined,
         'aria-expanded': props.collapsible ? String(!collapsed) : undefined,
       },
       createElement(

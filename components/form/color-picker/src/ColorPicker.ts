@@ -159,7 +159,17 @@ export function ColorPicker(props: ColorPickerProps) {
       key: color,
       style: swatchStyle,
       onClick: () => handleSwatchClick(color),
+      onKeyDown: (e: Event) => {
+        const key = (e as KeyboardEvent).key;
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          handleSwatchClick(color);
+        }
+      },
+      role: 'button',
+      tabIndex: disabled ? -1 : 0,
       title: color,
+      'aria-label': `Select color ${color}`,
     });
   });
 
@@ -226,6 +236,17 @@ export function ColorPicker(props: ColorPickerProps) {
         {
           style: triggerContainerStyle,
           onClick: disabled ? undefined : () => setIsOpen(!isOpen),
+          onKeyDown: disabled ? undefined : (e: Event) => {
+            const key = (e as KeyboardEvent).key;
+            if (key === 'Enter' || key === ' ') {
+              e.preventDefault();
+              setIsOpen(!isOpen);
+            }
+          },
+          role: 'button',
+          tabIndex: disabled ? -1 : 0,
+          'aria-expanded': isOpen ? 'true' : 'false',
+          'aria-label': 'Toggle color picker',
         },
         createElement('div', { id: inputId, style: swatchTriggerStyle }),
         showInput

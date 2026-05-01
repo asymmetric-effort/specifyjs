@@ -184,8 +184,22 @@ export function Popover(props: PopoverProps) {
     popoverChildren.push(createElement('div', { style: getArrowStyle(placement) }));
   }
 
+  const handleTriggerKeyDown = useCallback((e: Event) => {
+    const key = (e as KeyboardEvent).key;
+    if (key === 'Enter' || key === ' ') {
+      e.preventDefault();
+      toggleOpen();
+    }
+  }, [toggleOpen]);
+
   const elements: unknown[] = [
-    createElement('div', { onClick: toggleOpen, style: { display: 'inline-block' } }, trigger),
+    createElement('div', {
+      onClick: toggleOpen,
+      onKeyDown: handleTriggerKeyDown,
+      role: 'button',
+      tabIndex: 0,
+      style: { display: 'inline-block' },
+    }, trigger),
   ];
 
   if (isOpen) {

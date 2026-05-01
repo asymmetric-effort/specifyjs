@@ -179,6 +179,13 @@ export function FileUpload(props: FileUploadProps) {
     {
       style: dropZoneStyle,
       onClick: handleClick,
+      onKeyDown: (e: Event) => {
+        const key = (e as KeyboardEvent).key;
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      },
       onDrop: handleDrop,
       onDragOver: handleDragOver,
       onDragLeave: handleDragLeave,

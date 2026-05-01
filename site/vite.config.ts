@@ -199,10 +199,22 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     minify: 'esbuild',
+    chunkSizeWarningLimit: 300,
     rollupOptions: {
       output: {
         banner: JS_BANNER,
         entryFileNames: 'assets/[name]-[hash].js',
+        manualChunks(id: string) {
+          // Split visualization components into a separate chunk
+          if (id.includes('components/viz/')) return 'viz-components';
+          // Split page layout components
+          if (id.includes('components/page/')) return 'page-components';
+          // Split form/data/nav/layout/overlay/feedback components
+          if (id.includes('components/') && !id.includes('components/viz/') && !id.includes('components/page/')) return 'ui-components';
+          // Split docs data (large inline content)
+          if (id.includes('docs-data')) return 'docs-data';
+          // Core framework stays in the main chunk
+        },
       },
     },
   },

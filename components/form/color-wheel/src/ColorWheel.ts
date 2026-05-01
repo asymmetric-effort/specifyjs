@@ -101,6 +101,7 @@ export function ColorWheel(props: ColorWheelProps) {
           onInput: handleChange,
           disabled,
           style: inputStyle,
+          'aria-label': label || 'Color',
         }),
       ),
       showLabel

@@ -232,6 +232,17 @@ export function DatePicker(props: DatePickerProps) {
           key: `day-${day}`,
           style: cellStyle,
           onClick: isOutOfRange ? undefined : () => handleDayClick(day),
+          onKeyDown: isOutOfRange ? undefined : (e: Event) => {
+            const key = (e as KeyboardEvent).key;
+            if (key === 'Enter' || key === ' ') {
+              e.preventDefault();
+              handleDayClick(day);
+            }
+          },
+          role: isOutOfRange ? undefined : 'button',
+          tabIndex: isOutOfRange ? undefined : 0,
+          'aria-label': `${MONTH_NAMES[viewMonth]} ${day}, ${viewYear}`,
+          'aria-disabled': isOutOfRange ? 'true' : undefined,
         },
         String(day),
       );
@@ -281,9 +292,17 @@ export function DatePicker(props: DatePickerProps) {
           id: inputId,
           style: triggerStyle,
           onClick: disabled ? undefined : () => setIsOpen(!isOpen),
+          onKeyDown: disabled ? undefined : (e: Event) => {
+            const key = (e as KeyboardEvent).key;
+            if (key === 'Enter' || key === ' ') {
+              e.preventDefault();
+              setIsOpen(!isOpen);
+            }
+          },
           tabIndex: disabled ? -1 : 0,
           role: 'button',
           'aria-label': 'Pick a date',
+          'aria-expanded': isOpen ? 'true' : 'false',
         },
         createElement(
           'span',

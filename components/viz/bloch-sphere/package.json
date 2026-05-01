@@ -1,0 +1,9 @@
+{
+  "name": "@specifyjs/bloch-sphere",
+  "version": "0.0.1",
+  "description": "Bloch sphere quantum state visualization for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" },
+  "keywords": ["specifyjs", "component", "bloch-sphere", "quantum", "visualization", "3d"]
+}

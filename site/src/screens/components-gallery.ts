@@ -2533,7 +2533,8 @@ const PEND_ARM = 60;
 const PEND_G = 0.5;
 const PEND_DAMP = 0.999;
 const PEND_ITERS = 10;
-const MOUSE_MASS_RATIO = 100;
+// Mouse gravity coefficient — mutable ref shared with force functions
+let mouseGravityCoeff = 100;
 const MOUSE_G = 0.08;
 
 /**
@@ -2553,7 +2554,7 @@ function applyMouseAttraction(
   if (distSq < 1) return { vx, vy };
   const dist = Math.sqrt(distSq);
   // Softened gravity: force grows with proximity but caps to avoid explosion
-  const force = MOUSE_G * MOUSE_MASS_RATIO / Math.max(dist, 15);
+  const force = MOUSE_G * mouseGravityCoeff / Math.max(dist, 15);
   return { vx: vx + (dx / dist) * force, vy: vy + (dy / dist) * force };
 }
 
@@ -2675,8 +2676,8 @@ function createLagrangianForce(
         if (dist > 1) {
           // Torque = r x F (cross product in 2D)
           const rx = nd.x - px, ry = nd.y - py;
-          const fx = (dx / dist) * MOUSE_G * MOUSE_MASS_RATIO;
-          const fy = (dy / dist) * MOUSE_G * MOUSE_MASS_RATIO;
+          const fx = (dx / dist) * MOUSE_G * mouseGravityCoeff;
+          const fy = (dy / dist) * MOUSE_G * mouseGravityCoeff;
           const torque = (rx * fy - ry * fx) / (L * L);
           omega[i] += torque * dt;
         }
@@ -2720,6 +2721,7 @@ function createForce(mode: PhysicsMode, n: number) {
 function DoublePendulumDemo() {
   const [jointCount, setJointCount] = useState(3);
   const [mode, setMode] = useState<PhysicsMode>("verlet");
+  const [gravCoeff, setGravCoeff] = useState(100);
   const forceRef = useRef(createForce(mode, jointCount));
 
   const handleJointChange = useCallback((n: number) => {
@@ -2731,6 +2733,11 @@ function DoublePendulumDemo() {
     forceRef.current = createForce(newMode, jointCount);
     setMode(newMode);
   }, [jointCount]);
+
+  const handleGravChange = useCallback((v: number) => {
+    mouseGravityCoeff = v;
+    setGravCoeff(v);
+  }, []);
 
   const nodes = buildPendulumNodes(jointCount, 200, 50);
   const edges = buildPendulumEdges(jointCount);
@@ -2750,9 +2757,10 @@ function DoublePendulumDemo() {
         }),
       ),
       createElement("div", {
-        style: { display: "flex", flexDirection: "column", gap: "4px", minWidth: "70px", maxWidth: "80px", paddingTop: "4px", fontSize: "10px", color: "var(--color-text, #1f2937)" },
+        style: { display: "flex", flexDirection: "column", gap: "4px", minWidth: "70px", maxWidth: "90px", paddingTop: "4px", fontSize: "10px", color: "var(--color-text, #1f2937)" },
       },
         createElement(NumberSpinner, { value: jointCount, onChange: handleJointChange, min: 2, max: 5, step: 1, label: "Joints" }),
+        createElement(NumberSpinner, { value: gravCoeff, onChange: handleGravChange, min: 1, max: 1000000, step: 10, label: "Cursor mass" }),
       ),
     ),
     // Physics mode radio toggle
@@ -2761,7 +2769,6 @@ function DoublePendulumDemo() {
     },
       createElement(Button, { size: "sm", active: mode === "verlet", onClick: () => handleModeChange("verlet") }, "Verlet (PBD)"),
       createElement(Button, { size: "sm", active: mode === "lagrangian", onClick: () => handleModeChange("lagrangian") }, "Lagrangian"),
-      createElement("span", { style: { fontSize: "9px", opacity: "0.6" } }, "hover vertex to attract"),
     ),
   );
 }

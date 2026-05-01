@@ -247,7 +247,7 @@ export function PlanetsScreen() {
         customForce: solarForce,
         trails,
         width: 800, height: 700,
-        nodeRadius: 4, nodeStrokeWidth: 0,
+        nodeRadius: 4, nodeStrokeWidth: 0, solidNodes: false,
         showLabels: true, edgeWidth: 0,
       }),
     ),

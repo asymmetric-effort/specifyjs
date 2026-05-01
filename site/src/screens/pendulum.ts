@@ -187,7 +187,7 @@ export function PendulumScreen() {
           edges: mkEdges(joints),
           customForce: forceRef.current,
           trails: [{ nodeId: lastId, color: lastClr, maxPoints: 600, width: 1, opacity: 0.3 }],
-          width: 800, height: 600, nodeRadius: 6, showLabels: false, edgeWidth: 2,
+          width: 800, height: 600, nodeRadius: 6, nodeStrokeWidth: 0, solidNodes: false, showLabels: false, edgeWidth: 2,
         }),
       ),
       // Controls

@@ -34,6 +34,10 @@ export interface ForceNode {
   x?: number;
   y?: number;
   fixed?: boolean;
+  /** If true (default), this node cannot overlap other solid nodes.
+   *  Collisions produce elastic bounce consistent with Newtonian physics.
+   *  Set to false to allow nodes to pass through each other. */
+  solid?: boolean;
 }
 
 export interface ForceEdge {
@@ -55,6 +59,8 @@ export interface ForceSimNode {
   vx: number;
   vy: number;
   fixed: boolean;
+  /** Whether this node collides with other solid nodes (default: true) */
+  solid: boolean;
 }
 
 /** Mouse position in viewBox coordinates (null if mouse is outside the SVG) */
@@ -122,6 +128,10 @@ export interface ForceGraphProps {
   edgeWidth?: number;
   /** Chart title */
   title?: string;
+  /** Whether nodes are solid by default — solid nodes cannot overlap and
+   *  bounce off each other via elastic collision. Per-node `solid` prop
+   *  overrides this. (default: true) */
+  solidNodes?: boolean;
   /** Custom force function — replaces the default spring/repulsion physics.
    *  When provided, repulsionForce/attractionForce/damping/edgeLength are ignored.
    *  The function is called once per animation frame and must return updated nodes. */
@@ -179,9 +189,76 @@ function initSimNodes(
       vx: 0,
       vy: 0,
       fixed: n.fixed ?? false,
+      solid: n.solid ?? true,
     });
   }
   return result;
+}
+
+/**
+ * Resolve elastic collisions between solid nodes.
+ * Two solid nodes whose circles overlap (distance < 2*radius) bounce
+ * off each other via 1D elastic collision along the contact normal.
+ * Fixed nodes act as immovable walls (infinite mass).
+ */
+function resolveCollisions(nodes: SimNode[], nodeRadius: number): void {
+  const minDist = nodeRadius * 2;
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i]!;
+    if (!a.solid) continue;
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j]!;
+      if (!b.solid) continue;
+
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq >= minDist * minDist || distSq < 0.0001) continue;
+
+      const dist = Math.sqrt(distSq);
+      const nx = dx / dist; // contact normal
+      const ny = dy / dist;
+
+      // Separate overlapping nodes
+      const overlap = minDist - dist;
+      if (a.fixed && b.fixed) continue;
+      if (a.fixed) {
+        b.x += nx * overlap;
+        b.y += ny * overlap;
+      } else if (b.fixed) {
+        a.x -= nx * overlap;
+        a.y -= ny * overlap;
+      } else {
+        a.x -= nx * overlap * 0.5;
+        a.y -= ny * overlap * 0.5;
+        b.x += nx * overlap * 0.5;
+        b.y += ny * overlap * 0.5;
+      }
+
+      // Elastic collision — exchange velocity components along contact normal
+      // For equal mass: v1' = v1 - (v1-v2)·n * n, v2' = v2 - (v2-v1)·n * n
+      const dvx = a.vx - b.vx;
+      const dvy = a.vy - b.vy;
+      const dvDotN = dvx * nx + dvy * ny;
+      if (dvDotN <= 0) continue; // already separating
+
+      if (a.fixed) {
+        // Bounce b off immovable a (reflect velocity along normal)
+        b.vx += dvDotN * nx;
+        b.vy += dvDotN * ny;
+      } else if (b.fixed) {
+        // Bounce a off immovable b
+        a.vx -= dvDotN * nx;
+        a.vy -= dvDotN * ny;
+      } else {
+        // Equal mass elastic collision
+        a.vx -= dvDotN * nx;
+        a.vy -= dvDotN * ny;
+        b.vx += dvDotN * nx;
+        b.vy += dvDotN * ny;
+      }
+    }
+  }
 }
 
 /** Run one tick of the force simulation. Returns new node positions. */
@@ -194,6 +271,7 @@ function simulationTick(
   attraction: number,
   damping: number,
   idealLength: number,
+  nodeRadius: number = 12,
 ): SimNode[] {
   const count = simNodes.length;
   if (count === 0) return simNodes;
@@ -295,6 +373,9 @@ function simulationTick(
     result.push({ ...n, x, y, vx, vy });
   }
 
+  // Resolve collisions between solid nodes
+  resolveCollisions(result, nodeRadius);
+
   return result;
 }
 
@@ -318,6 +399,7 @@ export function ForceGraph(props: ForceGraphProps) {
     height = 400,
     nodeRadius = 12,
     nodeStrokeWidth = 2,
+    solidNodes = true,
     showLabels = true,
     showArrows = false,
     repulsionForce = 300,
@@ -395,6 +477,8 @@ export function ForceGraph(props: ForceGraphProps) {
     edgeLength,
     width,
     height,
+    nodeRadius,
+    solidNodes,
   });
   configRef.current = {
     repulsionForce,
@@ -403,6 +487,8 @@ export function ForceGraph(props: ForceGraphProps) {
     edgeLength,
     width,
     height,
+    nodeRadius,
+    solidNodes,
   };
 
   // Trail history — stored in ref to avoid re-render loops
@@ -425,9 +511,13 @@ export function ForceGraph(props: ForceGraphProps) {
       const cfg = configRef.current;
       const forceFn = customForceRef.current;
 
-      const next = forceFn
-        ? forceFn(simRef.current, edgesRef.current, cfg.width, cfg.height, mousePosRef.current)
-        : simulationTick(
+      let next: SimNode[];
+      if (forceFn) {
+        next = forceFn(simRef.current, edgesRef.current, cfg.width, cfg.height, mousePosRef.current);
+        // Apply collision resolution after custom force if solidNodes enabled
+        if (cfg.solidNodes) resolveCollisions(next, cfg.nodeRadius);
+      } else {
+        next = simulationTick(
             simRef.current,
             edgesRef.current,
             cfg.width,
@@ -436,7 +526,9 @@ export function ForceGraph(props: ForceGraphProps) {
             cfg.attractionForce,
             cfg.damping,
             cfg.edgeLength,
+            cfg.nodeRadius,
           );
+      }
       simRef.current = next;
 
       // Record trail positions

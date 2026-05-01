@@ -57,9 +57,15 @@ export interface ForceSimNode {
   fixed: boolean;
 }
 
+/** Mouse position in viewBox coordinates (null if mouse is outside the SVG) */
+export interface MousePosition {
+  x: number;
+  y: number;
+}
+
 /**
  * Custom force function signature.
- * Receives current node states, edges, and viewport dimensions.
+ * Receives current node states, edges, viewport dimensions, and mouse position.
  * Must return the updated node states (new positions/velocities).
  * Called once per animation frame.
  */
@@ -68,6 +74,7 @@ export type CustomForceFunction = (
   edges: ForceEdge[],
   width: number,
   height: number,
+  mouse: MousePosition | null,
 ) => ForceSimNode[];
 
 /** Trail configuration for a specific node */
@@ -375,6 +382,9 @@ export function ForceGraph(props: ForceGraphProps) {
   edgesRef.current = edges;
   const customForceRef = useRef(customForce);
   customForceRef.current = customForce;
+
+  // Track mouse position in viewBox coordinates for custom force functions
+  const mousePosRef = useRef<MousePosition | null>(null);
   const configRef = useRef({
     repulsionForce,
     attractionForce,
@@ -413,7 +423,7 @@ export function ForceGraph(props: ForceGraphProps) {
       const forceFn = customForceRef.current;
 
       const next = forceFn
-        ? forceFn(simRef.current, edgesRef.current, cfg.width, cfg.height)
+        ? forceFn(simRef.current, edgesRef.current, cfg.width, cfg.height, mousePosRef.current)
         : simulationTick(
             simRef.current,
             edgesRef.current,
@@ -503,8 +513,11 @@ export function ForceGraph(props: ForceGraphProps) {
   }, []);
 
   const handleMouseMove = useCallback((e: Event) => {
-    if (!draggingIdRef.current) return;
     const pt = getSvgPoint(e);
+    // Always track mouse position for custom force functions
+    mousePosRef.current = { x: pt.x, y: pt.y };
+
+    if (!draggingIdRef.current) return;
     const id = draggingIdRef.current;
     const margin = 20;
     simRef.current = simRef.current.map(n =>
@@ -522,6 +535,11 @@ export function ForceGraph(props: ForceGraphProps) {
 
   const handleMouseUp = useCallback(() => {
     draggingIdRef.current = null;
+  }, []);
+
+  const handleMouseLeaveGraph = useCallback(() => {
+    draggingIdRef.current = null;
+    mousePosRef.current = null;
   }, []);
 
   // Build node index for edge lookups
@@ -730,7 +748,7 @@ export function ForceGraph(props: ForceGraphProps) {
       style: { fontFamily: "sans-serif", cursor: draggingIdRef.current ? "grabbing" : "default" },
       onMouseMove: handleMouseMove,
       onMouseUp: handleMouseUp,
-      onMouseLeave: handleMouseUp,
+      onMouseLeave: handleMouseLeaveGraph,
     },
     ...defs,
     ...titleEl,

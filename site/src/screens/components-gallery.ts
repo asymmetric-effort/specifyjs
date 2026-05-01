@@ -88,7 +88,9 @@ import { TreeMap } from "../../../components/viz/tree-map/src/index";
 import { Sunburst } from "../../../components/viz/sunburst/src/index";
 import { Partition } from "../../../components/viz/partition/src/index";
 import { PivotTable } from "../../../components/viz/pivot-table/src/index";
-import { ForceGraph, type ForceSimNode, type ForceEdge as ForceEdgeType } from "../../../components/viz/force-graph/src/index";
+import { ForceGraph, type ForceSimNode, type ForceEdge as ForceEdgeType, type MousePosition } from "../../../components/viz/force-graph/src/index";
+import { matN, matNSet, matNGet } from "../../../core/src/math/mat";
+import { solve } from "../../../core/src/math/solver";
 import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";
@@ -2526,113 +2528,174 @@ function ThreeDLayersDemo() {
 
 // ─── N-Joint Pendulum Physics Demo ───────────────────────────────────
 
-const PENDULUM_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
-const PENDULUM_ARM_LEN = 60;
-const PENDULUM_GRAVITY = 0.5;
-const PENDULUM_DAMPING = 0.999;
-const CONSTRAINT_ITERATIONS = 10;
+const PEND_COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
+const PEND_ARM = 60;
+const PEND_G = 0.5;
+const PEND_DAMP = 0.999;
+const PEND_ITERS = 10;
+const MOUSE_ATTRACT_STRENGTH = 0.15;
 
 /**
- * Create an N-joint pendulum force function using Verlet integration
- * with distance constraints. This approach scales to any number of
- * joints and produces physically plausible chaotic motion.
- *
- * The Verlet method:
- *  1. Save current positions
- *  2. Apply gravity to velocities
- *  3. Update positions: new = current + (current - previous) * damping
- *  4. Enforce rigid rod constraints by iteratively correcting positions
- *     so adjacent masses maintain fixed distances
+ * Apply mouse gravitational attraction to a node.
+ * The cursor acts as a mass 2x the vertex mass.
  */
-function createPendulumForce(
-  jointCount: number,
-): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[] {
-  // Previous positions for Verlet integration (indexed by node id)
+function applyMouseAttraction(
+  nx: number, ny: number, vx: number, vy: number,
+  mouse: MousePosition | null,
+): { vx: number; vy: number } {
+  if (!mouse) return { vx, vy };
+  const dx = mouse.x - nx;
+  const dy = mouse.y - ny;
+  const distSq = dx * dx + dy * dy;
+  if (distSq < 1) return { vx, vy };
+  const dist = Math.sqrt(distSq);
+  // F = G * m1 * m2 / r^2, with m_cursor = 2 * m_vertex
+  const force = MOUSE_ATTRACT_STRENGTH * 2 / Math.max(dist, 20);
+  return { vx: vx + (dx / dist) * force, vy: vy + (dy / dist) * force };
+}
+
+/** Verlet (Position-Based Dynamics) force function */
+function createVerletForce(
+  n: number,
+): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number, mouse: MousePosition | null) => ForceSimNode[] {
   const prevPos = new Map<string, { x: number; y: number }>();
-  let initialized = false;
+  let init = false;
 
-  return (nodes: ForceSimNode[]) => {
-    const pivot = nodes.find((n) => n.id === "pivot");
+  return (nodes, _edges, _w, _h, mouse) => {
+    const pivot = nodes.find((nd) => nd.id === "pivot");
     if (!pivot) return nodes;
-
-    // Initialize previous positions on first frame
-    if (!initialized) {
-      for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i]!;
-        prevPos.set(n.id, { x: n.x, y: n.y });
-      }
-      initialized = true;
+    if (!init) {
+      for (const nd of nodes) prevPos.set(nd.id, { x: nd.x, y: nd.y });
+      init = true;
     }
-
-    const result = nodes.map((n) => ({ ...n }));
-
-    // Verlet integration for non-fixed nodes
-    for (let i = 0; i < result.length; i++) {
-      const n = result[i]!;
-      if (n.fixed) continue;
-      const prev = prevPos.get(n.id) ?? { x: n.x, y: n.y };
-      const vx = (n.x - prev.x) * PENDULUM_DAMPING;
-      const vy = (n.y - prev.y) * PENDULUM_DAMPING + PENDULUM_GRAVITY;
-      prevPos.set(n.id, { x: n.x, y: n.y });
-      n.x += vx;
-      n.y += vy;
+    const result = nodes.map((nd) => ({ ...nd }));
+    for (const nd of result) {
+      if (nd.fixed) continue;
+      const prev = prevPos.get(nd.id) ?? { x: nd.x, y: nd.y };
+      let vx = (nd.x - prev.x) * PEND_DAMP;
+      let vy = (nd.y - prev.y) * PEND_DAMP + PEND_G;
+      const attr = applyMouseAttraction(nd.x, nd.y, vx, vy, mouse);
+      vx = attr.vx; vy = attr.vy;
+      prevPos.set(nd.id, { x: nd.x, y: nd.y });
+      nd.x += vx;
+      nd.y += vy;
     }
-
-    // Enforce distance constraints iteratively
-    // Nodes are ordered: pivot, m1, m2, ..., mN
-    // Constraint: dist(node[i], node[i+1]) = PENDULUM_ARM_LEN
-    for (let iter = 0; iter < CONSTRAINT_ITERATIONS; iter++) {
+    for (let iter = 0; iter < PEND_ITERS; iter++) {
       for (let i = 0; i < result.length - 1; i++) {
-        const a = result[i]!;
-        const b = result[i + 1]!;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
+        const a = result[i]!, b = result[i + 1]!;
+        const dx = b.x - a.x, dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 0.001) continue;
-        const diff = (dist - PENDULUM_ARM_LEN) / dist;
-        const offsetX = dx * diff * 0.5;
-        const offsetY = dy * diff * 0.5;
-        if (!a.fixed) {
-          a.x += offsetX;
-          a.y += offsetY;
-        }
-        if (!b.fixed) {
-          b.x -= offsetX;
-          b.y -= offsetY;
-        }
+        const diff = (dist - PEND_ARM) / dist;
+        const ox = dx * diff * 0.5, oy = dy * diff * 0.5;
+        if (!a.fixed) { a.x += ox; a.y += oy; }
+        if (!b.fixed) { b.x -= ox; b.y -= oy; }
       }
     }
-
     return result;
   };
 }
 
-// Force function cache by joint count to maintain stable references
-const pendulumForceCache = new Map<
-  number,
-  (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[]
->();
+/** Lagrangian force function using mass matrix solver */
+function createLagrangianForce(
+  n: number,
+): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number, mouse: MousePosition | null) => ForceSimNode[] {
+  const theta = new Float64Array(n);
+  const omega = new Float64Array(n);
+  let init = false;
+  const dt = 0.03;
+  const g = 9.81;
+  const L = PEND_ARM;
 
-function getPendulumForce(
-  jointCount: number,
-): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number) => ForceSimNode[] {
-  let fn = pendulumForceCache.get(jointCount);
-  if (!fn) {
-    fn = createPendulumForce(jointCount);
-    pendulumForceCache.set(jointCount, fn);
-  }
-  return fn;
+  return (nodes, _edges, _w, _h, mouse) => {
+    const pivot = nodes.find((nd) => nd.id === "pivot");
+    if (!pivot) return nodes;
+
+    // Initialize angles from node positions
+    if (!init) {
+      let px = pivot.x, py = pivot.y;
+      for (let i = 0; i < n; i++) {
+        const nd = nodes.find((m) => m.id === `m${i + 1}`);
+        if (!nd) continue;
+        theta[i] = Math.atan2(nd.x - px, nd.y - py);
+        px = nd.x; py = nd.y;
+      }
+      init = true;
+    }
+
+    // Build and solve the mass matrix M * alpha = tau
+    // M[i][j] = (n - max(i,j)) * cos(theta[i] - theta[j])
+    // tau[i] = -sum_j (n - max(i,j)) * omega[j]^2 * sin(theta[i] - theta[j]) - (n - i) * g/L * sin(theta[i])
+    const M = matN(n);
+    const tau = new Float64Array(n);
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < n; j++) {
+        const coeff = n - Math.max(i, j);
+        const mVal = coeff * Math.cos(theta[i]! - theta[j]!);
+        matNSet(M, i, j, mVal);
+      }
+      let t = 0;
+      for (let j = 0; j < n; j++) {
+        const coeff = n - Math.max(i, j);
+        t -= coeff * omega[j]! * omega[j]! * Math.sin(theta[i]! - theta[j]!);
+      }
+      t -= (n - i) * (g / L) * Math.sin(theta[i]!);
+      tau[i] = t;
+    }
+
+    const alpha = solve(M, tau);
+    if (alpha) {
+      for (let i = 0; i < n; i++) {
+        omega[i] += alpha[i]! * dt;
+        // Apply damping
+        omega[i] *= 0.9995;
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      theta[i] += omega[i]! * dt;
+    }
+
+    // Convert angles to positions
+    const result = nodes.map((nd) => ({ ...nd }));
+    let px = pivot.x, py = pivot.y;
+    for (let i = 0; i < n; i++) {
+      const nd = result.find((m) => m.id === `m${i + 1}`);
+      if (!nd) continue;
+      nd.x = px + L * Math.sin(theta[i]!);
+      nd.y = py + L * Math.cos(theta[i]!);
+
+      // Mouse attraction — add angular impulse
+      if (mouse) {
+        const dx = mouse.x - nd.x, dy = mouse.y - nd.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 1) {
+          // Torque = r x F (cross product in 2D)
+          const rx = nd.x - px, ry = nd.y - py;
+          const fx = (dx / dist) * MOUSE_ATTRACT_STRENGTH * 2;
+          const fy = (dy / dist) * MOUSE_ATTRACT_STRENGTH * 2;
+          const torque = (rx * fy - ry * fx) / (L * L);
+          omega[i] += torque * dt;
+        }
+      }
+
+      px = nd.x; py = nd.y;
+    }
+    return result;
+  };
 }
+
+type PhysicsMode = "verlet" | "lagrangian";
 
 function buildPendulumNodes(jointCount: number, pivotX: number, pivotY: number) {
   const nodes = [{ id: "pivot", fixed: true, x: pivotX, y: pivotY, color: "#64748b" }];
   for (let i = 0; i < jointCount; i++) {
-    const angle = Math.PI / 4 + (i * 0.3);
+    const angle = Math.PI / 4 + i * 0.3;
     nodes.push({
       id: `m${i + 1}`,
-      x: pivotX + (i + 1) * PENDULUM_ARM_LEN * Math.sin(angle),
-      y: pivotY + (i + 1) * PENDULUM_ARM_LEN * Math.cos(angle),
-      color: PENDULUM_COLORS[i % PENDULUM_COLORS.length]!,
+      x: pivotX + (i + 1) * PEND_ARM * Math.sin(angle),
+      y: pivotY + (i + 1) * PEND_ARM * Math.cos(angle),
+      color: PEND_COLORS[i % PEND_COLORS.length]!,
     });
   }
   return nodes;
@@ -2642,73 +2705,60 @@ function buildPendulumEdges(jointCount: number) {
   const edges = [];
   const ids = ["pivot", ...Array.from({ length: jointCount }, (_, i) => `m${i + 1}`)];
   for (let i = 0; i < ids.length - 1; i++) {
-    edges.push({
-      source: ids[i]!,
-      target: ids[i + 1]!,
-      color: "var(--color-text-muted, #94a3b8)",
-    });
+    edges.push({ source: ids[i]!, target: ids[i + 1]!, color: "var(--color-text-muted, #94a3b8)" });
   }
   return edges;
 }
 
+function createForce(mode: PhysicsMode, n: number) {
+  return mode === "lagrangian" ? createLagrangianForce(n) : createVerletForce(n);
+}
+
 function DoublePendulumDemo() {
   const [jointCount, setJointCount] = useState(3);
-  const forceRef = useRef(getPendulumForce(jointCount));
+  const [mode, setMode] = useState<PhysicsMode>("verlet");
+  const forceRef = useRef(createForce(mode, jointCount));
 
-  // When joint count changes, create a new force function and clear cache
   const handleJointChange = useCallback((n: number) => {
-    pendulumForceCache.delete(n);
-    forceRef.current = createPendulumForce(n);
+    forceRef.current = createForce(mode, n);
     setJointCount(n);
-  }, []);
+  }, [mode]);
+
+  const handleModeChange = useCallback((newMode: PhysicsMode) => {
+    forceRef.current = createForce(newMode, jointCount);
+    setMode(newMode);
+  }, [jointCount]);
 
   const nodes = buildPendulumNodes(jointCount, 200, 50);
   const edges = buildPendulumEdges(jointCount);
-  const lastMassId = `m${jointCount}`;
-  const lastColor = PENDULUM_COLORS[(jointCount - 1) % PENDULUM_COLORS.length]!;
+  const lastId = `m${jointCount}`;
+  const lastClr = PEND_COLORS[(jointCount - 1) % PEND_COLORS.length]!;
 
-  return createElement(
-    FlexContainer,
-    { gap: "12px", alignItems: "flex-start", style: { flexWrap: "wrap" } },
+  return createElement("div", null,
     createElement(
-      "div",
-      { style: { flex: "1", minWidth: "250px" } },
-      createElement(ForceGraph, {
-        nodes,
-        edges,
-        customForce: forceRef.current,
-        trails: [
-          { nodeId: lastMassId, color: lastColor, maxPoints: 400, width: 1, opacity: 0.35 },
-        ],
-        width: 400,
-        height: 350,
-        nodeRadius: 7,
-        showLabels: false,
-        edgeWidth: 2,
-      }),
-    ),
-    createElement(
-      "div",
-      {
-        style: {
-          display: "flex",
-          flexDirection: "column",
-          gap: "4px",
-          minWidth: "70px",
-          maxWidth: "80px",
-          paddingTop: "4px",
-          fontSize: "10px",
-          color: "var(--color-text, #1f2937)",
-        },
+      FlexContainer,
+      { gap: "12px", alignItems: "flex-start", style: { flexWrap: "wrap" } },
+      createElement("div", { style: { flex: "1", minWidth: "250px" } },
+        createElement(ForceGraph, {
+          nodes, edges,
+          customForce: forceRef.current,
+          trails: [{ nodeId: lastId, color: lastClr, maxPoints: 400, width: 1, opacity: 0.35 }],
+          width: 400, height: 350, nodeRadius: 7, showLabels: false, edgeWidth: 2,
+        }),
+      ),
+      createElement("div", {
+        style: { display: "flex", flexDirection: "column", gap: "4px", minWidth: "70px", maxWidth: "80px", paddingTop: "4px", fontSize: "10px", color: "var(--color-text, #1f2937)" },
       },
-      createElement(NumberSpinner, {
-        value: jointCount,
-        onChange: handleJointChange,
-        min: 2,
-        max: 5,
-        step: 1,
-        label: "Joints",
-      }),
+        createElement(NumberSpinner, { value: jointCount, onChange: handleJointChange, min: 2, max: 5, step: 1, label: "Joints" }),
+      ),
+    ),
+    // Physics mode radio toggle
+    createElement("div", {
+      style: { display: "flex", gap: "8px", marginTop: "8px", alignItems: "center", fontSize: "11px", color: "var(--color-text-muted, #64748b)" },
+    },
+      createElement(Button, { size: "sm", active: mode === "verlet", onClick: () => handleModeChange("verlet") }, "Verlet (PBD)"),
+      createElement(Button, { size: "sm", active: mode === "lagrangian", onClick: () => handleModeChange("lagrangian") }, "Lagrangian"),
+      createElement("span", { style: { fontSize: "9px", opacity: "0.6" } }, "hover vertex to attract"),
     ),
   );
 }

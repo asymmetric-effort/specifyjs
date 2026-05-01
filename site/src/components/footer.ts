@@ -4,7 +4,7 @@
 import { createElement } from 'specifyjs';
 import { Footer as FooterComponent } from '../../../components/layout/footer/src/index';
 
-const VERSION = '0.2.7';
+const VERSION = '0.2.8';
 
 export function Footer() {
   const year = new Date().getFullYear();

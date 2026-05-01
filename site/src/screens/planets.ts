@@ -29,25 +29,48 @@ interface Planet {
 const SUN_MASS = 333000; // relative to Earth
 const G = 0.0001;
 
-// Real eccentricities from NASA planetary fact sheets
+// Real eccentricities from NASA planetary fact sheets.
+// Semi-major axes scaled so Pluto's aphelion (~240px) fits within the viewport.
 const PLANETS: Planet[] = [
-  { id: 'mercury',  label: 'Mercury',  color: '#94a3b8', semiMajor: 40,  eccentricity: 0.206, mass: 0.055 },
-  { id: 'venus',    label: 'Venus',    color: '#f59e0b', semiMajor: 65,  eccentricity: 0.007, mass: 0.815 },
-  { id: 'earth',    label: 'Earth',    color: '#3b82f6', semiMajor: 90,  eccentricity: 0.017, mass: 1.0 },
-  { id: 'mars',     label: 'Mars',     color: '#ef4444', semiMajor: 115, eccentricity: 0.093, mass: 0.107 },
-  { id: 'jupiter',  label: 'Jupiter',  color: '#f97316', semiMajor: 160, eccentricity: 0.049, mass: 317.8 },
-  { id: 'saturn',   label: 'Saturn',   color: '#eab308', semiMajor: 210, eccentricity: 0.057, mass: 95.2 },
-  { id: 'uranus',   label: 'Uranus',   color: '#06b6d4', semiMajor: 255, eccentricity: 0.046, mass: 14.5 },
-  { id: 'neptune',  label: 'Neptune',  color: '#6366f1', semiMajor: 295, eccentricity: 0.010, mass: 17.1 },
-  { id: 'pluto',    label: 'Pluto',    color: '#a1a1aa', semiMajor: 330, eccentricity: 0.249, mass: 0.002 },
+  { id: 'mercury',  label: 'Mercury',  color: '#94a3b8', semiMajor: 28,  eccentricity: 0.206, mass: 0.055 },
+  { id: 'venus',    label: 'Venus',    color: '#f59e0b', semiMajor: 48,  eccentricity: 0.007, mass: 0.815 },
+  { id: 'earth',    label: 'Earth',    color: '#3b82f6', semiMajor: 65,  eccentricity: 0.017, mass: 1.0 },
+  { id: 'mars',     label: 'Mars',     color: '#ef4444', semiMajor: 82,  eccentricity: 0.093, mass: 0.107 },
+  { id: 'jupiter',  label: 'Jupiter',  color: '#f97316', semiMajor: 115, eccentricity: 0.049, mass: 317.8 },
+  { id: 'saturn',   label: 'Saturn',   color: '#eab308', semiMajor: 150, eccentricity: 0.057, mass: 95.2 },
+  { id: 'uranus',   label: 'Uranus',   color: '#06b6d4', semiMajor: 180, eccentricity: 0.046, mass: 14.5 },
+  { id: 'neptune',  label: 'Neptune',  color: '#6366f1', semiMajor: 210, eccentricity: 0.010, mass: 17.1 },
+  { id: 'pluto',    label: 'Pluto',    color: '#a1a1aa', semiMajor: 240, eccentricity: 0.249, mass: 0.002 },
 ];
 
-// ── N-body gravitational force ───────────────────────────────────────
+// ── N-body gravitational force (leapfrog integrator) ─────────────────
+
+/** Compute gravitational acceleration toward the Sun */
+function sunAccel(px: number, py: number, cx: number, cy: number): { ax: number; ay: number } {
+  const dx = cx - px, dy = cy - py;
+  const distSq = dx * dx + dy * dy;
+  const dist = Math.sqrt(distSq);
+  if (dist < 3) return { ax: 0, ay: 0 };
+  const a = G * SUN_MASS / distSq;
+  return { ax: (dx / dist) * a, ay: (dy / dist) * a };
+}
+
+/**
+ * Leapfrog (Störmer-Verlet) integrator — symplectic, conserves energy.
+ *
+ *   v(t + dt/2) = v(t) + a(t) * dt/2       (half-kick)
+ *   x(t + dt)   = x(t) + v(t + dt/2) * dt  (drift)
+ *   a(t + dt)   = accel(x(t + dt))          (recompute)
+ *   v(t + dt)   = v(t + dt/2) + a(t+dt) * dt/2  (half-kick)
+ *
+ * Multiple sub-steps per frame for stability at all orbit sizes.
+ */
+const SUB_STEPS = 4;
+const DT = 1.0 / SUB_STEPS;
 
 function createSolarForce(): (
   nodes: ForceSimNode[], edges: ForceEdge[], w: number, h: number, mouse: MousePosition | null
 ) => ForceSimNode[] {
-  // Velocity state per body
   const vel = new Map<string, { vx: number; vy: number }>();
   let init = false;
 
@@ -56,20 +79,19 @@ function createSolarForce(): (
     if (!sun) return nodes;
     const cx = w / 2, cy = h / 2;
 
-    // Initialize velocities for elliptical orbits (Kepler's laws)
-    // Each planet starts at aphelion (farthest point from Sun).
-    // Aphelion velocity: v = sqrt(GM * (1-e) / (a * (1+e)))
+    // Initialize velocities for elliptical orbits (Kepler)
+    // Start at aphelion: v_aph = sqrt(GM*(1-e)/(a*(1+e)))
     if (!init) {
       for (const p of PLANETS) {
         const nd = nodes.find(n => n.id === p.id);
         if (!nd) continue;
         const dx = nd.x - cx, dy = nd.y - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 1) continue;
         const e = p.eccentricity;
         const a = p.semiMajor;
-        // Aphelion velocity — slower than circular, producing elliptical orbit
         const speed = Math.sqrt(G * SUN_MASS * (1 - e) / (a * (1 + e)));
-        // Perpendicular to radius vector (counter-clockwise)
+        // Tangential (perpendicular to radius, counter-clockwise)
         vel.set(p.id, { vx: -(dy / dist) * speed, vy: (dx / dist) * speed });
       }
       vel.set('sun', { vx: 0, vy: 0 });
@@ -78,32 +100,31 @@ function createSolarForce(): (
 
     const result = nodes.map(n => ({ ...n }));
 
-    // Compute gravitational forces on each planet from the Sun
-    // (planet-planet interactions are negligible at this scale)
     for (const nd of result) {
-      if (nd.id === 'sun') {
-        nd.x = cx; nd.y = cy; // Keep sun fixed at center
-        continue;
-      }
-
+      if (nd.id === 'sun') { nd.x = cx; nd.y = cy; continue; }
       const v = vel.get(nd.id);
       if (!v) continue;
 
-      const dx = cx - nd.x, dy = cy - nd.y;
-      const distSq = dx * dx + dy * dy;
-      const dist = Math.sqrt(distSq);
-      if (dist < 5) continue;
+      // Leapfrog with sub-stepping
+      for (let s = 0; s < SUB_STEPS; s++) {
+        // Current acceleration
+        const a1 = sunAccel(nd.x, nd.y, cx, cy);
 
-      // Gravitational acceleration: a = G * M / r^2
-      const accel = G * SUN_MASS / distSq;
-      const ax = (dx / dist) * accel;
-      const ay = (dy / dist) * accel;
+        // Half-kick
+        const vxHalf = v.vx + a1.ax * DT * 0.5;
+        const vyHalf = v.vy + a1.ay * DT * 0.5;
 
-      v.vx += ax;
-      v.vy += ay;
+        // Drift
+        nd.x += vxHalf * DT;
+        nd.y += vyHalf * DT;
 
-      nd.x += v.vx;
-      nd.y += v.vy;
+        // New acceleration at updated position
+        const a2 = sunAccel(nd.x, nd.y, cx, cy);
+
+        // Second half-kick
+        v.vx = vxHalf + a2.ax * DT * 0.5;
+        v.vy = vyHalf + a2.ay * DT * 0.5;
+      }
     }
 
     return result;

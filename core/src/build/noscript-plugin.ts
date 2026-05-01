@@ -70,28 +70,42 @@ export interface NoscriptPluginConfig {
 /**
  * Strip interactive elements that don't work without JS.
  * Keeps readable content: headings, paragraphs, lists, tables, code, images, links.
+ *
+ * Uses iterative passes to handle nested/overlapping patterns that
+ * single-pass regex cannot catch (addresses CodeQL multi-character
+ * sanitization and HTML filtering findings).
  */
 export function stripInteractiveElements(html: string): string {
-  return (
-    html
-      // Remove <button> elements (keep inner text)
-      .replace(/<button[^>]*>([\s\S]*?)<\/button>/gi, '$1')
-      // Remove <input> elements
-      .replace(/<input[^>]*\/?>/gi, '')
-      // Remove <select>/<option> elements
-      .replace(/<select[^>]*>[\s\S]*?<\/select>/gi, '')
-      // Remove <textarea> elements
-      .replace(/<textarea[^>]*>[\s\S]*?<\/textarea>/gi, '')
-      // Remove <form> wrappers (keep content)
-      .replace(/<\/?form[^>]*>/gi, '')
-      // Remove onclick/onchange/etc. inline handlers
-      .replace(/\s+on\w+="[^"]*"/gi, '')
-      .replace(/\s+on\w+='[^']*'/gi, '')
-      // Remove style attributes with JS expressions
-      .replace(/\s+style="[^"]*javascript:[^"]*"/gi, '')
-      // Remove <script> tags
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-  );
+  let result = html;
+  let prev = '';
+
+  // Iterate until stable — handles nested constructs like
+  // <scr<script>ipt> or <but<button>ton>
+  const MAX_PASSES = 10;
+  for (let pass = 0; pass < MAX_PASSES && result !== prev; pass++) {
+    prev = result;
+    // Remove <script> tags and content (must come first)
+    result = result.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi, '');
+    // Remove <button> elements (keep inner text)
+    result = result.replace(/<button\b[^>]*>([\s\S]*?)<\/button\s*>/gi, '$1');
+    // Remove <input> elements (self-closing or not)
+    result = result.replace(/<input\b[^>]*\/?>/gi, '');
+    // Remove <select> and all contents
+    result = result.replace(/<select\b[^<]*(?:(?!<\/select>)<[^<]*)*<\/select\s*>/gi, '');
+    // Remove <textarea> and all contents
+    result = result.replace(/<textarea\b[^<]*(?:(?!<\/textarea>)<[^<]*)*<\/textarea\s*>/gi, '');
+    // Remove <form> wrappers (keep content)
+    result = result.replace(/<\/?form\b[^>]*>/gi, '');
+  }
+
+  // Remove inline event handlers (onclick, onchange, etc.)
+  result = result.replace(/\s+on[a-z]+\s*=\s*"[^"]*"/gi, '');
+  result = result.replace(/\s+on[a-z]+\s*=\s*'[^']*'/gi, '');
+  // Remove style attributes containing javascript: URIs
+  result = result.replace(/\s+style\s*=\s*"[^"]*javascript\s*:[^"]*"/gi, '');
+  result = result.replace(/\s+style\s*=\s*'[^']*javascript\s*:[^']*'/gi, '');
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------

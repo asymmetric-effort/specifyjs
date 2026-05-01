@@ -64,6 +64,10 @@ export interface VectorFieldProps {
   title?: string;
   /** Padding around chart area in px (default: 50) */
   padding?: number;
+  /** Font size for axis tick labels in px (default: 10) */
+  tickFontSize?: number;
+  /** Arrow stroke width (default: 1.5) */
+  arrowWidth?: number;
 }
 
 // -- Color helpers ------------------------------------------------------------
@@ -146,6 +150,8 @@ export function VectorField(props: VectorFieldProps) {
     colorScale = ['#3b82f6', '#8b5cf6', '#ef4444'],
     title,
     padding = 50,
+    tickFontSize = 10,
+    arrowWidth = 1.5,
   } = props;
 
   const chartWidth = width - padding * 2;
@@ -244,7 +250,7 @@ export function VectorField(props: VectorFieldProps) {
             x: String(px),
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
-            'font-size': '10',
+            'font-size': String(tickFontSize),
             'font-family': 'sans-serif',
             fill: '#6b7280',
           },
@@ -279,7 +285,7 @@ export function VectorField(props: VectorFieldProps) {
             x: String(padding - 6),
             y: String(py + 4),
             'text-anchor': 'end',
-            'font-size': '10',
+            'font-size': String(tickFontSize),
             'font-family': 'sans-serif',
             fill: '#6b7280',
           },
@@ -309,7 +315,7 @@ export function VectorField(props: VectorFieldProps) {
           x2: String(padding + chartWidth),
           y2: String(y0),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(arrowWidth),
         }),
       );
     }
@@ -325,7 +331,7 @@ export function VectorField(props: VectorFieldProps) {
           x2: String(x0),
           y2: String(padding + chartHeight),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(arrowWidth),
         }),
       );
     }
@@ -388,7 +394,7 @@ export function VectorField(props: VectorFieldProps) {
           x2: String(endX),
           y2: String(endY),
           stroke: color,
-          'stroke-width': '1.5',
+          'stroke-width': String(arrowWidth),
           'stroke-linecap': 'round',
         }),
       );

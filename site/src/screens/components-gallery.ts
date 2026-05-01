@@ -2425,15 +2425,17 @@ function GeoMapDemo() {
 function VectorFieldDemo() {
   return createElement(VectorField, {
     vectorFunction: (x: number, y: number) => ({ dx: -y, dy: x }),
-    width: 240,
-    height: 160,
-    gridSize: 12,
+    width: 300,
+    height: 320,
+    gridSize: 14,
     xRange: [-3, 3],
-    yRange: [-2, 2],
+    yRange: [-3, 3],
     showGrid: true,
     showAxes: true,
     colorByMagnitude: true,
     arrowColor: "#3b82f6",
+    tickFontSize: 7,
+    arrowWidth: 0.75,
   });
 }
 
@@ -2759,7 +2761,7 @@ function DoublePendulumDemo() {
       createElement("div", {
         style: { display: "flex", flexDirection: "column", gap: "4px", minWidth: "70px", maxWidth: "90px", paddingTop: "4px", fontSize: "10px", color: "var(--color-text, #1f2937)" },
       },
-        createElement(NumberSpinner, { value: jointCount, onChange: handleJointChange, min: 2, max: 5, step: 1, label: "Joints" }),
+        createElement(NumberSpinner, { value: jointCount, onChange: handleJointChange, min: 2, max: 1000, step: 1, label: "Joints" }),
         createElement(NumberSpinner, { value: gravCoeff, onChange: handleGravChange, min: 1, max: 1000000, step: 10, label: "Cursor mass" }),
       ),
     ),

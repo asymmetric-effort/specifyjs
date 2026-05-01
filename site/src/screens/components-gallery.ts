@@ -2533,11 +2533,14 @@ const PEND_ARM = 60;
 const PEND_G = 0.5;
 const PEND_DAMP = 0.999;
 const PEND_ITERS = 10;
-const MOUSE_ATTRACT_STRENGTH = 0.15;
+const MOUSE_MASS_RATIO = 100;
+const MOUSE_G = 0.08;
 
 /**
  * Apply mouse gravitational attraction to a node.
- * The cursor acts as a mass 2x the vertex mass.
+ * The cursor acts as a mass 100x the vertex mass, pulling the vertex
+ * toward the cursor position regardless of whether the mouse is
+ * directly over the vertex. Force = G * m_cursor / r (softened).
  */
 function applyMouseAttraction(
   nx: number, ny: number, vx: number, vy: number,
@@ -2549,8 +2552,8 @@ function applyMouseAttraction(
   const distSq = dx * dx + dy * dy;
   if (distSq < 1) return { vx, vy };
   const dist = Math.sqrt(distSq);
-  // F = G * m1 * m2 / r^2, with m_cursor = 2 * m_vertex
-  const force = MOUSE_ATTRACT_STRENGTH * 2 / Math.max(dist, 20);
+  // Softened gravity: force grows with proximity but caps to avoid explosion
+  const force = MOUSE_G * MOUSE_MASS_RATIO / Math.max(dist, 15);
   return { vx: vx + (dx / dist) * force, vy: vy + (dy / dist) * force };
 }
 
@@ -2672,8 +2675,8 @@ function createLagrangianForce(
         if (dist > 1) {
           // Torque = r x F (cross product in 2D)
           const rx = nd.x - px, ry = nd.y - py;
-          const fx = (dx / dist) * MOUSE_ATTRACT_STRENGTH * 2;
-          const fy = (dy / dist) * MOUSE_ATTRACT_STRENGTH * 2;
+          const fx = (dx / dist) * MOUSE_G * MOUSE_MASS_RATIO;
+          const fy = (dy / dist) * MOUSE_G * MOUSE_MASS_RATIO;
           const torque = (rx * fy - ry * fx) / (L * L);
           omega[i] += torque * dt;
         }

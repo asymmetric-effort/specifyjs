@@ -18,10 +18,10 @@ interface Planet {
   id: string;
   label: string;
   color: string;
-  /** Orbital radius in px */
-  orbit: number;
-  /** Orbital speed (radians per frame) */
-  speed: number;
+  /** Semi-major axis in px */
+  semiMajor: number;
+  /** Orbital eccentricity (0 = circle, <1 = ellipse) */
+  eccentricity: number;
   /** Relative mass (Earth = 1) */
   mass: number;
 }
@@ -29,16 +29,17 @@ interface Planet {
 const SUN_MASS = 333000; // relative to Earth
 const G = 0.0001;
 
+// Real eccentricities from NASA planetary fact sheets
 const PLANETS: Planet[] = [
-  { id: 'mercury',  label: 'Mercury',  color: '#94a3b8', orbit: 40,  speed: 0.048, mass: 0.055 },
-  { id: 'venus',    label: 'Venus',    color: '#f59e0b', orbit: 65,  speed: 0.035, mass: 0.815 },
-  { id: 'earth',    label: 'Earth',    color: '#3b82f6', orbit: 90,  speed: 0.030, mass: 1.0 },
-  { id: 'mars',     label: 'Mars',     color: '#ef4444', orbit: 115, speed: 0.024, mass: 0.107 },
-  { id: 'jupiter',  label: 'Jupiter',  color: '#f97316', orbit: 160, speed: 0.013, mass: 317.8 },
-  { id: 'saturn',   label: 'Saturn',   color: '#eab308', orbit: 210, speed: 0.010, mass: 95.2 },
-  { id: 'uranus',   label: 'Uranus',   color: '#06b6d4', orbit: 255, speed: 0.007, mass: 14.5 },
-  { id: 'neptune',  label: 'Neptune',  color: '#6366f1', orbit: 295, speed: 0.005, mass: 17.1 },
-  { id: 'pluto',    label: 'Pluto',    color: '#a1a1aa', orbit: 330, speed: 0.004, mass: 0.002 },
+  { id: 'mercury',  label: 'Mercury',  color: '#94a3b8', semiMajor: 40,  eccentricity: 0.206, mass: 0.055 },
+  { id: 'venus',    label: 'Venus',    color: '#f59e0b', semiMajor: 65,  eccentricity: 0.007, mass: 0.815 },
+  { id: 'earth',    label: 'Earth',    color: '#3b82f6', semiMajor: 90,  eccentricity: 0.017, mass: 1.0 },
+  { id: 'mars',     label: 'Mars',     color: '#ef4444', semiMajor: 115, eccentricity: 0.093, mass: 0.107 },
+  { id: 'jupiter',  label: 'Jupiter',  color: '#f97316', semiMajor: 160, eccentricity: 0.049, mass: 317.8 },
+  { id: 'saturn',   label: 'Saturn',   color: '#eab308', semiMajor: 210, eccentricity: 0.057, mass: 95.2 },
+  { id: 'uranus',   label: 'Uranus',   color: '#06b6d4', semiMajor: 255, eccentricity: 0.046, mass: 14.5 },
+  { id: 'neptune',  label: 'Neptune',  color: '#6366f1', semiMajor: 295, eccentricity: 0.010, mass: 17.1 },
+  { id: 'pluto',    label: 'Pluto',    color: '#a1a1aa', semiMajor: 330, eccentricity: 0.249, mass: 0.002 },
 ];
 
 // ── N-body gravitational force ───────────────────────────────────────
@@ -55,15 +56,19 @@ function createSolarForce(): (
     if (!sun) return nodes;
     const cx = w / 2, cy = h / 2;
 
-    // Initialize velocities for circular orbits
+    // Initialize velocities for elliptical orbits (Kepler's laws)
+    // Each planet starts at aphelion (farthest point from Sun).
+    // Aphelion velocity: v = sqrt(GM * (1-e) / (a * (1+e)))
     if (!init) {
       for (const p of PLANETS) {
         const nd = nodes.find(n => n.id === p.id);
         if (!nd) continue;
-        // Tangential velocity for circular orbit
         const dx = nd.x - cx, dy = nd.y - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const speed = Math.sqrt(G * SUN_MASS / Math.max(dist, 1));
+        const e = p.eccentricity;
+        const a = p.semiMajor;
+        // Aphelion velocity — slower than circular, producing elliptical orbit
+        const speed = Math.sqrt(G * SUN_MASS * (1 - e) / (a * (1 + e)));
         // Perpendicular to radius vector (counter-clockwise)
         vel.set(p.id, { vx: -(dy / dist) * speed, vy: (dx / dist) * speed });
       }
@@ -113,12 +118,14 @@ function buildNodes(cx: number, cy: number) {
   ];
   for (let i = 0; i < PLANETS.length; i++) {
     const p = PLANETS[i]!;
-    // Distribute planets at different starting angles
+    // Place each planet at its aphelion (farthest point): r_aph = a * (1 + e)
+    const aphelion = p.semiMajor * (1 + p.eccentricity);
+    // Distribute at different starting angles so they don't overlap
     const angle = (i / PLANETS.length) * 2 * Math.PI + Math.PI / 6;
     nodes.push({
       id: p.id,
-      x: cx + p.orbit * Math.cos(angle),
-      y: cy + p.orbit * Math.sin(angle),
+      x: cx + aphelion * Math.cos(angle),
+      y: cy + aphelion * Math.sin(angle),
       color: p.color,
       label: p.label,
     });

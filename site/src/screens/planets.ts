@@ -187,6 +187,7 @@ export function PlanetsScreen() {
         width: 800,
         height: 700,
         nodeRadius: 5,
+        nodeStrokeWidth: 0,
         showLabels: true,
         edgeWidth: 0,
       }),

@@ -102,6 +102,8 @@ export interface ForceGraphProps {
   height?: number;
   /** Node circle radius in pixels (default: 12) */
   nodeRadius?: number;
+  /** Node border stroke width in pixels (default: 2, set to 0 for no border) */
+  nodeStrokeWidth?: number;
   /** Show node labels (default: true) */
   showLabels?: boolean;
   /** Show arrowheads on edges (default: false) */
@@ -315,6 +317,7 @@ export function ForceGraph(props: ForceGraphProps) {
     width = 600,
     height = 400,
     nodeRadius = 12,
+    nodeStrokeWidth = 2,
     showLabels = true,
     showArrows = false,
     repulsionForce = 300,
@@ -637,7 +640,7 @@ export function ForceGraph(props: ForceGraphProps) {
           r: String(nodeRadius),
           fill: n.color,
           stroke: n.fixed ? "#0f172a" : "#fff",
-          "stroke-width": n.fixed ? "3" : "2",
+          "stroke-width": n.fixed ? "3" : String(nodeStrokeWidth),
           style: { cursor: draggingIdRef.current === n.id ? "grabbing" : "grab" },
           onMouseDown: (e: Event) => handleNodeMouseDown(n.id, e),
           onDblClick: () => toggleFixed(n.id),

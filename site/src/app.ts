@@ -13,6 +13,7 @@ import { ComponentReference } from './screens/component-reference';
 import { GettingStarted } from './screens/getting-started';
 import { FeatureFlagsDemo } from './screens/feature-flags-demo';
 import { DocsViewer } from './screens/docs-viewer';
+import { PendulumScreen } from './screens/pendulum';
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -31,6 +32,7 @@ function AppContent() {
     { path: '/getting-started', title: 'Getting Started', content: createElement(GettingStarted, null), flag: 'getting-started' },
     { path: '/featureflags', title: 'Feature Flags', content: createElement(FeatureFlagsDemo, null) },
     { path: '/docs', title: 'Documentation', content: createElement(DocsViewer, null) },
+    { path: '/pendulum', title: 'Pendulum Physics', content: createElement(PendulumScreen, null) },
   ];
 
   let dialogTitle: string | null = null;

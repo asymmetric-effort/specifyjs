@@ -6,6 +6,7 @@ import { useState, useCallback, useRef } from 'specifyjs/hooks';
 import { ForceGraph, type ForceSimNode, type ForceEdge, type MousePosition } from '../../../components/viz/force-graph/src/index';
 import { NumberSpinner } from '../../../components/form/number-spinner/src/index';
 import { Button } from '../../../components/form/button/src/index';
+import { Toggle } from '../../../components/form/toggle/src/index';
 import { matN, matNSet } from '../../../core/src/math/mat';
 import { solve } from '../../../core/src/math/solver';
 
@@ -160,6 +161,7 @@ export function PendulumScreen() {
   const [joints, setJoints] = useState(3);
   const [mode, setMode] = useState<Mode>('verlet');
   const [grav, setGrav] = useState(100);
+  const [solid, setSolid] = useState(false);
   const forceRef = useRef(mkForce(mode, joints));
 
   const onJoints = useCallback((n: number) => { forceRef.current = mkForce(mode, n); setJoints(n); }, [mode]);
@@ -187,7 +189,7 @@ export function PendulumScreen() {
           edges: mkEdges(joints),
           customForce: forceRef.current,
           trails: [{ nodeId: lastId, color: lastClr, maxPoints: 600, width: 1, opacity: 0.3 }],
-          width: 800, height: 600, nodeRadius: 6, nodeStrokeWidth: 0, solidNodes: false, showLabels: false, edgeWidth: 2,
+          width: 800, height: 600, nodeRadius: 6, nodeStrokeWidth: 0, solidNodes: solid, showLabels: false, edgeWidth: 2,
         }),
       ),
       // Controls
@@ -200,6 +202,7 @@ export function PendulumScreen() {
           createElement(Button, { size: 'sm', active: mode === 'verlet', onClick: () => onMode('verlet') }, 'Verlet (PBD)'),
           createElement(Button, { size: 'sm', active: mode === 'lagrangian', onClick: () => onMode('lagrangian') }, 'Lagrangian'),
         ),
+        createElement(Toggle, { checked: solid, onChange: setSolid, label: 'Solid', size: 'sm' }),
         createElement('p', { style: { fontSize: '10px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px', lineHeight: '1.4' } },
           'Move cursor over the visualization to attract vertices. Double-click a vertex to lock/unlock it.',
         ),

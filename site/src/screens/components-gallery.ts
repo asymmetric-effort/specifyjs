@@ -2724,6 +2724,7 @@ function DoublePendulumDemo() {
   const [jointCount, setJointCount] = useState(3);
   const [mode, setMode] = useState<PhysicsMode>("verlet");
   const [gravCoeff, setGravCoeff] = useState(100);
+  const [solid, setSolid] = useState(false);
   const forceRef = useRef(createForce(mode, jointCount));
 
   const handleJointChange = useCallback((n: number) => {
@@ -2754,6 +2755,7 @@ function DoublePendulumDemo() {
         createElement(ForceGraph, {
           nodes, edges,
           customForce: forceRef.current,
+          solidNodes: solid,
           trails: [{ nodeId: lastId, color: lastClr, maxPoints: 400, width: 1, opacity: 0.35 }],
           width: 400, height: 350, nodeRadius: 7, showLabels: false, edgeWidth: 2,
         }),
@@ -2765,12 +2767,13 @@ function DoublePendulumDemo() {
         createElement(NumberSpinner, { value: gravCoeff, onChange: handleGravChange, min: 1, max: 1000000, step: 10, label: "Cursor mass" }),
       ),
     ),
-    // Physics mode radio toggle
+    // Physics mode + solidity toggles
     createElement("div", {
-      style: { display: "flex", gap: "8px", marginTop: "8px", alignItems: "center", fontSize: "11px", color: "var(--color-text-muted, #64748b)" },
+      style: { display: "flex", gap: "8px", marginTop: "8px", alignItems: "center", fontSize: "11px", color: "var(--color-text-muted, #64748b)", flexWrap: "wrap" },
     },
       createElement(Button, { size: "sm", active: mode === "verlet", onClick: () => handleModeChange("verlet") }, "Verlet (PBD)"),
       createElement(Button, { size: "sm", active: mode === "lagrangian", onClick: () => handleModeChange("lagrangian") }, "Lagrangian"),
+      createElement(Toggle, { checked: solid, onChange: setSolid, label: "Solid", size: "sm" }),
     ),
   );
 }

@@ -78,12 +78,6 @@ describe('Tooltip', () => {
 
   // ── Interaction ─────────────────────────────────────────────
   describe('interaction', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-    afterEach(() => {
-      vi.useRealTimers();
-    });
 
     it('trigger has onMouseEnter for showing tooltip', () => {
       const { vnode } = renderTooltip();

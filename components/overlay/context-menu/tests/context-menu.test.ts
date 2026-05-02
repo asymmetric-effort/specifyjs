@@ -96,12 +96,6 @@ describe('ContextMenu', () => {
 
   // ── Interaction ─────────────────────────────────────────────
   describe('interaction', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-    afterEach(() => {
-      vi.useRealTimers();
-    });
 
     it('Escape key listener is registered when menu would be open', () => {
       // The component registers Escape handler when menuPos is set

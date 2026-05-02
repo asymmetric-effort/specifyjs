@@ -17,9 +17,7 @@ function render(vnode: unknown): HTMLElement {
 }
 
 beforeEach(() => {
-  vi.useFakeTimers();
   return () => {
-    vi.useRealTimers();
     if (container && container.parentNode) {
       document.body.removeChild(container);
     }

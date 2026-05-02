@@ -57,12 +57,12 @@ describe('specifyJsSeoPlugin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-03-15T12:00:00Z'));
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-15T12:00:00Z').getTime());
+    vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-03-15T12:00:00.000Z');
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('returns a Vite plugin with name specifyjs-seo', () => {

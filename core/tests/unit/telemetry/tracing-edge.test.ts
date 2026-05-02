@@ -7,12 +7,11 @@ import { createTracer, generateTraceId, generateSpanId } from '../../../src/tele
 
 afterEach(() => {
   vi.restoreAllMocks();
-  vi.useRealTimers();
 });
 
 describe('tracing — auto-flush timer', () => {
   it('sets up interval timer with flushInterval', () => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
     const tracer = createTracer({
       serviceName: 'test',
@@ -29,6 +28,9 @@ describe('tracing — auto-flush timer', () => {
     // Pending spans should be flushed (buffer cleared)
     // Since no endpoint, flush just clears the buffer
     expect(tracer.pendingSpans.length).toBeGreaterThanOrEqual(0);
+
+    vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   it('creates tracer without flushInterval (no timer)', () => {

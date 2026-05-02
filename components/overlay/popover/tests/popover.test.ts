@@ -86,12 +86,6 @@ describe('Popover', () => {
 
   // ── Interaction ─────────────────────────────────────────────
   describe('interaction', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-    afterEach(() => {
-      vi.useRealTimers();
-    });
 
     it('trigger element has onClick for toggling', () => {
       const { vnode } = renderPopover();

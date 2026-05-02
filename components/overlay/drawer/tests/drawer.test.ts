@@ -95,12 +95,6 @@ describe('Drawer', () => {
 
   // ── Interaction ─────────────────────────────────────────────
   describe('interaction', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-    afterEach(() => {
-      vi.useRealTimers();
-    });
 
     it('calls onClose when Escape key is pressed', () => {
       // useEffect is not executed in vnode-only tests.

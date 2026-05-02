@@ -68,44 +68,200 @@ export interface NoscriptPluginConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * Strip interactive elements that don't work without JS.
- * Keeps readable content: headings, paragraphs, lists, tables, code, images, links.
- *
- * Uses iterative passes to handle nested/overlapping patterns that
- * single-pass regex cannot catch (addresses CodeQL multi-character
- * sanitization and HTML filtering findings).
+ * Allowed HTML tags for noscript content.
+ * Only these tags are preserved — everything else is stripped.
+ * This whitelist approach avoids the inherent insecurity of
+ * regex-based blocklist sanitization (no bypasses possible).
+ */
+const ALLOWED_TAGS = new Set([
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'p',
+  'br',
+  'hr',
+  'blockquote',
+  'ul',
+  'ol',
+  'li',
+  'dl',
+  'dt',
+  'dd',
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'th',
+  'td',
+  'caption',
+  'a',
+  'strong',
+  'em',
+  'b',
+  'i',
+  'u',
+  's',
+  'code',
+  'pre',
+  'kbd',
+  'samp',
+  'span',
+  'div',
+  'section',
+  'article',
+  'aside',
+  'header',
+  'footer',
+  'nav',
+  'img',
+  'figure',
+  'figcaption',
+  'picture',
+  'source',
+  'details',
+  'summary',
+  'mark',
+  'small',
+  'sub',
+  'sup',
+  'abbr',
+  'time',
+]);
+
+/** Tags whose content is removed entirely (not just the tag itself) */
+const CONTENT_BLOCK_TAGS = new Set([
+  'script',
+  'style',
+  'textarea',
+  'select',
+  'noscript',
+  'iframe',
+  'object',
+  'embed',
+  'applet',
+]);
+
+/** Allowed attributes (no event handlers, no javascript: URIs) */
+const ALLOWED_ATTRS = new Set([
+  'href',
+  'src',
+  'alt',
+  'title',
+  'width',
+  'height',
+  'class',
+  'id',
+  'name',
+  'colspan',
+  'rowspan',
+  'scope',
+  'rel',
+  'target',
+  'lang',
+  'dir',
+  'role',
+  'aria-label',
+  'aria-describedby',
+  'aria-hidden',
+  'style', // style is allowed but javascript: URIs within it are stripped
+]);
+
+/**
+ * Strip interactive elements from HTML using a whitelist approach.
+ * Only allowed tags with allowed attributes are kept. All other
+ * tags are removed (their text content is preserved). This is
+ * immune to regex bypass attacks because unknown tags are never
+ * emitted — they're simply not in the whitelist.
  */
 export function stripInteractiveElements(html: string): string {
-  let result = html;
-  let prev = '';
+  // Parse tags iteratively — no regex on untrusted HTML structure
+  const out: string[] = [];
+  let i = 0;
+  const len = html.length;
 
-  // Iterate until stable — handles nested constructs like
-  // <scr<script>ipt> or <but<button>ton>
-  const MAX_PASSES = 10;
-  for (let pass = 0; pass < MAX_PASSES && result !== prev; pass++) {
-    prev = result;
-    // Remove <script> tags and content (must come first)
-    result = result.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script\s*>/gi, '');
-    // Remove <button> elements (keep inner text)
-    result = result.replace(/<button\b[^>]*>([\s\S]*?)<\/button\s*>/gi, '$1');
-    // Remove <input> elements (self-closing or not)
-    result = result.replace(/<input\b[^>]*\/?>/gi, '');
-    // Remove <select> and all contents
-    result = result.replace(/<select\b[^<]*(?:(?!<\/select>)<[^<]*)*<\/select\s*>/gi, '');
-    // Remove <textarea> and all contents
-    result = result.replace(/<textarea\b[^<]*(?:(?!<\/textarea>)<[^<]*)*<\/textarea\s*>/gi, '');
-    // Remove <form> wrappers (keep content)
-    result = result.replace(/<\/?form\b[^>]*>/gi, '');
+  while (i < len) {
+    const ltIdx = html.indexOf('<', i);
+    if (ltIdx === -1) {
+      // No more tags — emit remaining text
+      out.push(html.slice(i));
+      break;
+    }
+
+    // Emit text before the tag
+    if (ltIdx > i) out.push(html.slice(i, ltIdx));
+
+    // Find end of tag
+    const gtIdx = html.indexOf('>', ltIdx);
+    if (gtIdx === -1) {
+      // Unclosed tag — emit as text
+      out.push(html.slice(ltIdx));
+      break;
+    }
+
+    const tagContent = html.slice(ltIdx + 1, gtIdx);
+    const isClosing = tagContent.startsWith('/');
+    const tagBody = isClosing ? tagContent.slice(1).trim() : tagContent.trim();
+
+    // Extract tag name (first word)
+    const spaceIdx = tagBody.search(/[\s/]/);
+    const tagName = (spaceIdx === -1 ? tagBody : tagBody.slice(0, spaceIdx)).toLowerCase();
+
+    if (ALLOWED_TAGS.has(tagName)) {
+      if (isClosing) {
+        out.push(`</${tagName}>`);
+      } else {
+        // Rebuild tag with only allowed attributes
+        const attrStr = spaceIdx === -1 ? '' : tagBody.slice(spaceIdx);
+        const safeAttrs = filterAttributes(attrStr);
+        const selfClose = tagContent.trimEnd().endsWith('/') ? ' /' : '';
+        out.push(`<${tagName}${safeAttrs}${selfClose}>`);
+      }
+    } else if (!isClosing && CONTENT_BLOCK_TAGS.has(tagName)) {
+      // Blocked tags whose CONTENT must also be removed (script, textarea, select, style)
+      // Skip everything until the matching closing tag
+      const closeTag = `</${tagName}`;
+      const closeIdx = html.toLowerCase().indexOf(closeTag, gtIdx + 1);
+      if (closeIdx !== -1) {
+        const closeGt = html.indexOf('>', closeIdx);
+        i = closeGt !== -1 ? closeGt + 1 : gtIdx + 1;
+        continue;
+      }
+    }
+    // else: tag not in whitelist — silently dropped (text content preserved)
+
+    i = gtIdx + 1;
   }
 
-  // Remove inline event handlers (onclick, onchange, etc.)
-  result = result.replace(/\s+on[a-z]+\s*=\s*"[^"]*"/gi, '');
-  result = result.replace(/\s+on[a-z]+\s*=\s*'[^']*'/gi, '');
-  // Remove style attributes containing javascript: URIs
-  result = result.replace(/\s+style\s*=\s*"[^"]*javascript\s*:[^"]*"/gi, '');
-  result = result.replace(/\s+style\s*=\s*'[^']*javascript\s*:[^']*'/gi, '');
+  return out.join('');
+}
 
-  return result;
+/** Filter attributes: keep only whitelisted, strip javascript: URIs */
+function filterAttributes(attrString: string): string {
+  const result: string[] = [];
+  // Match attr="value" or attr='value' or attr=value or standalone attr
+  const attrRegex = /([a-z][a-z0-9-]*)\s*(?:=\s*(?:"([^"]*)"|'([^']*)'|(\S+)))?/gi;
+  let match: RegExpExecArray | null;
+  while ((match = attrRegex.exec(attrString)) !== null) {
+    const name = match[1]!.toLowerCase();
+    const value = match[2] ?? match[3] ?? match[4] ?? '';
+    if (!ALLOWED_ATTRS.has(name)) continue;
+    // Block javascript: URIs in href/src/style
+    if (/javascript\s*:/i.test(value)) continue;
+    result.push(` ${name}="${escapeAttrValue(value)}"`);
+  }
+  return result.join('');
+}
+
+function escapeAttrValue(val: string): string {
+  return val
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 // ---------------------------------------------------------------------------

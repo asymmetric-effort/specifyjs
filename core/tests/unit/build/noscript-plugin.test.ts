@@ -78,6 +78,55 @@ describe('stripInteractiveElements', () => {
     expect(result).toContain('<p>After</p>');
     expect(result).not.toContain('<button');
   });
+
+  it('removes style tags and content', () => {
+    expect(stripInteractiveElements('<style>.foo { color: red }</style>')).toBe('');
+  });
+
+  it('removes iframe tags and content', () => {
+    expect(stripInteractiveElements('<iframe src="evil.html">content</iframe>')).toBe('');
+  });
+
+  it('strips javascript: URIs from href', () => {
+    const result = stripInteractiveElements('<a href="javascript:alert(1)">link</a>');
+    expect(result).not.toContain('javascript');
+    expect(result).toContain('link');
+  });
+
+  it('strips event handlers with various formats', () => {
+    expect(stripInteractiveElements('<div onclick="x" onmouseover="y">t</div>')).toBe(
+      '<div>t</div>',
+    );
+  });
+
+  it('keeps allowed attributes', () => {
+    const result = stripInteractiveElements('<a href="https://example.com" title="Ex">Go</a>');
+    expect(result).toContain('href="https://example.com"');
+    expect(result).toContain('title="Ex"');
+  });
+
+  it('handles self-closing tags', () => {
+    expect(stripInteractiveElements('<br/>')).toBe('<br />');
+    expect(stripInteractiveElements('<img src="x.png" alt="X"/>')).toContain('img');
+  });
+
+  it('handles unclosed tags', () => {
+    const result = stripInteractiveElements('<p>text<br');
+    expect(result).toContain('text');
+  });
+
+  it('handles empty string', () => {
+    expect(stripInteractiveElements('')).toBe('');
+  });
+
+  it('handles text with no tags', () => {
+    expect(stripInteractiveElements('plain text')).toBe('plain text');
+  });
+
+  it('escapes attribute values', () => {
+    const result = stripInteractiveElements('<a href="x&y">link</a>');
+    expect(result).toContain('&amp;');
+  });
 });
 
 describe('generateNoscriptHtml', () => {

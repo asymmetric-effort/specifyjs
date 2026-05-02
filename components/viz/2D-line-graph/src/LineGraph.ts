@@ -12,15 +12,26 @@ import { useMemo } from '../../../../core/src/hooks/index';
 // Types
 // ---------------------------------------------------------------------------
 
+/** Supported point marker shapes */
+export type PointShape = 'circle' | 'square' | 'diamond' | 'triangle' | 'triangle-down' | 'cross' | 'plus';
+
 export interface Point {
   x: number;
   y: number;
+  /** Per-point shape override */
+  shape?: PointShape;
+  /** Per-point radius override */
+  radius?: number;
 }
 
 export interface LineSeries {
   data: Point[];
   color: string;
   label?: string;
+  /** Point shape for this series */
+  pointShape?: PointShape;
+  /** Point radius for this series */
+  pointRadius?: number;
 }
 
 export interface LineGraphProps {
@@ -31,6 +42,8 @@ export interface LineGraphProps {
   lineWidth?: number;
   pointRadius?: number;
   pointColor?: string;
+  /** Default point marker shape (default: 'circle') */
+  pointShape?: PointShape;
   showPoints?: boolean;
   showGrid?: boolean;
   showArea?: boolean;
@@ -155,6 +168,61 @@ function formatTick(n: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Point shape renderer
+// ---------------------------------------------------------------------------
+
+/**
+ * Create an SVG element for a data point marker.
+ * Supports: circle, square, diamond, triangle, triangle-down, cross, plus
+ */
+function renderPointShape(
+  shape: PointShape,
+  cx: number,
+  cy: number,
+  r: number,
+  fill: string,
+  key: string,
+  extraProps?: Record<string, unknown>,
+): ReturnType<typeof createElement> {
+  const base = { fill, key, ...extraProps };
+  switch (shape) {
+    case 'square':
+      return createElement('rect', { ...base, x: cx - r, y: cy - r, width: r * 2, height: r * 2 });
+    case 'diamond': {
+      const pts = `${cx},${cy - r} ${cx + r},${cy} ${cx},${cy + r} ${cx - r},${cy}`;
+      return createElement('polygon', { ...base, points: pts });
+    }
+    case 'triangle': {
+      const h = r * 1.15;
+      const pts = `${cx},${cy - h} ${cx + r},${cy + r * 0.6} ${cx - r},${cy + r * 0.6}`;
+      return createElement('polygon', { ...base, points: pts });
+    }
+    case 'triangle-down': {
+      const h = r * 1.15;
+      const pts = `${cx - r},${cy - r * 0.6} ${cx + r},${cy - r * 0.6} ${cx},${cy + h}`;
+      return createElement('polygon', { ...base, points: pts });
+    }
+    case 'cross': {
+      const w = r * 0.35;
+      return createElement('path', {
+        ...base, fill: 'none', stroke: fill, 'stroke-width': String(w * 2), 'stroke-linecap': 'round',
+        d: `M${cx - r},${cy - r}L${cx + r},${cy + r}M${cx + r},${cy - r}L${cx - r},${cy + r}`,
+      });
+    }
+    case 'plus': {
+      const w = r * 0.35;
+      return createElement('path', {
+        ...base, fill: 'none', stroke: fill, 'stroke-width': String(w * 2), 'stroke-linecap': 'round',
+        d: `M${cx},${cy - r}L${cx},${cy + r}M${cx - r},${cy}L${cx + r},${cy}`,
+      });
+    }
+    case 'circle':
+    default:
+      return createElement('circle', { ...base, cx, cy, r });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // LineGraph component
 // ---------------------------------------------------------------------------
 
@@ -167,6 +235,7 @@ export function LineGraph(props: LineGraphProps) {
     lineWidth = 2,
     pointRadius = 4,
     pointColor = '#3b82f6',
+    pointShape = 'circle' as PointShape,
     showPoints = true,
     showGrid = true,
     showArea = false,
@@ -333,6 +402,7 @@ export function LineGraph(props: LineGraphProps) {
     seriesShowPoints: boolean,
     seriesPointColor: string,
     seriesPointRadius: number,
+    seriesPointShape: PointShape,
     keyPrefix: string,
   ): void {
     if (seriesData.length === 0) return;
@@ -393,36 +463,28 @@ export function LineGraph(props: LineGraphProps) {
       children.push(createElement('polyline', polylineProps));
     }
 
-    // Data points
+    // Data points — supports per-point shape and radius overrides
     if (seriesShowPoints) {
       for (let i = 0; i < sorted.length; i++) {
-        const cx = xScale(sorted[i].x);
-        const cy = yScale(sorted[i].y);
-        const circleProps: Record<string, unknown> = {
-          cx,
-          cy,
-          r: seriesPointRadius,
-          fill: seriesPointColor,
-          key: `${keyPrefix}-pt-${i}`,
-        };
+        const px = xScale(sorted[i].x);
+        const py = yScale(sorted[i].y);
+        const ptShape = sorted[i].shape ?? seriesPointShape;
+        const ptRadius = sorted[i].radius ?? seriesPointRadius;
+        const ptKey = `${keyPrefix}-pt-${i}`;
+
         if (animate) {
-          circleProps.opacity = 0;
+          const marker = renderPointShape(ptShape, px, py, ptRadius, seriesPointColor, ptKey, { opacity: 0 });
           children.push(
-            createElement(
-              'circle',
-              circleProps,
+            createElement('g', { key: `${ptKey}-g` },
+              marker,
               createElement('animate', {
                 attributeName: 'opacity',
-                from: 0,
-                to: 1,
-                dur: '0.3s',
-                begin: '1.2s',
-                fill: 'freeze',
+                from: 0, to: 1, dur: '0.3s', begin: '1.2s', fill: 'freeze',
               }),
             ),
           );
         } else {
-          children.push(createElement('circle', circleProps));
+          children.push(renderPointShape(ptShape, px, py, ptRadius, seriesPointColor, ptKey));
         }
       }
     }
@@ -438,6 +500,7 @@ export function LineGraph(props: LineGraphProps) {
     showPoints,
     pointColor,
     pointRadius,
+    pointShape,
     'primary',
   );
 
@@ -453,7 +516,8 @@ export function LineGraph(props: LineGraphProps) {
         'transparent',
         showPoints,
         series.color,
-        pointRadius,
+        series.pointRadius ?? pointRadius,
+        series.pointShape ?? pointShape,
         `series-${s}`,
       );
     }

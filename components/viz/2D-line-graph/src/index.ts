@@ -5,4 +5,4 @@
 // SPDX-License-Identifier: MIT
 
 export { LineGraph, useLineGraphScales } from './LineGraph';
-export type { LineGraphProps, LineSeries, Point } from './LineGraph';
+export type { LineGraphProps, LineSeries, Point, PointShape } from './LineGraph';

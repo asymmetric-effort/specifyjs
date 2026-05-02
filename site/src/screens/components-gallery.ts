@@ -100,6 +100,7 @@ import {
 } from "../../../components/viz/geo-map/src/index";
 import { VectorField } from "../../../components/viz/vector-field/src/index";
 import { ThreeDLayers } from "../../../components/viz/3d-layers/src/index";
+import { BlochSphere, type GateOp } from "../../../components/viz/bloch-sphere/src/index";
 
 const REPO_BASE = "https://github.com/asymmetric-effort/specifyjs/tree/main";
 
@@ -407,10 +408,11 @@ export function ComponentsGallery() {
         "components/viz/2D-polar-graph",
       ),
     ]),
-    accordionSection("3D & Advanced", "3 components", openSection, toggle, [
+    accordionSection("3D & Advanced", "4 components", openSection, toggle, [
       preview("Hypercube (4D)", HypercubeDemo, "components/viz/graph"),
       preview("3D Layers", ThreeDLayersDemo, "components/viz/3d-layers"),
       preview("Pendulum Physics", DoublePendulumDemo, "components/viz/force-graph"),
+      preview("Bloch Sphere", BlochSphereDemo, "components/viz/bloch-sphere"),
     ]),
     createElement(
       FeatureGate,
@@ -2774,6 +2776,60 @@ function DoublePendulumDemo() {
       createElement(Button, { size: "sm", active: mode === "verlet", onClick: () => handleModeChange("verlet") }, "Verlet (PBD)"),
       createElement(Button, { size: "sm", active: mode === "lagrangian", onClick: () => handleModeChange("lagrangian") }, "Lagrangian"),
       createElement(Toggle, { checked: solid, onChange: setSolid, label: "Solid", size: "sm" }),
+    ),
+  );
+}
+
+// ─── Bloch Sphere Demo ───────────────────────────────────────────────
+
+const BLOCH_GATE_SEQUENCE: GateOp[] = [
+  { gate: "H" },
+  { gate: "T" },
+  { gate: "H" },
+  { gate: "S" },
+  { gate: "Rx", angle: Math.PI / 3 },
+  { gate: "Ry", angle: Math.PI / 5 },
+  { gate: "Z" },
+  { gate: "H" },
+];
+
+function BlochSphereDemo() {
+  const [gateIdx, setGateIdx] = useState(0);
+  const [gates, setGates] = useState<GateOp[]>([]);
+
+  const applyNext = useCallback(() => {
+    const idx = gateIdx % BLOCH_GATE_SEQUENCE.length;
+    setGates([BLOCH_GATE_SEQUENCE[idx]!]);
+    setGateIdx((i: number) => i + 1);
+  }, [gateIdx]);
+
+  const reset = useCallback(() => {
+    setGates([]);
+    setGateIdx(0);
+  }, []);
+
+  const nextGateName = BLOCH_GATE_SEQUENCE[gateIdx % BLOCH_GATE_SEQUENCE.length]!.gate;
+
+  return createElement("div", null,
+    createElement(BlochSphere, {
+      gates: gates.length > 0 ? gates : undefined,
+      width: 350,
+      height: 350,
+      showTrail: true,
+      trailMaxPoints: 300,
+      backgroundColor: "var(--color-bg-subtle, #f8fafc)",
+      title: "Qubit State",
+    }),
+    createElement("div", {
+      style: { display: "flex", gap: "6px", marginTop: "8px", alignItems: "center", flexWrap: "wrap" },
+    },
+      createElement(Button, { size: "sm", variant: "primary", onClick: applyNext },
+        `Apply ${nextGateName}`,
+      ),
+      createElement(Button, { size: "sm", onClick: reset }, "Reset"),
+      createElement("span", {
+        style: { fontSize: "10px", color: "var(--color-text-muted, #94a3b8)" },
+      }, `Gate ${(gateIdx % BLOCH_GATE_SEQUENCE.length) + 1}/${BLOCH_GATE_SEQUENCE.length}`),
     ),
   );
 }

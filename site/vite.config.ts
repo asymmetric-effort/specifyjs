@@ -230,6 +230,22 @@ export default defineConfig({
       author: 'Asymmetric Effort, LLC',
       license: 'MIT',
       repository: 'https://github.com/asymmetric-effort/specifyjs',
+      jsonLd: {
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        'name': 'SpecifyJS',
+        'url': 'https://specifyjs.asymmetric-effort.com',
+        'applicationCategory': 'DeveloperApplication',
+        'operatingSystem': 'Web',
+        'description': 'A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity. Zero runtime dependencies.',
+        'license': 'https://opensource.org/licenses/MIT',
+        'author': {
+          '@type': 'Organization',
+          'name': 'Asymmetric Effort, LLC',
+          'url': 'https://asymmetric-effort.com',
+        },
+        'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD' },
+      },
     }),
     specifyJsNoscriptPlugin({
       title: 'SpecifyJS',

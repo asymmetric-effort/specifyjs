@@ -35,6 +35,10 @@ export interface SeoPluginConfig {
   robotsRules?: string[];
   /** Repository URL for llms.txt */
   repository?: string;
+  /** Schema.org structured data (JSON-LD). When provided, a
+   *  `<script type="application/ld+json">` block is injected into index.html.
+   *  Can be a plain object or an array of objects for multiple schemas. */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 /**
@@ -178,7 +182,22 @@ export function specifyJsSeoPlugin(config: SeoPluginConfig): Plugin {
       const llmsTxt = generateLlmsTxt(config, docPaths);
       fs.writeFileSync(path.join(distDir, 'llms.txt'), llmsTxt);
 
-      console.log(`Generated: sitemap.xml (${routes.length} URLs), robots.txt, llms.txt`);
+      // Inject JSON-LD structured data into index.html
+      if (config.jsonLd) {
+        const indexPath = path.join(distDir, 'index.html');
+        if (fs.existsSync(indexPath)) {
+          let html = fs.readFileSync(indexPath, 'utf-8');
+          const schemas = Array.isArray(config.jsonLd) ? config.jsonLd : [config.jsonLd];
+          const ldBlocks = schemas
+            .map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`)
+            .join('\n    ');
+          html = html.replace('</head>', `    ${ldBlocks}\n  </head>`);
+          fs.writeFileSync(indexPath, html, 'utf-8');
+        }
+      }
+
+      const extras = config.jsonLd ? ', JSON-LD' : '';
+      console.log(`Generated: sitemap.xml (${routes.length} URLs), robots.txt, llms.txt${extras}`);
     },
   };
 }

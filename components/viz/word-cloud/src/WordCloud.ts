@@ -180,7 +180,7 @@ export function WordCloud(props: WordCloudProps) {
 
       // Spiral outward to find a non-overlapping position
       const maxSteps = 500;
-      const spiralStep = spiral === 'archimedean' ? 0.5 : 1;
+      const spiralStep = spiral === 'archimedean' ? 4 : 5;
 
       for (let step = 0; step < maxSteps; step++) {
         let dx: number;

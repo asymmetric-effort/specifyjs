@@ -454,17 +454,20 @@ export function BarGraph(props: BarGraphProps) {
 
       // Category label
       if (isVertical) {
+        const catLabelX = padding + catPos + scales.barThickness / 2;
+        const catLabelY = padding + chartHeight + 16;
         elements.push(
           createElement(
             'text',
             {
               key: `cat-${i}`,
-              x: String(padding + catPos + scales.barThickness / 2),
-              y: String(padding + chartHeight + 16),
-              'text-anchor': 'middle',
+              x: String(catLabelX),
+              y: String(catLabelY),
+              'text-anchor': 'end',
               'font-size': '11',
               'font-family': 'sans-serif',
               fill: '#374151',
+              transform: `rotate(-45, ${catLabelX}, ${catLabelY})`,
             },
             d.label,
           ),
@@ -626,17 +629,20 @@ export function BarGraph(props: BarGraphProps) {
 
       // Category label
       if (isVertical) {
+        const scatLabelX = padding + catPos + scales.barThickness / 2;
+        const scatLabelY = padding + chartHeight + 16;
         elements.push(
           createElement(
             'text',
             {
               key: `scat-${i}`,
-              x: String(padding + catPos + scales.barThickness / 2),
-              y: String(padding + chartHeight + 16),
-              'text-anchor': 'middle',
+              x: String(scatLabelX),
+              y: String(scatLabelY),
+              'text-anchor': 'end',
               'font-size': '11',
               'font-family': 'sans-serif',
               fill: '#374151',
+              transform: `rotate(-45, ${scatLabelX}, ${scatLabelY})`,
             },
             item.label,
           ),
@@ -764,17 +770,20 @@ export function BarGraph(props: BarGraphProps) {
 
       // Category label
       if (isVertical) {
+        const gcatLabelX = padding + catPos + scales.barThickness / 2;
+        const gcatLabelY = padding + chartHeight + 16;
         elements.push(
           createElement(
             'text',
             {
               key: `gcat-${i}`,
-              x: String(padding + catPos + scales.barThickness / 2),
-              y: String(padding + chartHeight + 16),
-              'text-anchor': 'middle',
+              x: String(gcatLabelX),
+              y: String(gcatLabelY),
+              'text-anchor': 'end',
               'font-size': '11',
               'font-family': 'sans-serif',
               fill: '#374151',
+              transform: `rotate(-45, ${gcatLabelX}, ${gcatLabelY})`,
             },
             item.label,
           ),

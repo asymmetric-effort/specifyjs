@@ -353,9 +353,10 @@ export function LineGraph(props: LineGraphProps) {
         {
           x: px,
           y: height - padding + 18,
-          'text-anchor': 'middle',
+          'text-anchor': 'end',
           'font-size': 11,
           fill: '#6b7280',
+          transform: `rotate(-45, ${px}, ${height - padding + 18})`,
           key: `xlabel-${i}`,
         },
         formatTick(xTicks[i]),
@@ -534,14 +535,35 @@ export function LineGraph(props: LineGraphProps) {
       })),
     ];
 
+    const legendStartX = padding + 10;
+    const legendGap = 16; // horizontal gap between items
+    const rowHeight = 22; // vertical spacing between rows
+    const charWidth = 7.2; // approximate width per character at font-size 12
+    const swatchWidth = 14;
+    const swatchTextGap = 6;
+    const availableWidth = width - padding * 2 - 20;
+
+    let cursorX = 0;
+    let cursorY = 0;
+
     for (let i = 0; i < allSeries.length; i++) {
-      const lx = padding + 10 + i * 120;
-      const ly = padding - 30;
+      const labelWidth = allSeries[i].label.length * charWidth;
+      const itemWidth = swatchWidth + swatchTextGap + labelWidth;
+
+      // Wrap to next line if this item would exceed available width
+      if (cursorX > 0 && cursorX + itemWidth > availableWidth) {
+        cursorX = 0;
+        cursorY += rowHeight;
+      }
+
+      const lx = legendStartX + cursorX;
+      const ly = padding - 30 - cursorY; // grow upward for additional rows
+
       legendItems.push(
         createElement('rect', {
           x: lx,
           y: ly,
-          width: 14,
+          width: swatchWidth,
           height: 14,
           fill: allSeries[i].color,
           rx: 2,
@@ -552,7 +574,7 @@ export function LineGraph(props: LineGraphProps) {
         createElement(
           'text',
           {
-            x: lx + 20,
+            x: lx + swatchWidth + swatchTextGap,
             y: ly + 12,
             'font-size': 12,
             fill: '#374151',
@@ -561,6 +583,8 @@ export function LineGraph(props: LineGraphProps) {
           allSeries[i].label,
         ),
       );
+
+      cursorX += itemWidth + legendGap;
     }
 
     children.push(

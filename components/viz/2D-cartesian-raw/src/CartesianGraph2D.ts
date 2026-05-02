@@ -265,9 +265,10 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
           {
             x: sx,
             y: height - PADDING + 14,
-            "text-anchor": "middle",
+            "text-anchor": "end",
             "font-size": 10,
             fill: axisColor,
+            transform: `rotate(-45, ${sx}, ${height - PADDING + 14})`,
             key: `lx-${i}`,
           },
           formatTick(xTicks[i]),

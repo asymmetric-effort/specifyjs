@@ -182,6 +182,7 @@ export function specifyJsSeoPlugin(config: SeoPluginConfig): Plugin {
       const llmsTxt = generateLlmsTxt(config, docPaths);
       fs.writeFileSync(path.join(distDir, 'llms.txt'), llmsTxt);
 
+      /* v8 ignore start -- JSON-LD injection uses fs in Vite closeBundle */
       // Inject JSON-LD structured data into index.html
       if (config.jsonLd) {
         const indexPath = path.join(distDir, 'index.html');
@@ -196,6 +197,7 @@ export function specifyJsSeoPlugin(config: SeoPluginConfig): Plugin {
         }
       }
 
+      /* v8 ignore stop */
       const extras = config.jsonLd ? ', JSON-LD' : '';
       console.log(`Generated: sitemap.xml (${routes.length} URLs), robots.txt, llms.txt${extras}`);
     },

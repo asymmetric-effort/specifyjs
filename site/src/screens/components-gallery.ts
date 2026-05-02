@@ -101,6 +101,7 @@ import {
 import { VectorField } from "../../../components/viz/vector-field/src/index";
 import { ThreeDLayers } from "../../../components/viz/3d-layers/src/index";
 import { BlochSphere, type GateOp } from "../../../components/viz/bloch-sphere/src/index";
+import { LED_ZEPPELIN_WORDS } from "../data/led-zeppelin-words";
 
 const REPO_BASE = "https://github.com/asymmetric-effort/specifyjs/tree/main";
 
@@ -2134,33 +2135,12 @@ function RadarDemo() {
 
 function WordCloudDemo() {
   return createElement(WordCloud, {
-    words: [
-      { text: "Led Zeppelin", weight: 100 },
-      { text: "Stairway to Heaven", weight: 90 },
-      { text: "Kashmir", weight: 85 },
-      { text: "Black Dog", weight: 75 },
-      { text: "Rock and Roll", weight: 72 },
-      { text: "Whole Lotta Love", weight: 70 },
-      { text: "Immigrant Song", weight: 65 },
-      { text: "Dazed and Confused", weight: 60 },
-      { text: "Communication Breakdown", weight: 55 },
-      { text: "Ramble On", weight: 50 },
-      { text: "Going to California", weight: 45 },
-      { text: "The Ocean", weight: 42 },
-      { text: "Misty Mountain Hop", weight: 38 },
-      { text: "Houses of the Holy", weight: 35 },
-      { text: "When the Levee Breaks", weight: 32 },
-      { text: "Good Times Bad Times", weight: 28 },
-      { text: "Heartbreaker", weight: 25 },
-      { text: "No Quarter", weight: 22 },
-      { text: "Since I Been Loving You", weight: 20 },
-      { text: "Tangerine", weight: 18 },
-    ],
-    width: 400,
-    height: 250,
-    minFontSize: 10,
-    maxFontSize: 40,
-    colors: ["#dc2626", "#f59e0b", "#1d4ed8", "#7c3aed", "#059669", "#db2777"],
+    words: LED_ZEPPELIN_WORDS,
+    width: 500,
+    height: 320,
+    minFontSize: 8,
+    maxFontSize: 38,
+    colors: ["#dc2626", "#f59e0b", "#1d4ed8", "#7c3aed", "#059669", "#db2777", "#0891b2", "#4f46e5"],
   });
 }
 

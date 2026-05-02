@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/2d-discrete-cartesian",
+  "version": "0.0.1",
+  "description": "2D discrete cartesian grid visualization for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "grid", "discrete", "cartesian", "cellular-automata"]
+}

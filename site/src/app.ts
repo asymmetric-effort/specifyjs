@@ -15,6 +15,7 @@ import { FeatureFlagsDemo } from './screens/feature-flags-demo';
 import { DocsViewer } from './screens/docs-viewer';
 import { PendulumScreen } from './screens/pendulum';
 import { PlanetsScreen } from './screens/planets';
+import { ConwaysGameOfLife } from './screens/conways-game-of-life';
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -35,6 +36,7 @@ function AppContent() {
     { path: '/docs', title: 'Documentation', content: createElement(DocsViewer, null) },
     { path: '/pendulum', title: 'Pendulum Physics', content: createElement(PendulumScreen, null) },
     { path: '/planets', title: 'Solar System', content: createElement(PlanetsScreen, null) },
+    { path: '/conways-game-of-life', title: "Conway's Game of Life", content: createElement(ConwaysGameOfLife, null) },
   ];
 
   let dialogTitle: string | null = null;

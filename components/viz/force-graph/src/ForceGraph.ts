@@ -599,9 +599,15 @@ export function ForceGraph(props: ForceGraphProps) {
     return { x: (me.clientX - rect.left) * scaleX, y: (me.clientY - rect.top) * scaleY };
   }, [width, height]);
 
+  // Track whether the node was already fixed before drag started
+  const preDragFixedRef = useRef<boolean>(false);
+
   const handleNodeMouseDown = useCallback((id: string, e: Event) => {
     e.stopPropagation();
     draggingIdRef.current = id;
+    const node = simRef.current.find(n => n.id === id);
+    preDragFixedRef.current = node?.fixed ?? false;
+    // Temporarily fix the node during drag
     simRef.current = simRef.current.map(n =>
       n.id === id ? { ...n, fixed: true, vx: 0, vy: 0 } : n,
     );
@@ -629,6 +635,13 @@ export function ForceGraph(props: ForceGraphProps) {
   }, [width, height, getSvgPoint]);
 
   const handleMouseUp = useCallback(() => {
+    // Restore the node's pre-drag fixed state (drag doesn't permanently lock)
+    const id = draggingIdRef.current;
+    if (id) {
+      simRef.current = simRef.current.map(n =>
+        n.id === id ? { ...n, fixed: preDragFixedRef.current } : n,
+      );
+    }
     draggingIdRef.current = null;
   }, []);
 

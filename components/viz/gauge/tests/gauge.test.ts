@@ -176,3 +176,80 @@ describe('Gauge — features', () => {
     expect(texts.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Dark mode text color tests
+// ---------------------------------------------------------------------------
+
+const DARK_ONLY_FILLS = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563'];
+
+function flatChildren(el: any): any[] {
+  const c = el?.props?.children;
+  if (Array.isArray(c)) return c.flat(Infinity).filter(Boolean);
+  return c ? [c] : [];
+}
+const DARK_ONLY_STROKES = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563', '#9ca3af'];
+
+function collectTextFills(root: any): { key: string; fill: string }[] {
+  const results: { key: string; fill: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'text' && node.props?.fill) {
+      results.push({ key: node.key ?? '(unknown)', fill: node.props.fill });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+function collectLineStrokes(root: any): { key: string; stroke: string }[] {
+  const results: { key: string; stroke: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'line' && node.props?.stroke) {
+      results.push({ key: node.key ?? '(unknown)', stroke: node.props.stroke });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+describe('Gauge — dark mode text colors', () => {
+  it('value and label text use currentColor', () => {
+    const el = Gauge({ value: 75, label: 'Speed', unit: 'mph', showValue: true });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+
+  it('tick mark lines use currentColor instead of hardcoded gray', () => {
+    const el = Gauge({ value: 50, showTicks: true });
+    const strokes = collectLineStrokes(el);
+    for (const entry of strokes) {
+      expect(DARK_ONLY_STROKES).not.toContain(entry.stroke);
+    }
+  });
+
+  it('min/max labels use currentColor', () => {
+    const el = Gauge({ value: 50, showMinMax: true });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+});

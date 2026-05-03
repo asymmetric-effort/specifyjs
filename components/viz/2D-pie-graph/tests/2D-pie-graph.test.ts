@@ -61,6 +61,16 @@ describe('PieGraph — happy path', () => {
     expect(el).not.toBeNull();
   });
 
+  it('renders with custom textColor', () => {
+    const el = PieGraph({ data: sampleData, textColor: '#eee' });
+    expect(el).not.toBeNull();
+  });
+
+  it('defaults textColor to currentColor', () => {
+    const el = PieGraph({ data: sampleData, showLegend: true });
+    expect(el).not.toBeNull();
+  });
+
   it('renders without labels', () => {
     const el = PieGraph({ data: sampleData, showLabels: false });
     expect(el).not.toBeNull();

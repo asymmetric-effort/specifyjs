@@ -133,10 +133,11 @@ export function Gauge(props: GaugeProps) {
   const effectiveMax = isFinite(max) && !isNaN(max) && max > effectiveMin ? max : effectiveMin + 100;
   const effectiveValue = isFinite(value) && !isNaN(value) ? clamp(value, effectiveMin, effectiveMax) : effectiveMin;
 
-  // Gauge geometry
+  // Gauge geometry — reserve space at the bottom for value/label text
+  const textReserve = (showValue ? 24 : 0) + (label ? 18 : 0);
   const cx = width / 2;
-  const cy = height * 0.6;
-  const outerRadius = Math.min(width / 2, height * 0.55) - arcWidth / 2 - 10;
+  const cy = (height - textReserve) * 0.6;
+  const outerRadius = Math.min(width / 2, (height - textReserve) * 0.55) - arcWidth / 2 - 10;
   const innerRadius = outerRadius - arcWidth;
   const midRadius = outerRadius - arcWidth / 2;
 
@@ -233,7 +234,8 @@ export function Gauge(props: GaugeProps) {
           y1: String(outerPt.y),
           x2: String(innerPt.x),
           y2: String(innerPt.y),
-          stroke: '#9ca3af',
+          stroke: 'currentColor',
+          opacity: '0.4',
           'stroke-width': isMajor ? '2' : '1',
         }),
       );
@@ -250,7 +252,8 @@ export function Gauge(props: GaugeProps) {
             'text-anchor': 'middle',
             'font-size': '9',
             'font-family': 'sans-serif',
-            fill: '#6b7280',
+            fill: 'currentColor',
+            opacity: '0.55',
           }, formatNumber(tickValue)),
         );
       }
@@ -309,18 +312,21 @@ export function Gauge(props: GaugeProps) {
     const displayText = formatNumber(effectiveValue);
     const fullText = displayText + (unit ? ' ' + unit : '');
 
+    // Position value text below the arc to avoid overlap
+    const valueY = cy + midRadius + 20;
+
     elements.push(
       createElement(
         'text',
         {
           key: 'value-text',
           x: String(cx),
-          y: String(cy + outerRadius * 0.45),
+          y: String(valueY),
           'text-anchor': 'middle',
           'font-size': '22',
           'font-weight': 'bold',
           'font-family': 'sans-serif',
-          fill: '#111827',
+          fill: 'currentColor',
           'aria-label': `Value: ${fullText}`,
         },
         displayText,
@@ -329,31 +335,35 @@ export function Gauge(props: GaugeProps) {
               key: 'unit',
               'font-size': '14',
               'font-weight': 'normal',
-              fill: '#6b7280',
+              opacity: '0.6',
+              fill: 'currentColor',
             }, ' ' + unit)
           : null,
       ),
     );
 
     return elements;
-  }, [showValue, effectiveValue, unit, cx, cy, outerRadius]);
+  }, [showValue, effectiveValue, unit, cx, cy, midRadius]);
 
   // ---- Label ----------------------------------------------------------------
 
   const buildLabel = useCallback(() => {
     if (!label) return [];
+    // Position label below the value text
+    const labelY = cy + midRadius + (showValue ? 40 : 20);
     return [
       createElement('text', {
         key: 'label',
         x: String(cx),
-        y: String(cy + outerRadius * 0.45 + 22),
+        y: String(labelY),
         'text-anchor': 'middle',
         'font-size': '13',
         'font-family': 'sans-serif',
-        fill: '#6b7280',
+        fill: 'currentColor',
+        opacity: '0.6',
       }, label),
     ];
-  }, [label, cx, cy, outerRadius]);
+  }, [label, cx, cy, midRadius, showValue]);
 
   // ---- Min/Max labels -------------------------------------------------------
 
@@ -372,7 +382,8 @@ export function Gauge(props: GaugeProps) {
         'text-anchor': 'middle',
         'font-size': '11',
         'font-family': 'sans-serif',
-        fill: '#6b7280',
+        fill: 'currentColor',
+        opacity: '0.55',
       }, formatNumber(effectiveMin)),
     );
 
@@ -384,7 +395,8 @@ export function Gauge(props: GaugeProps) {
         'text-anchor': 'middle',
         'font-size': '11',
         'font-family': 'sans-serif',
-        fill: '#6b7280',
+        fill: 'currentColor',
+        opacity: '0.55',
       }, formatNumber(effectiveMax)),
     );
 

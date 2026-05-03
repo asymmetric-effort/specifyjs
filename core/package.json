@@ -1,6 +1,6 @@
 {
   "name": "@asymmetric-effort/specifyjs",
-  "version": "0.2.18",
+  "version": "0.2.19",
   "description": "A declarative TypeScript UI framework built for performance and simplicity",
   "publishConfig": {
     "access": "public"
@@ -69,19 +69,19 @@
     "dist"
   ],
   "scripts": {
-    "build": "bun x rollup -c",
-    "dev": "bun x rollup -c -w",
-    "test": "bun x vitest run --pool forks --no-file-parallelism",
-    "test:watch": "bun x vitest",
-    "test:coverage": "bun x vitest run --pool forks --no-file-parallelism --coverage",
-    "test:e2e": "bun x playwright test",
-    "dev:e2e": "bun x vite --port 3000",
-    "lint": "bun x eslint src/ tests/",
-    "format": "bun x prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
-    "format:check": "bun x prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
-    "typecheck": "bun x tsc --noEmit",
+    "build": "npx rollup -c",
+    "dev": "npx rollup -c -w",
+    "test": "npx vitest run --pool forks --no-file-parallelism",
+    "test:watch": "npx vitest",
+    "test:coverage": "npx vitest run --pool forks --no-file-parallelism --coverage",
+    "test:e2e": "npx playwright test",
+    "dev:e2e": "npx vite --port 3000",
+    "lint": "npx eslint src/ tests/",
+    "format": "npx prettier --write 'src/**/*.ts' 'tests/**/*.ts'",
+    "format:check": "npx prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
+    "typecheck": "npx tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "bun run clean && bun run build"
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [
     "ui",

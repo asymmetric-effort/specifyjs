@@ -136,3 +136,59 @@ describe('WordCloud — defaults', () => {
     expect(el.props.role).toBe('img');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Dark mode text color tests
+// ---------------------------------------------------------------------------
+
+const DARK_ONLY_FILLS = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563'];
+
+function flatChildren(el: any): any[] {
+  const c = el?.props?.children;
+  if (Array.isArray(c)) return c.flat(Infinity).filter(Boolean);
+  return c ? [c] : [];
+}
+
+function collectTextFills(root: any): { key: string; fill: string }[] {
+  const results: { key: string; fill: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'text' && node.props?.fill) {
+      results.push({ key: node.key ?? '(unknown)', fill: node.props.fill });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+describe('WordCloud — dark mode text colors', () => {
+  it('title text uses currentColor', () => {
+    const el = WordCloud({ words: sampleWords, title: 'Topics' });
+    const titleEl = flatChildren(el).find((c: any) => c?.key === 'title');
+    expect(titleEl).toBeTruthy();
+    expect(titleEl.props.fill).toBe('currentColor');
+  });
+
+  it('empty state text uses currentColor', () => {
+    const el = WordCloud({ words: [] });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+
+  it('no text element uses a hardcoded dark-only fill', () => {
+    const el = WordCloud({ words: sampleWords, title: 'Test' });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+});

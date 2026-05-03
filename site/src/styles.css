@@ -40,6 +40,14 @@ body {
 [data-theme="dark"] .feature-card--clickable:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
 [data-theme="dark"] .dialog-panel { box-shadow: 6px 8px 24px rgba(0,0,0,0.5), 2px 3px 8px rgba(0,0,0,0.3); border-color: #475569; }
 
+/* Dark mode: make chart SVG text/labels readable on dark backgrounds */
+[data-theme="dark"] .preview-body svg text { fill: #e2e8f0; }
+[data-theme="dark"] .preview-body svg text[fill="#fff"],
+[data-theme="dark"] .preview-body svg text[fill="#ffffff"],
+[data-theme="dark"] .preview-body svg text[fill="white"] { fill: #ffffff; }
+[data-theme="dark"] .preview-body svg line[stroke="#374151"] { stroke: #94a3b8; }
+[data-theme="dark"] .preview-body svg line[stroke="#e5e7eb"] { stroke: #334155; }
+
 /* Dark mode toggle button */
 .dark-mode-toggle {
   width: 36px;

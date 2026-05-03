@@ -125,3 +125,84 @@ describe('HeatMap — defaults', () => {
     expect(el.props.role).toBe('img');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Dark mode text color tests
+// ---------------------------------------------------------------------------
+
+/** Hardcoded dark text colors that are invisible on dark backgrounds. */
+const DARK_ONLY_FILLS = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563'];
+
+/** Flatten props.children into an array of vnodes. */
+function flatChildren(el: any): any[] {
+  const c = el?.props?.children;
+  if (Array.isArray(c)) return c.flat(Infinity).filter(Boolean);
+  return c ? [c] : [];
+}
+
+/** Collect all fill attributes from an SVG vnode tree (non-recursive, iterative). */
+function collectTextFills(root: any): { key: string; fill: string }[] {
+  const results: { key: string; fill: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'text' && node.props?.fill) {
+      results.push({ key: node.key ?? '(unknown)', fill: node.props.fill });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+describe('HeatMap — dark mode text colors', () => {
+  it('title text uses currentColor instead of hardcoded dark fill', () => {
+    const el = HeatMap({ data: sampleData, title: 'My Heat Map' });
+    const children = flatChildren(el);
+    const titleEl = children.find((c: any) => c?.key === 'title');
+    expect(titleEl).toBeTruthy();
+    expect(titleEl.props.fill).toBe('currentColor');
+  });
+
+  it('row and column labels use currentColor', () => {
+    const el = HeatMap({
+      data: sampleData,
+      rowLabels: ['A', 'B', 'C'],
+      columnLabels: ['X', 'Y', 'Z'],
+    });
+    const children = flatChildren(el);
+    const labels = children.filter(
+      (c: any) => c?.key?.startsWith('row-label-') || c?.key?.startsWith('col-label-'),
+    );
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) {
+      expect(label.props.fill).toBe('currentColor');
+    }
+  });
+
+  it('empty state text uses currentColor with opacity', () => {
+    const el = HeatMap({ data: [] });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+
+  it('no text element uses a hardcoded dark-only fill', () => {
+    const el = HeatMap({
+      data: sampleData,
+      title: 'Test',
+      rowLabels: ['A', 'B', 'C'],
+      columnLabels: ['X', 'Y', 'Z'],
+    });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+});

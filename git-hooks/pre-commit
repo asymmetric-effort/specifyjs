@@ -7,12 +7,12 @@ cd "$(git rev-parse --show-toplevel)/core"
 
 # TypeScript type check
 echo "[1/2] TypeScript typecheck..."
-bun x tsc --noEmit
+npx tsc --noEmit
 echo "  ✓ typecheck passed"
 
 # Prettier format check
 echo "[2/2] Prettier format check..."
-bun x prettier --check 'src/**/*.ts' 'tests/**/*.ts'
+npx prettier --check 'src/**/*.ts' 'tests/**/*.ts'
 echo "  ✓ formatting passed"
 
 echo "=== pre-commit: all checks passed ==="

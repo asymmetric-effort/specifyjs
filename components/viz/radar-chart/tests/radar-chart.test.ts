@@ -169,3 +169,81 @@ describe('RadarChart — features', () => {
     expect(el.props['aria-label']).toBeDefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Dark mode text color tests
+// ---------------------------------------------------------------------------
+
+const DARK_ONLY_FILLS = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563'];
+
+function flatChildren(el: any): any[] {
+  const c = el?.props?.children;
+  if (Array.isArray(c)) return c.flat(Infinity).filter(Boolean);
+  return c ? [c] : [];
+}
+
+function collectTextFills(root: any): { key: string; fill: string }[] {
+  const results: { key: string; fill: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'text' && node.props?.fill) {
+      results.push({ key: node.key ?? '(unknown)', fill: node.props.fill });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+describe('RadarChart — dark mode text colors', () => {
+  it('title text uses currentColor', () => {
+    const el = RadarChart({ axes: sampleAxes, series: sampleSeries, title: 'Skills' });
+    const titleEl = flatChildren(el).find((c: any) => c?.key === 'title');
+    expect(titleEl).toBeTruthy();
+    expect(titleEl.props.fill).toBe('currentColor');
+  });
+
+  it('axis labels use currentColor', () => {
+    const el = RadarChart({ axes: sampleAxes, series: sampleSeries, showLabels: true });
+    const labels = flatChildren(el).filter(
+      (c: any) => c?.key?.startsWith('label-'),
+    );
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) {
+      expect(label.props.fill).toBe('currentColor');
+    }
+  });
+
+  it('legend text uses currentColor', () => {
+    const el = RadarChart({ axes: sampleAxes, series: sampleSeries, showLegend: true });
+    const legendTexts = flatChildren(el).filter(
+      (c: any) => c?.key?.startsWith('legend-text-'),
+    );
+    expect(legendTexts.length).toBeGreaterThan(0);
+    for (const lt of legendTexts) {
+      expect(lt.props.fill).toBe('currentColor');
+    }
+  });
+
+  it('empty state text does not use hardcoded dark fill', () => {
+    const el = RadarChart({ axes: [], series: [] });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+
+  it('no text element uses a hardcoded dark-only fill', () => {
+    const el = RadarChart({ axes: sampleAxes, series: sampleSeries, title: 'Test', showLabels: true, showLegend: true });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+});

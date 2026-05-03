@@ -159,3 +159,66 @@ describe('BigNumber — features', () => {
     expect(paths.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Dark mode text color tests
+// ---------------------------------------------------------------------------
+
+const DARK_ONLY_FILLS = ['#111827', '#374151', '#6b7280', '#1f2937', '#4b5563'];
+
+function flatChildren(el: any): any[] {
+  const c = el?.props?.children;
+  if (Array.isArray(c)) return c.flat(Infinity).filter(Boolean);
+  return c ? [c] : [];
+}
+
+function collectTextFills(root: any): { key: string; fill: string }[] {
+  const results: { key: string; fill: string }[] = [];
+  const stack: any[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object') continue;
+    if (node.type === 'text' && node.props?.fill) {
+      results.push({ key: node.key ?? '(unknown)', fill: node.props.fill });
+    }
+    const children = node.children ?? node.props?.children;
+    if (Array.isArray(children)) {
+      for (const child of children) stack.push(child);
+    } else if (children) {
+      stack.push(children);
+    }
+  }
+  return results;
+}
+
+describe('BigNumber — dark mode text colors', () => {
+  it('default valueColor is currentColor', () => {
+    const el = BigNumber({ value: 42000 });
+    const valueText = flatChildren(el).find((c: any) => c?.key === 'value');
+    expect(valueText).toBeTruthy();
+    expect(valueText.props.fill).toBe('currentColor');
+  });
+
+  it('label text uses currentColor with opacity', () => {
+    const el = BigNumber({ value: 42000, label: 'Revenue' });
+    const labelEl = flatChildren(el).find((c: any) => c?.key === 'label');
+    expect(labelEl).toBeTruthy();
+    expect(labelEl.props.fill).toBe('currentColor');
+    expect(labelEl.props.opacity).toBe('0.6');
+  });
+
+  it('no text element uses a hardcoded dark-only fill', () => {
+    const el = BigNumber({
+      value: 42000,
+      label: 'Revenue',
+      prefix: '$',
+      trend: 12.5,
+      trendLabel: 'vs last week',
+      sparkline: [10, 20, 30],
+    });
+    const fills = collectTextFills(el);
+    for (const entry of fills) {
+      expect(DARK_ONLY_FILLS).not.toContain(entry.fill);
+    }
+  });
+});

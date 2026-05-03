@@ -43,6 +43,7 @@ export interface PieGraphProps {
   colors?: string[];
   strokeColor?: string;
   strokeWidth?: number;
+  textColor?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +199,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
     colors: customColors,
     strokeColor = '#fff',
     strokeWidth = 2,
+    textColor = 'currentColor',
   } = props;
 
   // Determine chart area dimensions (leave room for legend / title)
@@ -236,7 +238,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         fontFamily: 'sans-serif',
         fontSize: 16,
         fontWeight: 'bold',
-        fill: '#333',
+        fill: textColor,
       }, title),
     );
   }
@@ -272,7 +274,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         midAngle - Math.PI / 2,
       );
 
-      const textColor = isSmallSlice ? '#333' : '#fff';
+      const sliceTextColor = isSmallSlice ? textColor : '#fff';
       const fontSize = isSmallSlice ? 11 : 12;
 
       const labelParts: string[] = [];
@@ -309,7 +311,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             textAnchor: 'middle',
             fontFamily: 'sans-serif',
             fontSize,
-            fill: textColor,
+            fill: sliceTextColor,
             pointerEvents: 'none',
           }, s.label),
         );
@@ -324,7 +326,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             textAnchor: 'middle',
             fontFamily: 'sans-serif',
             fontSize: fontSize - 1,
-            fill: textColor,
+            fill: sliceTextColor,
             pointerEvents: 'none',
           }, `${s.percentage.toFixed(1)}%`),
         );
@@ -344,7 +346,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         fontFamily: 'sans-serif',
         fontSize: 14,
         fontWeight: 'bold',
-        fill: '#333',
+        fill: textColor,
       }, centerLabel),
     );
   }
@@ -379,7 +381,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             dominantBaseline: 'central',
             fontFamily: 'sans-serif',
             fontSize: 12,
-            fill: '#333',
+            fill: textColor,
           }, `${s.label} (${s.percentage.toFixed(1)}%)`),
         );
       }
@@ -412,7 +414,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             dominantBaseline: 'central',
             fontFamily: 'sans-serif',
             fontSize: 12,
-            fill: '#333',
+            fill: textColor,
           }, `${s.label} (${s.percentage.toFixed(1)}%)`),
         );
       }

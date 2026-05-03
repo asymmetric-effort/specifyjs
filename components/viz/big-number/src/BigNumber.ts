@@ -42,7 +42,7 @@ export interface BigNumberProps {
   width?: number;
   /** SVG height in pixels (default: 160) */
   height?: number;
-  /** Main value text color (default: '#111827') */
+  /** Main value text color (default: 'currentColor') */
   valueColor?: string;
   /** Trend arrow color when positive (default: '#22c55e') */
   trendUpColor?: string;
@@ -98,7 +98,7 @@ export function BigNumber(props: BigNumberProps) {
     sparkline,
     width = 280,
     height = 160,
-    valueColor = '#111827',
+    valueColor = 'currentColor',
     trendUpColor = '#22c55e',
     trendDownColor = '#ef4444',
     backgroundColor = '#ffffff',
@@ -201,7 +201,8 @@ export function BigNumber(props: BigNumberProps) {
           'text-anchor': 'middle',
           'font-size': '13',
           'font-family': 'sans-serif',
-          fill: '#6b7280',
+          fill: 'currentColor',
+          opacity: '0.6',
         },
         label!,
       ),

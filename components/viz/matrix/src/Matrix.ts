@@ -200,7 +200,7 @@ export function Matrix(props: MatrixProps) {
 
         // Diagonal highlight
         const isDiagonal = r === c;
-        const strokeColor = isDiagonal && showDiagonal ? '#374151' : cellBorderColor;
+        const strokeColor = isDiagonal && showDiagonal ? 'currentColor' : cellBorderColor;
         const strokeWidth = isDiagonal && showDiagonal ? '2' : '1';
 
         elements.push(
@@ -266,7 +266,7 @@ export function Matrix(props: MatrixProps) {
               'dominant-baseline': 'central',
               'font-size': '11',
               'font-family': 'sans-serif',
-              fill: '#374151',
+              fill: 'currentColor',
             },
             label,
           ),
@@ -290,7 +290,7 @@ export function Matrix(props: MatrixProps) {
               'text-anchor': 'middle',
               'font-size': '11',
               'font-family': 'sans-serif',
-              fill: '#374151',
+              fill: 'currentColor',
             },
             label,
           ),
@@ -317,7 +317,7 @@ export function Matrix(props: MatrixProps) {
           'font-size': '16',
           'font-weight': 'bold',
           'font-family': 'sans-serif',
-          fill: '#111827',
+          fill: 'currentColor',
         },
         title,
       ),
@@ -345,7 +345,8 @@ export function Matrix(props: MatrixProps) {
           'text-anchor': 'middle',
           'font-size': '14',
           'font-family': 'sans-serif',
-          fill: '#6b7280',
+          fill: 'currentColor',
+          opacity: '0.6',
         },
         'No data to display.',
       ),

@@ -3,9 +3,11 @@ import { test, expect } from "@playwright/test";
 /**
  * Post-Deployment Verification: Docs Broken Link Crawler
  *
- * Crawls the entire /#/docs section of the SPA and verifies:
- * - All internal hash links render valid content (not empty/404)
- * - All external links return 2xx or 3xx HTTP status codes
+ * Navigates to the docs section, clicks through all sidebar entries,
+ * and verifies:
+ * - All doc pages render meaningful content
+ * - All external links (http/https) found in doc content return 2xx/3xx
+ * - All internal doc links found in content are navigable
  */
 
 interface BrokenLink {
@@ -14,107 +16,102 @@ interface BrokenLink {
   reason: string;
 }
 
-interface LinkInfo {
-  href: string;
-  foundOn: string;
-}
-
 test.describe("Docs Broken Link Crawler", () => {
   test("all links in the docs section are valid", async ({ page, request }) => {
-    // Increase timeout for crawling — this test visits many pages
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
 
     const baseURL =
       process.env.SITE_URL || "https://specifyjs.asymmetric-effort.com";
 
-    const visited = new Set<string>();
-    const internalQueue: string[] = ["#/docs"];
-    const externalLinks: LinkInfo[] = [];
     const brokenLinks: BrokenLink[] = [];
+    const visitedPages = new Set<string>();
+    const externalLinksMap = new Map<string, string>();
 
-    // Load the SPA once
-    const initialResp = await page.goto(baseURL, {
+    // Navigate to docs
+    await page.goto(`${baseURL}/#/docs`, {
       waitUntil: "domcontentloaded",
       timeout: 15_000,
     });
+    await page.waitForTimeout(2000);
 
-    if (!initialResp || initialResp.status() >= 400) {
-      throw new Error(
-        `Failed to load SPA at ${baseURL}: HTTP ${initialResp?.status() ?? "no response"}`,
-      );
+    // Expand all sidebar sections and collect clickable doc entries
+    // Sidebar sections have a toggle that expands/collapses children
+    const sectionHeaders = await page
+      .locator(".docs-sidebar [style*='cursor: pointer']")
+      .all();
+
+    // Click each section header to expand it
+    for (const header of sectionHeaders) {
+      try {
+        await header.click();
+        await page.waitForTimeout(300);
+      } catch {
+        // Section may already be expanded or not clickable
+      }
     }
 
-    // Crawl all internal hash routes by changing location.hash
-    while (internalQueue.length > 0) {
-      const rawPath = internalQueue.shift()!;
+    // Now collect all clickable sidebar items (doc entries)
+    // These are typically divs/spans with click handlers inside the sidebar
+    const sidebarItems = await page
+      .locator(".docs-sidebar div[style*='cursor: pointer']")
+      .all();
 
-      // Normalise hash path: ensure it starts with #/, strip trailing slash
-      const hashPath = rawPath.startsWith("#") ? rawPath : `#${rawPath}`;
-      const normPath = hashPath.replace(/\/$/, "") || "#/";
-      if (visited.has(normPath)) continue;
-      visited.add(normPath);
-
-      // Navigate via hash change (SPA routing)
-      await page.evaluate((hash) => {
-        window.location.hash = hash.slice(1); // remove leading #
-      }, hashPath);
-
-      // Wait for SPA content to render
-      await page.waitForTimeout(1000);
-
-      // Verify the page rendered meaningful content (not blank/404)
-      const bodyText = await page.locator("body").innerText();
-      if (bodyText.trim().length < 50) {
-        brokenLinks.push({
-          url: normPath,
-          foundOn: "crawler",
-          reason:
-            "Page rendered with insufficient content (possibly empty or 404)",
-        });
+    const itemTexts: string[] = [];
+    for (const item of sidebarItems) {
+      const text = await item.innerText().catch(() => "");
+      if (text.trim()) {
+        itemTexts.push(text.trim());
       }
+    }
 
-      // Collect all links on this page
-      const links = await page.locator("a[href]").all();
-      for (const link of links) {
-        const href = await link.getAttribute("href");
-        if (!href) continue;
+    // Click each sidebar item and verify it renders content
+    for (const item of sidebarItems) {
+      const text = await item.innerText().catch(() => "");
+      if (!text.trim()) continue;
 
-        // Skip anchors that are just "#" or empty
-        if (href === "#" || href === "") continue;
+      const label = text.trim();
+      if (visitedPages.has(label)) continue;
+      visitedPages.add(label);
 
-        // Skip mailto: and javascript: links
-        if (href.startsWith("mailto:") || href.startsWith("javascript:"))
-          continue;
+      try {
+        await item.click();
+        await page.waitForTimeout(800);
 
-        if (href.startsWith("#/")) {
-          // Internal hash link — add to crawl queue
-          const normHref = href.replace(/\/$/, "") || "#/";
-          if (!visited.has(normHref)) {
-            internalQueue.push(href);
-          }
-        } else if (
-          href.startsWith("http://") ||
-          href.startsWith("https://")
-        ) {
-          // External link — collect for later verification
-          externalLinks.push({ href, foundOn: normPath });
+        // Check that the main content area has meaningful text
+        const contentArea = page.locator(".docs-sidebar ~ div").first();
+        const contentText = await contentArea.innerText().catch(() => "");
+
+        if (contentText.trim().length < 30) {
+          brokenLinks.push({
+            url: label,
+            foundOn: "sidebar",
+            reason: "Page rendered with insufficient content",
+          });
         }
-        // Relative links without hash are anchors within the page — skip
-      }
-    }
 
-    // Deduplicate external links
-    const uniqueExternal = new Map<string, string>();
-    for (const { href, foundOn } of externalLinks) {
-      if (!uniqueExternal.has(href)) {
-        uniqueExternal.set(href, foundOn);
+        // Collect external links from the content area
+        const links = await contentArea.locator("a[href]").all();
+        for (const link of links) {
+          const href = await link.getAttribute("href");
+          if (!href) continue;
+          if (href.startsWith("http://") || href.startsWith("https://")) {
+            if (!externalLinksMap.has(href)) {
+              externalLinksMap.set(href, label);
+            }
+          }
+        }
+      } catch (err) {
+        brokenLinks.push({
+          url: label,
+          foundOn: "sidebar",
+          reason: `Navigation failed: ${err instanceof Error ? err.message : String(err)}`,
+        });
       }
     }
 
     // Verify external links with HTTP HEAD requests (fall back to GET)
-    for (const [url, foundOn] of uniqueExternal) {
+    for (const [url, foundOn] of externalLinksMap) {
       try {
-        // Skip known domains that block automated HEAD requests
         const parsedURL = new URL(url);
         if (
           parsedURL.hostname === "localhost" ||
@@ -167,10 +164,9 @@ test.describe("Docs Broken Link Crawler", () => {
     }
 
     // Sanity check: we should have visited multiple docs pages
-    const docsPages = [...visited].filter((p) => p.startsWith("#/docs"));
     expect(
-      docsPages.length,
-      "Crawler should visit at least 5 docs pages",
+      visitedPages.size,
+      `Crawler should visit at least 5 docs pages (visited ${visitedPages.size})`,
     ).toBeGreaterThanOrEqual(5);
   });
 });

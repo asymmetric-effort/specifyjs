@@ -59,7 +59,7 @@ export function Carousel(props: CarouselProps) {
   const showArrows = props.showArrows !== false;
   const animation = props.animation ?? 'slide';
   const interval = props.interval ?? 5000;
-  const animId = useId();
+  const animId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 
   const [current, setCurrent] = useState(0);
   const pointerStart = useRef<number | null>(null);

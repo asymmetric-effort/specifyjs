@@ -67,7 +67,7 @@ function formatTime(seconds: number): string {
 export function VideoPlayer(props: VideoPlayerProps) {
   const showControls = props.controls !== false;
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const animId = useId();
+  const animId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);

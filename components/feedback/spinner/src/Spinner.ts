@@ -45,7 +45,8 @@ export function Spinner(props: SpinnerProps) {
   const thickness = props.thickness ?? Math.max(2, Math.round(sizeVal / 8));
   const speed = SPEED_MAP[props.speed ?? 'normal'] ?? SPEED_MAP.normal;
   const label = props.label ?? 'Loading';
-  const animId = useId();
+  const rawId = useId();
+  const animId = rawId.replace(/[^a-zA-Z0-9_-]/g, '');
 
   const radius = (sizeVal - thickness) / 2;
   const circumference = 2 * Math.PI * radius;

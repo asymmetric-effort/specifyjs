@@ -37,7 +37,7 @@ export interface SkeletonProps {
 export function Skeleton(props: SkeletonProps) {
   const variant = props.variant ?? 'text';
   const animated = props.animated !== false;
-  const animId = useId();
+  const animId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 
   const keyframes = useMemo(
     () =>

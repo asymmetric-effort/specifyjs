@@ -107,4 +107,17 @@ describe('Spinner — animation', () => {
     const svgChild = (Array.isArray(el.props.children) ? el.props.children : [el.props.children]).find((c: any) => c && c.type === 'svg');
     expect(svgChild).toBeDefined();
   });
+
+  it('uses a CSS-valid animation name (no colons or special chars)', () => {
+    const el = Spinner({});
+    const children = (Array.isArray(el.props.children) ? el.props.children : [el.props.children]);
+    const styleChild = children.find((c: any) => c && c.type === 'style');
+    const svgChild = children.find((c: any) => c && c.type === 'svg');
+    const keyframesText = Array.isArray(styleChild.props.children) ? styleChild.props.children[0] : styleChild.props.children;
+    const match = keyframesText.match(/@keyframes\s+([\w-]+)/);
+    expect(match).not.toBeNull();
+    const animName = match![1];
+    expect(animName).toMatch(/^[a-zA-Z_-][a-zA-Z0-9_-]*$/);
+    expect(svgChild.props.style.animation).toContain(animName);
+  });
 });

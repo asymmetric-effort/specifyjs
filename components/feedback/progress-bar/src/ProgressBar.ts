@@ -50,7 +50,7 @@ export function ProgressBar(props: ProgressBarProps) {
   const bgColor = props.backgroundColor ?? '#e5e7eb';
   const height = props.height ?? (typeof props.size === 'string' ? props.size : typeof props.size === 'number' ? `${props.size}px` : '8px');
   const variant = props.variant ?? 'bar';
-  const animId = useId();
+  const animId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
 
   // -----------------------------------------------------------------------
   // Circular variant

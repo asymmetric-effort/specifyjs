@@ -46,7 +46,7 @@ export interface ImageProps {
 export function Image(props: ImageProps) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const animId = useId();
+  const animId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const lazy = props.lazy !== false;
 
   const cssWidth = typeof props.width === 'number' ? `${props.width}px` : props.width;

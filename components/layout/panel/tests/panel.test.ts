@@ -132,7 +132,7 @@ describe('Panel', () => {
         createElement('div', null, 'content'),
       ));
       const wrapper = container.querySelector('.panel__body-wrapper') as HTMLElement;
-      expect(wrapper.style.maxHeight).toBe('0');
+      expect(wrapper.style.maxHeight).toMatch(/^0(px)?$/);
     });
 
     it('toggles collapsed state on header click', async () => {

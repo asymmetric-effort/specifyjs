@@ -28,34 +28,36 @@ test.describe("Docs Broken Link Crawler", () => {
       process.env.SITE_URL || "https://specifyjs.asymmetric-effort.com";
 
     const visited = new Set<string>();
-    const internalQueue: string[] = ["/#/docs"];
+    const internalQueue: string[] = ["#/docs"];
     const externalLinks: LinkInfo[] = [];
     const brokenLinks: BrokenLink[] = [];
 
-    // Crawl all internal /#/docs pages
-    while (internalQueue.length > 0) {
-      const path = internalQueue.shift()!;
+    // Load the SPA once
+    const initialResp = await page.goto(baseURL, {
+      waitUntil: "domcontentloaded",
+      timeout: 15_000,
+    });
 
-      // Normalise: strip trailing slash, treat '' same as '/'
-      const normPath = path.replace(/\/$/, "") || "/";
+    if (!initialResp || initialResp.status() >= 400) {
+      throw new Error(
+        `Failed to load SPA at ${baseURL}: HTTP ${initialResp?.status() ?? "no response"}`,
+      );
+    }
+
+    // Crawl all internal hash routes by changing location.hash
+    while (internalQueue.length > 0) {
+      const rawPath = internalQueue.shift()!;
+
+      // Normalise hash path: ensure it starts with #/, strip trailing slash
+      const hashPath = rawPath.startsWith("#") ? rawPath : `#${rawPath}`;
+      const normPath = hashPath.replace(/\/$/, "") || "#/";
       if (visited.has(normPath)) continue;
       visited.add(normPath);
 
-      // Navigate to the page
-      const fullURL = `${baseURL}${path}`;
-      const response = await page.goto(fullURL, {
-        waitUntil: "domcontentloaded",
-        timeout: 15_000,
-      });
-
-      if (!response || response.status() >= 400) {
-        brokenLinks.push({
-          url: path,
-          foundOn: "crawler",
-          reason: `HTTP ${response?.status() ?? "no response"}`,
-        });
-        continue;
-      }
+      // Navigate via hash change (SPA routing)
+      await page.evaluate((hash) => {
+        window.location.hash = hash.slice(1); // remove leading #
+      }, hashPath);
 
       // Wait for SPA content to render
       await page.waitForTimeout(1000);
@@ -64,7 +66,7 @@ test.describe("Docs Broken Link Crawler", () => {
       const bodyText = await page.locator("body").innerText();
       if (bodyText.trim().length < 50) {
         brokenLinks.push({
-          url: path,
+          url: normPath,
           foundOn: "crawler",
           reason:
             "Page rendered with insufficient content (possibly empty or 404)",
@@ -84,19 +86,16 @@ test.describe("Docs Broken Link Crawler", () => {
         if (href.startsWith("mailto:") || href.startsWith("javascript:"))
           continue;
 
-        if (href.startsWith("#/docs")) {
-          // Internal docs hash link — add to crawl queue
-          const normHref = href.replace(/\/$/, "") || "/";
+        if (href.startsWith("#/")) {
+          // Internal hash link — add to crawl queue
+          const normHref = href.replace(/\/$/, "") || "#/";
           if (!visited.has(normHref)) {
             internalQueue.push(href);
           }
-        } else if (href.startsWith("#/")) {
-          // Internal non-docs hash link — verify it navigates without error
-          const normHref = href.replace(/\/$/, "") || "/";
-          if (!visited.has(normHref)) {
-            internalQueue.push(href);
-          }
-        } else if (href.startsWith("http://") || href.startsWith("https://")) {
+        } else if (
+          href.startsWith("http://") ||
+          href.startsWith("https://")
+        ) {
           // External link — collect for later verification
           externalLinks.push({ href, foundOn: normPath });
         }
@@ -168,9 +167,7 @@ test.describe("Docs Broken Link Crawler", () => {
     }
 
     // Sanity check: we should have visited multiple docs pages
-    const docsPages = [...visited].filter(
-      (p) => p.startsWith("#/docs") || p.startsWith("/#/docs"),
-    );
+    const docsPages = [...visited].filter((p) => p.startsWith("#/docs"));
     expect(
       docsPages.length,
       "Crawler should visit at least 5 docs pages",

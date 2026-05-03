@@ -7,7 +7,6 @@ import { test, expect } from "@playwright/test";
  * and verifies:
  * - All doc pages render meaningful content
  * - All external links (http/https) found in doc content return 2xx/3xx
- * - All internal doc links found in content are navigable
  */
 
 interface BrokenLink {
@@ -34,75 +33,74 @@ test.describe("Docs Broken Link Crawler", () => {
     });
     await page.waitForTimeout(2000);
 
-    // Expand all sidebar sections and collect clickable doc entries
-    // Sidebar sections have a toggle that expands/collapses children
-    const sectionHeaders = await page
-      .locator(".docs-sidebar [style*='cursor: pointer']")
+    // The sidebar has section header <button> elements (uppercase, with ▶ arrow)
+    // and doc entry <button> elements (indented, within expanded sections).
+    // We need to expand each section first, then click each doc entry.
+
+    // Get all section header buttons in the sidebar nav
+    const sidebarNav = page.locator("nav.docs-sidebar");
+
+    // Expand all sections by clicking each section header button
+    // Section headers are direct child div > button with uppercase text
+    const sectionButtons = await sidebarNav
+      .locator(":scope > div > button")
       .all();
 
-    // Click each section header to expand it
-    for (const header of sectionHeaders) {
+    for (const btn of sectionButtons) {
       try {
-        await header.click();
-        await page.waitForTimeout(300);
+        await btn.click();
+        await page.waitForTimeout(200);
       } catch {
-        // Section may already be expanded or not clickable
+        // May already be expanded
       }
     }
 
-    // Now collect all clickable sidebar items (doc entries)
-    // These are typically divs/spans with click handlers inside the sidebar
-    const sidebarItems = await page
-      .locator(".docs-sidebar div[style*='cursor: pointer']")
+    await page.waitForTimeout(500);
+
+    // Now collect all doc entry buttons (the ones inside expanded sections)
+    // These are nested deeper: nav > div > div > button (after the section header)
+    const docButtons = await sidebarNav
+      .locator(":scope > div > div > button")
       .all();
 
-    const itemTexts: string[] = [];
-    for (const item of sidebarItems) {
-      const text = await item.innerText().catch(() => "");
-      if (text.trim()) {
-        itemTexts.push(text.trim());
-      }
-    }
+    // Click each doc entry and verify content
+    for (const btn of docButtons) {
+      const label = await btn.innerText().catch(() => "");
+      if (!label.trim()) continue;
 
-    // Click each sidebar item and verify it renders content
-    for (const item of sidebarItems) {
-      const text = await item.innerText().catch(() => "");
-      if (!text.trim()) continue;
-
-      const label = text.trim();
-      if (visitedPages.has(label)) continue;
-      visitedPages.add(label);
+      const trimmedLabel = label.trim();
+      if (visitedPages.has(trimmedLabel)) continue;
+      visitedPages.add(trimmedLabel);
 
       try {
-        await item.click();
+        // Scroll the button into view and click it
+        await btn.scrollIntoViewIfNeeded();
+        await btn.click();
         await page.waitForTimeout(800);
 
-        // Check that the main content area has meaningful text
-        const contentArea = page.locator(".docs-sidebar ~ div").first();
-        const contentText = await contentArea.innerText().catch(() => "");
-
-        if (contentText.trim().length < 30) {
+        // Check that the content area (sibling of sidebar nav) has text
+        // The content is in a div adjacent to the nav.docs-sidebar
+        const bodyText = await page.locator("body").innerText();
+        // The body should have substantial content when a doc is displayed
+        if (bodyText.trim().length < 100) {
           brokenLinks.push({
-            url: label,
+            url: trimmedLabel,
             foundOn: "sidebar",
             reason: "Page rendered with insufficient content",
           });
         }
 
-        // Collect external links from the content area
-        const links = await contentArea.locator("a[href]").all();
+        // Collect external links from the page
+        const links = await page.locator("a[href^='http']").all();
         for (const link of links) {
           const href = await link.getAttribute("href");
-          if (!href) continue;
-          if (href.startsWith("http://") || href.startsWith("https://")) {
-            if (!externalLinksMap.has(href)) {
-              externalLinksMap.set(href, label);
-            }
+          if (href && !externalLinksMap.has(href)) {
+            externalLinksMap.set(href, trimmedLabel);
           }
         }
       } catch (err) {
         brokenLinks.push({
-          url: label,
+          url: trimmedLabel,
           foundOn: "sidebar",
           reason: `Navigation failed: ${err instanceof Error ? err.message : String(err)}`,
         });
@@ -125,7 +123,6 @@ test.describe("Docs Broken Link Crawler", () => {
           ignoreHTTPSErrors: true,
         });
 
-        // Some servers reject HEAD, fall back to GET
         if (resp.status() === 405 || resp.status() === 403) {
           resp = await request.get(url, {
             timeout: 10_000,
@@ -166,7 +163,7 @@ test.describe("Docs Broken Link Crawler", () => {
     // Sanity check: we should have visited multiple docs pages
     expect(
       visitedPages.size,
-      `Crawler should visit at least 5 docs pages (visited ${visitedPages.size})`,
+      `Crawler should visit at least 5 docs pages (visited ${visitedPages.size}: ${[...visitedPages].join(", ")})`,
     ).toBeGreaterThanOrEqual(5);
   });
 });

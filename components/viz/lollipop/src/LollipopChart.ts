@@ -17,8 +17,8 @@
  * Zero runtime dependencies -- pure SpecifyJS + SVG.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from "../../../../core/src/index";
+import { useMemo, useCallback } from "../../../../core/src/hooks/index";
 
 // -- Data types ---------------------------------------------------------------
 
@@ -38,7 +38,7 @@ export interface LollipopChartProps {
   /** SVG height in pixels (default: 400) */
   height?: number;
   /** Chart orientation (default: 'vertical') */
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: "horizontal" | "vertical";
   /** Stem line color (default: '#94a3b8') */
   stemColor?: string;
   /** Stem line width in px (default: 2) */
@@ -78,21 +78,22 @@ export function LollipopChart(props: LollipopChartProps) {
     data = [],
     width = 600,
     height = 400,
-    orientation = 'vertical',
-    stemColor = '#94a3b8',
+    orientation = "vertical",
+    stemColor = "#94a3b8",
     stemWidth = 2,
     dotRadius = 6,
-    dotColor = '#3b82f6',
+    dotColor = "#3b82f6",
     showGrid = true,
     showValues = true,
     title,
     padding = 60,
   } = props;
 
-  const isVertical = orientation === 'vertical';
+  const isVertical = orientation === "vertical";
 
+  const bottomExtra = isVertical ? 30 : 0;
   const chartWidth = width - padding * 2;
-  const chartHeight = height - padding * 2;
+  const chartHeight = height - padding * 2 - bottomExtra;
 
   const valueAxisLength = isVertical ? chartHeight : chartWidth;
   const categoryAxisLength = isVertical ? chartWidth : chartHeight;
@@ -124,28 +125,28 @@ export function LollipopChart(props: LollipopChartProps) {
       if (isVertical) {
         const y = padding + chartHeight - pos;
         lines.push(
-          createElement('line', {
+          createElement("line", {
             key: `grid-${v}`,
             x1: String(padding),
             y1: String(y),
             x2: String(padding + chartWidth),
             y2: String(y),
-            stroke: '#e5e7eb',
-            'stroke-width': '1',
-            'stroke-dasharray': '4 2',
+            stroke: "#e5e7eb",
+            "stroke-width": "1",
+            "stroke-dasharray": "4 2",
           }),
         );
         lines.push(
           createElement(
-            'text',
+            "text",
             {
               key: `grid-label-${v}`,
               x: String(padding - 8),
               y: String(y + 4),
-              'text-anchor': 'end',
-              'font-size': '11',
-              'font-family': 'sans-serif',
-              fill: '#6b7280',
+              "text-anchor": "end",
+              "font-size": "11",
+              "font-family": "sans-serif",
+              fill: "#6b7280",
             },
             String(v),
           ),
@@ -153,28 +154,28 @@ export function LollipopChart(props: LollipopChartProps) {
       } else {
         const x = padding + pos;
         lines.push(
-          createElement('line', {
+          createElement("line", {
             key: `grid-${v}`,
             x1: String(x),
             y1: String(padding),
             x2: String(x),
             y2: String(padding + chartHeight),
-            stroke: '#e5e7eb',
-            'stroke-width': '1',
-            'stroke-dasharray': '4 2',
+            stroke: "#e5e7eb",
+            "stroke-width": "1",
+            "stroke-dasharray": "4 2",
           }),
         );
         lines.push(
           createElement(
-            'text',
+            "text",
             {
               key: `grid-label-${v}`,
               x: String(x),
               y: String(padding + chartHeight + 16),
-              'text-anchor': 'middle',
-              'font-size': '11',
-              'font-family': 'sans-serif',
-              fill: '#6b7280',
+              "text-anchor": "middle",
+              "font-size": "11",
+              "font-family": "sans-serif",
+              fill: "#6b7280",
             },
             String(v),
           ),
@@ -183,7 +184,15 @@ export function LollipopChart(props: LollipopChartProps) {
     }
 
     return lines;
-  }, [showGrid, maxValue, isVertical, padding, chartWidth, chartHeight, valueAxisLength]);
+  }, [
+    showGrid,
+    maxValue,
+    isVertical,
+    padding,
+    chartWidth,
+    chartHeight,
+    valueAxisLength,
+  ]);
 
   // ---- Axes -----------------------------------------------------------------
 
@@ -193,40 +202,40 @@ export function LollipopChart(props: LollipopChartProps) {
     // Value axis
     if (isVertical) {
       elements.push(
-        createElement('line', {
-          key: 'axis-y',
+        createElement("line", {
+          key: "axis-y",
           x1: String(padding),
           y1: String(padding),
           x2: String(padding),
           y2: String(padding + chartHeight),
-          stroke: '#374151',
-          'stroke-width': '1.5',
+          stroke: "#374151",
+          "stroke-width": "1.5",
         }),
       );
     } else {
       elements.push(
-        createElement('line', {
-          key: 'axis-y',
+        createElement("line", {
+          key: "axis-y",
           x1: String(padding),
           y1: String(padding),
           x2: String(padding),
           y2: String(padding + chartHeight),
-          stroke: '#374151',
-          'stroke-width': '1.5',
+          stroke: "#374151",
+          "stroke-width": "1.5",
         }),
       );
     }
 
     // Category axis
     elements.push(
-      createElement('line', {
-        key: 'axis-x',
+      createElement("line", {
+        key: "axis-x",
         x1: String(padding),
         y1: String(padding + chartHeight),
         x2: String(padding + chartWidth),
         y2: String(padding + chartHeight),
-        stroke: '#374151',
-        'stroke-width': '1.5',
+        stroke: "#374151",
+        "stroke-width": "1.5",
       }),
     );
 
@@ -253,20 +262,20 @@ export function LollipopChart(props: LollipopChartProps) {
 
         // Stem
         elements.push(
-          createElement('line', {
+          createElement("line", {
             key: `stem-${i}`,
             x1: String(cx),
             y1: String(baseY),
             x2: String(cx),
             y2: String(tipY),
             stroke: stemColor,
-            'stroke-width': String(stemWidth),
+            "stroke-width": String(stemWidth),
           }),
         );
 
         // Dot
         elements.push(
-          createElement('circle', {
+          createElement("circle", {
             key: `dot-${i}`,
             cx: String(cx),
             cy: String(tipY),
@@ -279,33 +288,36 @@ export function LollipopChart(props: LollipopChartProps) {
         if (showValues) {
           elements.push(
             createElement(
-              'text',
+              "text",
               {
                 key: `val-${i}`,
                 x: String(cx),
                 y: String(tipY - dotRadius - 4),
-                'text-anchor': 'middle',
-                'font-size': '11',
-                'font-family': 'sans-serif',
-                fill: '#374151',
+                "text-anchor": "middle",
+                "font-size": "11",
+                "font-family": "sans-serif",
+                fill: "#374151",
               },
               String(d.value),
             ),
           );
         }
 
-        // Category label
+        // Category label (rotated -45° to prevent overlap)
+        const catLabelX = cx;
+        const catLabelY = padding + chartHeight + 16;
         elements.push(
           createElement(
-            'text',
+            "text",
             {
               key: `cat-${i}`,
-              x: String(cx),
-              y: String(padding + chartHeight + 16),
-              'text-anchor': 'middle',
-              'font-size': '11',
-              'font-family': 'sans-serif',
-              fill: '#374151',
+              x: String(catLabelX),
+              y: String(catLabelY),
+              "text-anchor": "end",
+              "font-size": "11",
+              "font-family": "sans-serif",
+              fill: "#374151",
+              transform: `rotate(-45, ${catLabelX}, ${catLabelY})`,
             },
             d.label,
           ),
@@ -318,20 +330,20 @@ export function LollipopChart(props: LollipopChartProps) {
 
         // Stem
         elements.push(
-          createElement('line', {
+          createElement("line", {
             key: `stem-${i}`,
             x1: String(baseX),
             y1: String(cy),
             x2: String(tipX),
             y2: String(cy),
             stroke: stemColor,
-            'stroke-width': String(stemWidth),
+            "stroke-width": String(stemWidth),
           }),
         );
 
         // Dot
         elements.push(
-          createElement('circle', {
+          createElement("circle", {
             key: `dot-${i}`,
             cx: String(tipX),
             cy: String(cy),
@@ -344,15 +356,15 @@ export function LollipopChart(props: LollipopChartProps) {
         if (showValues) {
           elements.push(
             createElement(
-              'text',
+              "text",
               {
                 key: `val-${i}`,
                 x: String(tipX + dotRadius + 4),
                 y: String(cy + 4),
-                'text-anchor': 'start',
-                'font-size': '11',
-                'font-family': 'sans-serif',
-                fill: '#374151',
+                "text-anchor": "start",
+                "font-size": "11",
+                "font-family": "sans-serif",
+                fill: "#374151",
               },
               String(d.value),
             ),
@@ -362,15 +374,15 @@ export function LollipopChart(props: LollipopChartProps) {
         // Category label
         elements.push(
           createElement(
-            'text',
+            "text",
             {
               key: `cat-${i}`,
               x: String(padding - 8),
               y: String(cy + 4),
-              'text-anchor': 'end',
-              'font-size': '11',
-              'font-family': 'sans-serif',
-              fill: '#374151',
+              "text-anchor": "end",
+              "font-size": "11",
+              "font-family": "sans-serif",
+              fill: "#374151",
             },
             d.label,
           ),
@@ -379,7 +391,21 @@ export function LollipopChart(props: LollipopChartProps) {
     }
 
     return elements;
-  }, [data, maxValue, itemSpacing, dotColor, dotRadius, stemColor, stemWidth, showValues, isVertical, padding, chartWidth, chartHeight, valueAxisLength]);
+  }, [
+    data,
+    maxValue,
+    itemSpacing,
+    dotColor,
+    dotRadius,
+    stemColor,
+    stemWidth,
+    showValues,
+    isVertical,
+    padding,
+    chartWidth,
+    chartHeight,
+    valueAxisLength,
+  ]);
 
   // ---- Title ----------------------------------------------------------------
 
@@ -387,16 +413,16 @@ export function LollipopChart(props: LollipopChartProps) {
     if (!title) return [];
     return [
       createElement(
-        'text',
+        "text",
         {
-          key: 'title',
+          key: "title",
           x: String(width / 2),
           y: String(padding / 2 + 4),
-          'text-anchor': 'middle',
-          'font-size': '16',
-          'font-weight': 'bold',
-          'font-family': 'sans-serif',
-          fill: '#111827',
+          "text-anchor": "middle",
+          "font-size": "16",
+          "font-weight": "bold",
+          "font-family": "sans-serif",
+          fill: "#111827",
         },
         title,
       ),
@@ -409,17 +435,17 @@ export function LollipopChart(props: LollipopChartProps) {
     if (data.length > 0) return [];
     return [
       createElement(
-        'text',
+        "text",
         {
-          key: 'empty',
+          key: "empty",
           x: String(width / 2),
           y: String(height / 2),
-          'text-anchor': 'middle',
-          'font-size': '14',
-          'font-family': 'sans-serif',
-          fill: '#9ca3af',
+          "text-anchor": "middle",
+          "font-size": "14",
+          "font-family": "sans-serif",
+          fill: "#9ca3af",
         },
-        'No data',
+        "No data",
       ),
     ];
   }, [data.length, width, height]);
@@ -433,15 +459,15 @@ export function LollipopChart(props: LollipopChartProps) {
   const emptyState = buildEmptyState();
 
   return createElement(
-    'svg',
+    "svg",
     {
-      width: '100%',
+      width: "100%",
       viewBox: `0 0 ${width} ${height}`,
-      preserveAspectRatio: 'xMidYMid meet',
-      xmlns: 'http://www.w3.org/2000/svg',
-      role: 'img',
-      'aria-label': title ?? 'Lollipop chart',
-      style: { fontFamily: 'sans-serif' },
+      preserveAspectRatio: "xMidYMid meet",
+      xmlns: "http://www.w3.org/2000/svg",
+      role: "img",
+      "aria-label": title ?? "Lollipop chart",
+      style: { fontFamily: "sans-serif" },
     },
     ...titleEl,
     ...gridLines,

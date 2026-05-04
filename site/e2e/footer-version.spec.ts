@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "fs";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
 
 /**
  * Post-Deployment Verification: Footer Version Accuracy
@@ -8,6 +9,9 @@ import { resolve } from "path";
  * Verifies that the version displayed in the site footer matches
  * the version in core/package.json.
  */
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 test.describe("Footer Version", () => {
   test("footer displays the correct package version", async ({ page }) => {

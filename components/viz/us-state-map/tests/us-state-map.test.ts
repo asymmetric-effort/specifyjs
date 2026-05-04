@@ -293,7 +293,7 @@ describe("USStateMap — ARIA compliance", () => {
   it("interactive state paths have tabIndex when clickable", () => {
     const el = USStateMap({ onStateClick: () => {} });
     for (let i = 1; i < el.props.children.length; i++) {
-      expect(el.props.children[i].props.tabIndex).toBe(0);
+      expect(el.props.children[i].props.tabindex).toBe(0);
     }
   });
 });

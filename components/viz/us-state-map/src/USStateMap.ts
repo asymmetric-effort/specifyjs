@@ -125,7 +125,7 @@ export function USStateMap(props: USStateMapProps) {
             handleClick(sid);
           }
         };
-        pathProps.tabIndex = 0;
+        pathProps.tabindex = 0;
         pathProps.role = "button";
         pathProps["aria-label"] = stateData.name;
       }

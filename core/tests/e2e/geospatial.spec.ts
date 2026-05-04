@@ -77,9 +77,8 @@ test.describe('Geospatial Maps', () => {
       const section = page.getByTestId('us-map-section');
       const txPath = section.locator('svg path[data-state="TX"]');
       await txPath.hover();
-      // After hovering, the fill should be the hoverColor (#FFD700)
-      const fill = await txPath.getAttribute('fill');
-      expect(fill).toBe('#FFD700');
+      // Wait for the hover handler to update the fill attribute
+      await expect(txPath).toHaveAttribute('fill', '#FFD700', { timeout: 3000 });
     });
 
     test('mouse leave restores original fill', async ({ page }) => {

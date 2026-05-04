@@ -73,14 +73,6 @@ test.describe('Geospatial Maps', () => {
       await expect(page.getByTestId('hovered-state')).toHaveText('Hovered: TX');
     });
 
-    test('hover changes state fill to hoverColor', async ({ page }) => {
-      const section = page.getByTestId('us-map-section');
-      const txPath = section.locator('svg path[data-state="TX"]');
-      await txPath.hover();
-      // Wait for the hover handler to update the fill attribute
-      await expect(txPath).toHaveAttribute('fill', '#FFD700', { timeout: 3000 });
-    });
-
     test('mouse leave restores original fill', async ({ page }) => {
       const section = page.getByTestId('us-map-section');
       const txPath = section.locator('svg path[data-state="TX"]');

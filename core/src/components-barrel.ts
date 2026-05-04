@@ -89,7 +89,7 @@ export * from '../../components/viz/force-graph/src/index';
 export * from '../../components/viz/funnel/src/index';
 export * from '../../components/viz/gantt-chart/src/index';
 export * from '../../components/viz/gauge/src/index';
-export * from '../../components/viz/geo-map/src/index';
+export * from '../../components/viz/us-state-map/src/index';
 export * from '../../components/viz/heat-map/src/index';
 export * from '../../components/viz/histogram/src/index';
 export * from '../../components/viz/lollipop/src/index';

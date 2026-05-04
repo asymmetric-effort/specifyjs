@@ -88,19 +88,24 @@ import { TreeMap } from "../../../components/viz/tree-map/src/index";
 import { Sunburst } from "../../../components/viz/sunburst/src/index";
 import { Partition } from "../../../components/viz/partition/src/index";
 import { PivotTable } from "../../../components/viz/pivot-table/src/index";
-import { ForceGraph, type ForceSimNode, type ForceEdge as ForceEdgeType, type MousePosition } from "../../../components/viz/force-graph/src/index";
+import {
+  ForceGraph,
+  type ForceSimNode,
+  type ForceEdge as ForceEdgeType,
+  type MousePosition,
+} from "../../../components/viz/force-graph/src/index";
 import { matN, matNSet, matNGet } from "../../../core/src/math/mat";
 import { solve } from "../../../core/src/math/solver";
 import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";
-import {
-  GeoMap,
-  generateUSMapOutline,
-} from "../../../components/viz/geo-map/src/index";
+import { USStateMap } from "../../../components/viz/us-state-map/src/index";
 import { VectorField } from "../../../components/viz/vector-field/src/index";
 import { ThreeDLayers } from "../../../components/viz/3d-layers/src/index";
-import { BlochSphere, type GateOp } from "../../../components/viz/bloch-sphere/src/index";
+import {
+  BlochSphere,
+  type GateOp,
+} from "../../../components/viz/bloch-sphere/src/index";
 import { LED_ZEPPELIN_WORDS } from "../data/led-zeppelin-words";
 
 const REPO_BASE = "https://github.com/asymmetric-effort/specifyjs/tree/main";
@@ -369,7 +374,7 @@ export function ComponentsGallery() {
     ]),
     accordionSection(
       "Hierarchical & Relational",
-      "9 components",
+      "8 components",
       openSection,
       toggle,
       [
@@ -388,10 +393,12 @@ export function ComponentsGallery() {
           DecompositionTreeDemo,
           "components/viz/decomposition-tree",
         ),
-        preview("Geospatial Map", GeoMapDemo, "components/viz/geo-map"),
         preview("Vector Field", VectorFieldDemo, "components/viz/vector-field"),
       ],
     ),
+    accordionSection("Geospatial Maps", "1 component", openSection, toggle, [
+      preview("US State Map", USStateMapDemo, "components/viz/us-state-map"),
+    ]),
     accordionSection("Mathematical", "3 components", openSection, toggle, [
       preview(
         "Cartesian Graph (4-leaf Rose)",
@@ -412,7 +419,11 @@ export function ComponentsGallery() {
     accordionSection("3D & Advanced", "4 components", openSection, toggle, [
       preview("Hypercube (4D)", HypercubeDemo, "components/viz/graph"),
       preview("3D Layers", ThreeDLayersDemo, "components/viz/3d-layers"),
-      preview("Pendulum Physics", DoublePendulumDemo, "components/viz/force-graph"),
+      preview(
+        "Pendulum Physics",
+        DoublePendulumDemo,
+        "components/viz/force-graph",
+      ),
       preview("Bloch Sphere", BlochSphereDemo, "components/viz/bloch-sphere"),
     ]),
     createElement(
@@ -2140,7 +2151,16 @@ function WordCloudDemo() {
     height: 320,
     minFontSize: 8,
     maxFontSize: 38,
-    colors: ["#dc2626", "#f59e0b", "#1d4ed8", "#7c3aed", "#059669", "#db2777", "#0891b2", "#4f46e5"],
+    colors: [
+      "#dc2626",
+      "#f59e0b",
+      "#1d4ed8",
+      "#7c3aed",
+      "#059669",
+      "#db2777",
+      "#0891b2",
+      "#4f46e5",
+    ],
   });
 }
 
@@ -2385,23 +2405,96 @@ function DecompositionTreeDemo() {
   });
 }
 
-function GeoMapDemo() {
-  const regions = generateUSMapOutline();
-  // Assign random values for choropleth demo
-  const regionsWithValues = regions.map((r, i) => ({
-    ...r,
-    value: 20 + i * 8,
-  }));
-  return createElement(GeoMap, {
-    regions: regionsWithValues,
-    markers: [
-      { lat: 40.7, lon: -74.0, label: "NYC", color: "#ef4444", radius: 4 },
-      { lat: 34.0, lon: -118.2, label: "LA", color: "#3b82f6", radius: 4 },
-    ],
-    width: 280,
-    height: 160,
-    showLabels: true,
-  });
+function USStateMapDemo() {
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  // Regional coloring demo
+  const stateColors: Record<string, string> = {
+    // West Coast — blue
+    WA: "#3b82f6",
+    OR: "#3b82f6",
+    CA: "#3b82f6",
+    // Mountain — teal
+    MT: "#14b8a6",
+    ID: "#14b8a6",
+    WY: "#14b8a6",
+    NV: "#14b8a6",
+    CO: "#14b8a6",
+    UT: "#14b8a6",
+    AZ: "#14b8a6",
+    NM: "#14b8a6",
+    // Midwest — green
+    ND: "#22c55e",
+    SD: "#22c55e",
+    NE: "#22c55e",
+    KS: "#22c55e",
+    MN: "#22c55e",
+    IA: "#22c55e",
+    MO: "#22c55e",
+    WI: "#22c55e",
+    IL: "#22c55e",
+    MI: "#22c55e",
+    IN: "#22c55e",
+    OH: "#22c55e",
+    // South — orange
+    TX: "#f97316",
+    OK: "#f97316",
+    AR: "#f97316",
+    LA: "#f97316",
+    MS: "#f97316",
+    AL: "#f97316",
+    TN: "#f97316",
+    KY: "#f97316",
+    WV: "#f97316",
+    VA: "#f97316",
+    NC: "#f97316",
+    SC: "#f97316",
+    GA: "#f97316",
+    FL: "#f97316",
+    // Northeast — purple
+    ME: "#a855f7",
+    NH: "#a855f7",
+    VT: "#a855f7",
+    MA: "#a855f7",
+    RI: "#a855f7",
+    CT: "#a855f7",
+    NY: "#a855f7",
+    NJ: "#a855f7",
+    PA: "#a855f7",
+    DE: "#a855f7",
+    MD: "#a855f7",
+    DC: "#a855f7",
+    // Non-contiguous — slate
+    AK: "#64748b",
+    HI: "#64748b",
+  };
+
+  return createElement(
+    "div",
+    null,
+    createElement(USStateMap, {
+      stateColors,
+      defaultColor: "#e2e8f0",
+      strokeColor: "#ffffff",
+      strokeWidth: 1,
+      hoverColor: "#fbbf24",
+      onStateHover: setHovered,
+      title: "US Regions Map",
+    }),
+    createElement(
+      "div",
+      {
+        style: {
+          textAlign: "center",
+          marginTop: "8px",
+          fontSize: "13px",
+          color: "currentColor",
+          minHeight: "20px",
+        },
+      },
+      hovered ? `Hovering: ${hovered}` : "Hover over a state",
+    ),
+  );
 }
 
 function VectorFieldDemo() {
@@ -2451,8 +2544,18 @@ function ThreeDLayersDemo() {
       { style: { flex: "1", minWidth: "200px" } },
       createElement(ThreeDLayers, {
         layers: [
-          { label: "Surface A", color: "#3b82f6", data: surface1, opacity: 0.8 },
-          { label: "Surface B", color: "#10b981", data: surface2, opacity: 0.7 },
+          {
+            label: "Surface A",
+            color: "#3b82f6",
+            data: surface1,
+            opacity: 0.8,
+          },
+          {
+            label: "Surface B",
+            color: "#10b981",
+            data: surface2,
+            opacity: 0.7,
+          },
         ],
         width: 600,
         height: 400,
@@ -2528,7 +2631,10 @@ const MOUSE_G = 0.08;
  * directly over the vertex. Force = G * m_cursor / r (softened).
  */
 function applyMouseAttraction(
-  nx: number, ny: number, vx: number, vy: number,
+  nx: number,
+  ny: number,
+  vx: number,
+  vy: number,
   mouse: MousePosition | null,
 ): { vx: number; vy: number } {
   if (!mouse) return { vx, vy };
@@ -2538,14 +2644,20 @@ function applyMouseAttraction(
   if (distSq < 1) return { vx, vy };
   const dist = Math.sqrt(distSq);
   // Softened gravity: force grows with proximity but caps to avoid explosion
-  const force = MOUSE_G * mouseGravityCoeff / Math.max(dist, 15);
+  const force = (MOUSE_G * mouseGravityCoeff) / Math.max(dist, 15);
   return { vx: vx + (dx / dist) * force, vy: vy + (dy / dist) * force };
 }
 
 /** Verlet (Position-Based Dynamics) force function */
 function createVerletForce(
   n: number,
-): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number, mouse: MousePosition | null) => ForceSimNode[] {
+): (
+  nodes: ForceSimNode[],
+  edges: ForceEdgeType[],
+  w: number,
+  h: number,
+  mouse: MousePosition | null,
+) => ForceSimNode[] {
   const prevPos = new Map<string, { x: number; y: number }>();
   let init = false;
 
@@ -2563,21 +2675,31 @@ function createVerletForce(
       let vx = (nd.x - prev.x) * PEND_DAMP;
       let vy = (nd.y - prev.y) * PEND_DAMP + PEND_G;
       const attr = applyMouseAttraction(nd.x, nd.y, vx, vy, mouse);
-      vx = attr.vx; vy = attr.vy;
+      vx = attr.vx;
+      vy = attr.vy;
       prevPos.set(nd.id, { x: nd.x, y: nd.y });
       nd.x += vx;
       nd.y += vy;
     }
     for (let iter = 0; iter < PEND_ITERS; iter++) {
       for (let i = 0; i < result.length - 1; i++) {
-        const a = result[i]!, b = result[i + 1]!;
-        const dx = b.x - a.x, dy = b.y - a.y;
+        const a = result[i]!,
+          b = result[i + 1]!;
+        const dx = b.x - a.x,
+          dy = b.y - a.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 0.001) continue;
         const diff = (dist - PEND_ARM) / dist;
-        const ox = dx * diff * 0.5, oy = dy * diff * 0.5;
-        if (!a.fixed) { a.x += ox; a.y += oy; }
-        if (!b.fixed) { b.x -= ox; b.y -= oy; }
+        const ox = dx * diff * 0.5,
+          oy = dy * diff * 0.5;
+        if (!a.fixed) {
+          a.x += ox;
+          a.y += oy;
+        }
+        if (!b.fixed) {
+          b.x -= ox;
+          b.y -= oy;
+        }
       }
     }
     return result;
@@ -2587,7 +2709,13 @@ function createVerletForce(
 /** Lagrangian force function using mass matrix solver */
 function createLagrangianForce(
   n: number,
-): (nodes: ForceSimNode[], edges: ForceEdgeType[], w: number, h: number, mouse: MousePosition | null) => ForceSimNode[] {
+): (
+  nodes: ForceSimNode[],
+  edges: ForceEdgeType[],
+  w: number,
+  h: number,
+  mouse: MousePosition | null,
+) => ForceSimNode[] {
   const theta = new Float64Array(n);
   const omega = new Float64Array(n);
   let init = false;
@@ -2601,12 +2729,14 @@ function createLagrangianForce(
 
     // Initialize angles from node positions
     if (!init) {
-      let px = pivot.x, py = pivot.y;
+      let px = pivot.x,
+        py = pivot.y;
       for (let i = 0; i < n; i++) {
         const nd = nodes.find((m) => m.id === `m${i + 1}`);
         if (!nd) continue;
         theta[i] = Math.atan2(nd.x - px, nd.y - py);
-        px = nd.x; py = nd.y;
+        px = nd.x;
+        py = nd.y;
       }
       init = true;
     }
@@ -2646,7 +2776,8 @@ function createLagrangianForce(
 
     // Convert angles to positions
     const result = nodes.map((nd) => ({ ...nd }));
-    let px = pivot.x, py = pivot.y;
+    let px = pivot.x,
+      py = pivot.y;
     for (let i = 0; i < n; i++) {
       const nd = result.find((m) => m.id === `m${i + 1}`);
       if (!nd) continue;
@@ -2655,11 +2786,13 @@ function createLagrangianForce(
 
       // Mouse attraction — add angular impulse
       if (mouse) {
-        const dx = mouse.x - nd.x, dy = mouse.y - nd.y;
+        const dx = mouse.x - nd.x,
+          dy = mouse.y - nd.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist > 1) {
           // Torque = r x F (cross product in 2D)
-          const rx = nd.x - px, ry = nd.y - py;
+          const rx = nd.x - px,
+            ry = nd.y - py;
           const fx = (dx / dist) * MOUSE_G * mouseGravityCoeff;
           const fy = (dy / dist) * MOUSE_G * mouseGravityCoeff;
           const torque = (rx * fy - ry * fx) / (L * L);
@@ -2667,7 +2800,8 @@ function createLagrangianForce(
         }
       }
 
-      px = nd.x; py = nd.y;
+      px = nd.x;
+      py = nd.y;
     }
     return result;
   };
@@ -2675,8 +2809,14 @@ function createLagrangianForce(
 
 type PhysicsMode = "verlet" | "lagrangian";
 
-function buildPendulumNodes(jointCount: number, pivotX: number, pivotY: number) {
-  const nodes = [{ id: "pivot", fixed: true, x: pivotX, y: pivotY, color: "#64748b" }];
+function buildPendulumNodes(
+  jointCount: number,
+  pivotX: number,
+  pivotY: number,
+) {
+  const nodes = [
+    { id: "pivot", fixed: true, x: pivotX, y: pivotY, color: "#64748b" },
+  ];
   for (let i = 0; i < jointCount; i++) {
     const angle = Math.PI / 4 + i * 0.3;
     nodes.push({
@@ -2691,15 +2831,24 @@ function buildPendulumNodes(jointCount: number, pivotX: number, pivotY: number) 
 
 function buildPendulumEdges(jointCount: number) {
   const edges = [];
-  const ids = ["pivot", ...Array.from({ length: jointCount }, (_, i) => `m${i + 1}`)];
+  const ids = [
+    "pivot",
+    ...Array.from({ length: jointCount }, (_, i) => `m${i + 1}`),
+  ];
   for (let i = 0; i < ids.length - 1; i++) {
-    edges.push({ source: ids[i]!, target: ids[i + 1]!, color: "var(--color-text-muted, #94a3b8)" });
+    edges.push({
+      source: ids[i]!,
+      target: ids[i + 1]!,
+      color: "var(--color-text-muted, #94a3b8)",
+    });
   }
   return edges;
 }
 
 function createForce(mode: PhysicsMode, n: number) {
-  return mode === "lagrangian" ? createLagrangianForce(n) : createVerletForce(n);
+  return mode === "lagrangian"
+    ? createLagrangianForce(n)
+    : createVerletForce(n);
 }
 
 function DoublePendulumDemo() {
@@ -2709,15 +2858,21 @@ function DoublePendulumDemo() {
   const [solid, setSolid] = useState(false);
   const forceRef = useRef(createForce(mode, jointCount));
 
-  const handleJointChange = useCallback((n: number) => {
-    forceRef.current = createForce(mode, n);
-    setJointCount(n);
-  }, [mode]);
+  const handleJointChange = useCallback(
+    (n: number) => {
+      forceRef.current = createForce(mode, n);
+      setJointCount(n);
+    },
+    [mode],
+  );
 
-  const handleModeChange = useCallback((newMode: PhysicsMode) => {
-    forceRef.current = createForce(newMode, jointCount);
-    setMode(newMode);
-  }, [jointCount]);
+  const handleModeChange = useCallback(
+    (newMode: PhysicsMode) => {
+      forceRef.current = createForce(newMode, jointCount);
+      setMode(newMode);
+    },
+    [jointCount],
+  );
 
   const handleGravChange = useCallback((v: number) => {
     mouseGravityCoeff = v;
@@ -2729,33 +2884,106 @@ function DoublePendulumDemo() {
   const lastId = `m${jointCount}`;
   const lastClr = PEND_COLORS[(jointCount - 1) % PEND_COLORS.length]!;
 
-  return createElement("div", null,
+  return createElement(
+    "div",
+    null,
     createElement(
       FlexContainer,
       { gap: "12px", alignItems: "flex-start", style: { flexWrap: "wrap" } },
-      createElement("div", { style: { flex: "1", minWidth: "250px" } },
+      createElement(
+        "div",
+        { style: { flex: "1", minWidth: "250px" } },
         createElement(ForceGraph, {
-          nodes, edges,
+          nodes,
+          edges,
           customForce: forceRef.current,
           solidNodes: solid,
-          trails: [{ nodeId: lastId, color: lastClr, maxPoints: 400, width: 1, opacity: 0.35 }],
-          width: 400, height: 350, nodeRadius: 7, showLabels: false, edgeWidth: 2,
+          trails: [
+            {
+              nodeId: lastId,
+              color: lastClr,
+              maxPoints: 400,
+              width: 1,
+              opacity: 0.35,
+            },
+          ],
+          width: 400,
+          height: 350,
+          nodeRadius: 7,
+          showLabels: false,
+          edgeWidth: 2,
         }),
       ),
-      createElement("div", {
-        style: { display: "flex", flexDirection: "column", gap: "4px", minWidth: "70px", maxWidth: "90px", paddingTop: "4px", fontSize: "10px", color: "var(--color-text, #1f2937)" },
-      },
-        createElement(NumberSpinner, { value: jointCount, onChange: handleJointChange, min: 2, max: 1000, step: 1, label: "Joints" }),
-        createElement(NumberSpinner, { value: gravCoeff, onChange: handleGravChange, min: 1, max: 1000000, step: 10, label: "Cursor mass" }),
+      createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px",
+            minWidth: "70px",
+            maxWidth: "90px",
+            paddingTop: "4px",
+            fontSize: "10px",
+            color: "var(--color-text, #1f2937)",
+          },
+        },
+        createElement(NumberSpinner, {
+          value: jointCount,
+          onChange: handleJointChange,
+          min: 2,
+          max: 1000,
+          step: 1,
+          label: "Joints",
+        }),
+        createElement(NumberSpinner, {
+          value: gravCoeff,
+          onChange: handleGravChange,
+          min: 1,
+          max: 1000000,
+          step: 10,
+          label: "Cursor mass",
+        }),
       ),
     ),
     // Physics mode + solidity toggles
-    createElement("div", {
-      style: { display: "flex", gap: "8px", marginTop: "8px", alignItems: "center", fontSize: "11px", color: "var(--color-text-muted, #64748b)", flexWrap: "wrap" },
-    },
-      createElement(Button, { size: "sm", active: mode === "verlet", onClick: () => handleModeChange("verlet") }, "Verlet (PBD)"),
-      createElement(Button, { size: "sm", active: mode === "lagrangian", onClick: () => handleModeChange("lagrangian") }, "Lagrangian"),
-      createElement(Toggle, { checked: solid, onChange: setSolid, label: "Solid", size: "sm" }),
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          gap: "8px",
+          marginTop: "8px",
+          alignItems: "center",
+          fontSize: "11px",
+          color: "var(--color-text-muted, #64748b)",
+          flexWrap: "wrap",
+        },
+      },
+      createElement(
+        Button,
+        {
+          size: "sm",
+          active: mode === "verlet",
+          onClick: () => handleModeChange("verlet"),
+        },
+        "Verlet (PBD)",
+      ),
+      createElement(
+        Button,
+        {
+          size: "sm",
+          active: mode === "lagrangian",
+          onClick: () => handleModeChange("lagrangian"),
+        },
+        "Lagrangian",
+      ),
+      createElement(Toggle, {
+        checked: solid,
+        onChange: setSolid,
+        label: "Solid",
+        size: "sm",
+      }),
     ),
   );
 }
@@ -2788,9 +3016,12 @@ function BlochSphereDemo() {
     setGateIdx(0);
   }, []);
 
-  const nextGateName = BLOCH_GATE_SEQUENCE[gateIdx % BLOCH_GATE_SEQUENCE.length]!.gate;
+  const nextGateName =
+    BLOCH_GATE_SEQUENCE[gateIdx % BLOCH_GATE_SEQUENCE.length]!.gate;
 
-  return createElement("div", null,
+  return createElement(
+    "div",
+    null,
     createElement(BlochSphere, {
       gates: gates.length > 0 ? gates : undefined,
       width: 350,
@@ -2800,16 +3031,33 @@ function BlochSphereDemo() {
       backgroundColor: "var(--color-bg-subtle, #f8fafc)",
       title: "Qubit State",
     }),
-    createElement("div", {
-      style: { display: "flex", gap: "6px", marginTop: "8px", alignItems: "center", flexWrap: "wrap" },
-    },
-      createElement(Button, { size: "sm", variant: "primary", onClick: applyNext },
+    createElement(
+      "div",
+      {
+        style: {
+          display: "flex",
+          gap: "6px",
+          marginTop: "8px",
+          alignItems: "center",
+          flexWrap: "wrap",
+        },
+      },
+      createElement(
+        Button,
+        { size: "sm", variant: "primary", onClick: applyNext },
         `Apply ${nextGateName}`,
       ),
       createElement(Button, { size: "sm", onClick: reset }, "Reset"),
-      createElement("span", {
-        style: { fontSize: "10px", color: "var(--color-text-muted, #94a3b8)" },
-      }, `Gate ${(gateIdx % BLOCH_GATE_SEQUENCE.length) + 1}/${BLOCH_GATE_SEQUENCE.length}`),
+      createElement(
+        "span",
+        {
+          style: {
+            fontSize: "10px",
+            color: "var(--color-text-muted, #94a3b8)",
+          },
+        },
+        `Gate ${(gateIdx % BLOCH_GATE_SEQUENCE.length) + 1}/${BLOCH_GATE_SEQUENCE.length}`,
+      ),
     ),
   );
 }

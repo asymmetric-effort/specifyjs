@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/us-state-map",
+  "version": "0.0.1",
+  "description": "Interactive US state map visualization component for SpecifyJS — renders an SVG map with per-state coloring and hover effects",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "us-state-map", "map", "geospatial", "visualization", "svg"]
+}

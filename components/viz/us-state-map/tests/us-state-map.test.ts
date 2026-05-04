@@ -73,15 +73,15 @@ describe("USStateMap — happy path", () => {
   it("renders all 51 state/territory paths", () => {
     const el = USStateMap({});
     // children: title element + 51 state paths
-    const childCount = el.children.length;
+    const childCount = el.props.children.length;
     expect(childCount).toBe(52); // 1 title + 51 paths
   });
 
   it("includes data-state attribute on each path", () => {
     const el = USStateMap({});
     // Skip first child (title element)
-    for (let i = 1; i < el.children.length; i++) {
-      const child = el.children[i];
+    for (let i = 1; i < el.props.children.length; i++) {
+      const child = el.props.children[i];
       expect(child.props["data-state"]).toBeTruthy();
     }
   });
@@ -93,9 +93,9 @@ describe("USStateMap — happy path", () => {
     });
     // Find the CA path
     let caPath = null;
-    for (let i = 1; i < el.children.length; i++) {
-      if (el.children[i].props["data-state"] === "CA") {
-        caPath = el.children[i];
+    for (let i = 1; i < el.props.children.length; i++) {
+      if (el.props.children[i].props["data-state"] === "CA") {
+        caPath = el.props.children[i];
         break;
       }
     }
@@ -110,9 +110,9 @@ describe("USStateMap — happy path", () => {
     });
     // Find a state that is NOT CA
     let otherPath = null;
-    for (let i = 1; i < el.children.length; i++) {
-      if (el.children[i].props["data-state"] === "TX") {
-        otherPath = el.children[i];
+    for (let i = 1; i < el.props.children.length; i++) {
+      if (el.props.children[i].props["data-state"] === "TX") {
+        otherPath = el.props.children[i];
         break;
       }
     }
@@ -122,29 +122,29 @@ describe("USStateMap — happy path", () => {
 
   it('sets role="button" when onStateClick is provided', () => {
     const el = USStateMap({ onStateClick: () => {} });
-    for (let i = 1; i < el.children.length; i++) {
-      expect(el.children[i].props.role).toBe("button");
+    for (let i = 1; i < el.props.children.length; i++) {
+      expect(el.props.children[i].props.role).toBe("button");
     }
   });
 
   it('sets role="img" when no onStateClick is provided', () => {
     const el = USStateMap({});
-    for (let i = 1; i < el.children.length; i++) {
-      expect(el.children[i].props.role).toBe("img");
+    for (let i = 1; i < el.props.children.length; i++) {
+      expect(el.props.children[i].props.role).toBe("img");
     }
   });
 
   it("sets cursor to pointer when onStateClick is provided", () => {
     const el = USStateMap({ onStateClick: () => {} });
-    for (let i = 1; i < el.children.length; i++) {
-      expect(el.children[i].props.style.cursor).toBe("pointer");
+    for (let i = 1; i < el.props.children.length; i++) {
+      expect(el.props.children[i].props.style.cursor).toBe("pointer");
     }
   });
 
   it("sets cursor to default when no onStateClick", () => {
     const el = USStateMap({});
-    for (let i = 1; i < el.children.length; i++) {
-      expect(el.children[i].props.style.cursor).toBe("default");
+    for (let i = 1; i < el.props.children.length; i++) {
+      expect(el.props.children[i].props.style.cursor).toBe("default");
     }
   });
 });
@@ -282,8 +282,8 @@ describe("USStateMap — ARIA compliance", () => {
 
   it("each state path has aria-label with state name", () => {
     const el = USStateMap({});
-    for (let i = 1; i < el.children.length; i++) {
-      const child = el.children[i];
+    for (let i = 1; i < el.props.children.length; i++) {
+      const child = el.props.children[i];
       const stateId = child.props["data-state"];
       const expectedName = US_STATE_PATHS[stateId]!.name;
       expect(child.props["aria-label"]).toBe(expectedName);
@@ -292,8 +292,8 @@ describe("USStateMap — ARIA compliance", () => {
 
   it("interactive state paths have tabIndex when clickable", () => {
     const el = USStateMap({ onStateClick: () => {} });
-    for (let i = 1; i < el.children.length; i++) {
-      expect(el.children[i].props.tabIndex).toBe(0);
+    for (let i = 1; i < el.props.children.length; i++) {
+      expect(el.props.children[i].props.tabIndex).toBe(0);
     }
   });
 });
@@ -320,12 +320,12 @@ describe("USStateMap — defaults", () => {
 
   it("includes a title element as first child", () => {
     const el = USStateMap({});
-    expect(el.children[0].type).toBe("title");
-    expect(el.children[0].children[0]).toBe("Map of the United States");
+    expect(el.props.children[0].type).toBe("title");
+    expect(el.props.children[0].props.children).toBe("Map of the United States");
   });
 
   it("includes a custom title element", () => {
     const el = USStateMap({ title: "My Custom Map" });
-    expect(el.children[0].children[0]).toBe("My Custom Map");
+    expect(el.props.children[0].props.children).toBe("My Custom Map");
   });
 });

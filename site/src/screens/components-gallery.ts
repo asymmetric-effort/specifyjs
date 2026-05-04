@@ -100,6 +100,7 @@ import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";
 import { USStateMap } from "../../../components/viz/us-state-map/src/index";
+import { EarthGlobe } from "../../../components/viz/earth-globe/src/index";
 import { VectorField } from "../../../components/viz/vector-field/src/index";
 import { ThreeDLayers } from "../../../components/viz/3d-layers/src/index";
 import {
@@ -399,8 +400,9 @@ export function ComponentsGallery() {
     createElement(
       FeatureGate,
       { flag: "geospatial-maps", fallback: null },
-      accordionSection("Geospatial Maps", "1 component", openSection, toggle, [
+      accordionSection("Geospatial Maps", "2 components", openSection, toggle, [
         preview("US State Map", USStateMapDemo, "components/viz/us-state-map"),
+        preview("Earth Globe", EarthGlobeDemo, "components/viz/earth-globe"),
       ]),
     ),
     accordionSection("Mathematical", "3 components", openSection, toggle, [
@@ -2497,6 +2499,42 @@ function USStateMapDemo() {
         },
       },
       hovered ? `Hovering: ${hovered}` : "Hover over a state",
+    ),
+  );
+}
+
+function EarthGlobeDemo() {
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  return createElement(
+    "div",
+    null,
+    createElement(EarthGlobe, {
+      width: 350,
+      height: 350,
+      rotation: { longitude: -95, latitude: 35 },
+      fillColor: "#22c55e",
+      oceanColor: "#3b82f6",
+      strokeColor: "#ffffff",
+      strokeWidth: 0.5,
+      showGraticule: true,
+      interactive: true,
+      hoverColor: "#16a34a",
+      onCountryHover: setHovered,
+      title: "Interactive Earth Globe",
+    }),
+    createElement(
+      "div",
+      {
+        style: {
+          textAlign: "center",
+          marginTop: "8px",
+          fontSize: "13px",
+          color: "currentColor",
+          minHeight: "20px",
+        },
+      },
+      hovered ? `Hovering: ${hovered}` : "Drag to rotate \u2022 Hover for country names",
     ),
   );
 }

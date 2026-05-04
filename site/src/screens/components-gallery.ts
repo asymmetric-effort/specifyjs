@@ -396,9 +396,13 @@ export function ComponentsGallery() {
         preview("Vector Field", VectorFieldDemo, "components/viz/vector-field"),
       ],
     ),
-    accordionSection("Geospatial Maps", "1 component", openSection, toggle, [
-      preview("US State Map", USStateMapDemo, "components/viz/us-state-map"),
-    ]),
+    createElement(
+      FeatureGate,
+      { flag: "geospatial-maps", fallback: null },
+      accordionSection("Geospatial Maps", "1 component", openSection, toggle, [
+        preview("US State Map", USStateMapDemo, "components/viz/us-state-map"),
+      ]),
+    ),
     accordionSection("Mathematical", "3 components", openSection, toggle, [
       preview(
         "Cartesian Graph (4-leaf Rose)",

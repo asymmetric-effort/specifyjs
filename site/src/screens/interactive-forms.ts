@@ -189,7 +189,7 @@ function field(label: string, value: string, onChange: (v: string) => void, erro
 function toggleRow(label: string, on: boolean, onClick: () => void) {
   return createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
     createElement('span', { style: { fontSize: '14px' } }, label),
-    createElement('div', { className: 'demo-toggle', onClick, role: 'button', tabindex: 0 },
+    createElement('div', { className: 'demo-toggle', onClick, role: 'button', tabIndex: 0 },
       createElement('div', { className: `demo-toggle-track ${on ? 'on' : ''}` },
         createElement('div', { className: 'demo-toggle-thumb' }),
       ),

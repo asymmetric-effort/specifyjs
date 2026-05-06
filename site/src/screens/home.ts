@@ -291,7 +291,7 @@ export function HomeScreen() {
               key: f.title,
               className: 'feature-card feature-card--clickable',
               role: 'button',
-              tabindex: 0,
+              tabIndex: 0,
               onClick: () => setOpenArticle(i),
             },
             createElement('h3', null, f.title),

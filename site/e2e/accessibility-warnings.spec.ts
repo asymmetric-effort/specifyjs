@@ -39,14 +39,11 @@ test.describe('Accessibility Warnings', () => {
     await page.waitForTimeout(2000);
 
     // Open each accordion section to trigger rendering of all components
-    const accordionHeaders = page.locator('.accordion-header, .gallery-section-header, [role="button"]');
+    const accordionHeaders = page.locator('.accordion-header');
     const count = await accordionHeaders.count();
     for (let i = 0; i < count; i++) {
-      const header = accordionHeaders.nth(i);
-      if (await header.isVisible()) {
-        await header.click();
-        await page.waitForTimeout(300);
-      }
+      await accordionHeaders.nth(i).click();
+      await page.waitForTimeout(500);
     }
     await page.waitForTimeout(1000);
 

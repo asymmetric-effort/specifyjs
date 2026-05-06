@@ -55,7 +55,7 @@ function DeferredFilterDemo() {
 
   return createElement('div', null,
     createElement('input', {
-      type: 'text', value: query, placeholder: 'Filter 200 items...',
+      type: 'text', value: query, placeholder: 'Filter 200 items...', 'aria-label': 'Filter items',
       onInput: (e: Event) => setQuery((e.target as HTMLInputElement).value),
       style: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', width: '100%', marginBottom: '8px' },
     }),

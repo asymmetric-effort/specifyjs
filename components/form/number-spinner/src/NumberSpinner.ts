@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface NumberSpinnerProps {
@@ -38,7 +38,8 @@ export interface NumberSpinnerProps {
 }
 
 export function NumberSpinner(props: NumberSpinnerProps) {
-  const inputId = props.id ?? `ns-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? `ns-${autoId}`;
   const {
     value,
     onChange,

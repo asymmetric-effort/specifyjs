@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useRef, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface ColorWheelProps {
@@ -30,7 +30,8 @@ export interface ColorWheelProps {
 }
 
 export function ColorWheel(props: ColorWheelProps) {
-  const inputId = props.id ?? `cw-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? `cw-${autoId}`;
   const {
     value = '#000000',
     onChange,

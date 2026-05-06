@@ -6,7 +6,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useRef, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 import type { FormFieldWrapperStyle, InputBaseStyle } from '../../wrapper/src/FormFieldWrapper';
 
@@ -64,7 +64,8 @@ export interface TextFieldProps {
 
 export function TextField(props: TextFieldProps) {
   const [focused, setFocused] = useState(false);
-  const inputId = props.id ?? `tf-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? `tf-${autoId}`;
 
   const style = buildInputStyle(props.inputStyle ?? {}, {
     focused,

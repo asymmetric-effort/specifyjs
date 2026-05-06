@@ -6,7 +6,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 import type { FormFieldWrapperStyle, InputBaseStyle } from '../../wrapper/src/FormFieldWrapper';
 
@@ -59,7 +59,8 @@ export function MultilineField(props: MultilineFieldProps) {
   const [charCount, setCharCount] = useState(
     (props.value ?? props.defaultValue ?? '').length,
   );
-  const inputId = props.id ?? `ml-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? `ml-${autoId}`;
 
   const baseStyle = buildInputStyle(props.inputStyle ?? {}, {
     focused,

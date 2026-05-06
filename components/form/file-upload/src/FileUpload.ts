@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useCallback } from '../../../../core/src/hooks/index';
+import { useState, useRef, useCallback, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface FileUploadProps {
@@ -40,7 +40,8 @@ function formatFileSize(bytes: number): string {
 }
 
 export function FileUpload(props: FileUploadProps) {
-  const inputId = props.id ?? `fu-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? `fu-${autoId}`;
   const {
     onChange,
     accept,

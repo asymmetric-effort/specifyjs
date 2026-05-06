@@ -9,7 +9,7 @@
  * Tags are applied on mount and cleaned up on unmount.
  */
 
-import { useEffect } from './index';
+import { useEffect, useRef } from './index';
 
 export interface HeadHttpEquiv {
   /** Content-Security-Policy */
@@ -63,7 +63,25 @@ export interface HeadMeta {
  * ```
  */
 export function useHead(head: HeadMeta): void {
+  // Store head config in a ref to avoid unstable object deps
+  const headRef = useRef(head);
+  headRef.current = head;
+
+  // Serialize scalar deps for stable comparison; objects use JSON
+  const depsKey = JSON.stringify([
+    head.title,
+    head.description,
+    head.keywords,
+    head.author,
+    head.canonical,
+    head.og,
+    head.twitter,
+    head.httpEquiv,
+    head.meta,
+  ]);
+
   useEffect(() => {
+    const head = headRef.current;
     const cleanup: (() => void)[] = [];
 
     // Title
@@ -139,17 +157,7 @@ export function useHead(head: HeadMeta): void {
     return () => {
       for (const fn of cleanup) fn();
     };
-  }, [
-    head.title,
-    head.description,
-    head.keywords,
-    head.author,
-    head.canonical,
-    head.og,
-    head.twitter,
-    head.httpEquiv,
-    head.meta,
-  ]);
+  }, [depsKey]);
 }
 
 /**

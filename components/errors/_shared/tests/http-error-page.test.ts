@@ -101,7 +101,7 @@ describe("HttpErrorPage — happy path", () => {
       ? el.props.children
       : [el.props.children];
     const btn = children[3];
-    btn.props.onclick();
+    btn.props.onClick();
     expect(onAction).toHaveBeenCalledOnce();
   });
 
@@ -282,7 +282,7 @@ describe("HttpErrorPage — default action", () => {
       const children = Array.isArray(el.props.children)
         ? el.props.children
         : [el.props.children];
-      children[3].props.onclick();
+      children[3].props.onClick();
       expect(mockWindow.location.href).toBe("/");
     } finally {
       (globalThis as any).window = originalWindow;
@@ -304,7 +304,7 @@ describe("HttpErrorPage — default action", () => {
       const children = Array.isArray(el.props.children)
         ? el.props.children
         : [el.props.children];
-      children[4].props.onclick();
+      children[4].props.onClick();
       expect(mockBack).toHaveBeenCalledOnce();
     } finally {
       (globalThis as any).window = originalWindow;

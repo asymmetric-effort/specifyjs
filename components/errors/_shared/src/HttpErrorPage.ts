@@ -9,7 +9,7 @@
  */
 
 import { createElement } from "../../../../core/src/index";
-import { useMemo } from "../../../../core/src/hooks/index";
+import { useCallback, useMemo } from "../../../../core/src/hooks/index";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,19 +115,19 @@ export function HttpErrorPage(props: HttpErrorPageProps) {
     [],
   );
 
-  const handlePrimaryAction =
-    props.onAction ??
-    (() => {
-      if (typeof window !== "undefined") {
-        window.location.href = "/";
-      }
-    });
+  const handlePrimaryAction = useCallback(() => {
+    if (props.onAction) {
+      props.onAction();
+    } else if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  }, [props.onAction]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     if (typeof window !== "undefined") {
       window.history.back();
     }
-  };
+  }, []);
 
   return createElement(
     "div",
@@ -152,7 +152,8 @@ export function HttpErrorPage(props: HttpErrorPageProps) {
     createElement(
       "button",
       {
-        onclick: handlePrimaryAction,
+        type: "button",
+        onClick: handlePrimaryAction,
         style: primaryButtonStyle,
       },
       actionLabel,
@@ -162,7 +163,8 @@ export function HttpErrorPage(props: HttpErrorPageProps) {
       ? createElement(
           "button",
           {
-            onclick: handleGoBack,
+            type: "button",
+            onClick: handleGoBack,
             style: goBackStyle,
           },
           "Go Back",

@@ -155,7 +155,7 @@ describe("Http500 -- rendered output", () => {
     const children = Array.isArray(rendered.props.children)
       ? rendered.props.children
       : [rendered.props.children];
-    children[3].props.onclick();
+    children[3].props.onClick();
     expect(onAction).toHaveBeenCalledOnce();
   });
 });

@@ -18,7 +18,7 @@ test.describe("Form Component Accessibility", () => {
   test("all form inputs have id or name attributes", async ({ page }) => {
     // Open the Form Controls section
     const formHeader = page.locator(
-      '.accordion-header:has-text("Form Controls")',
+      '.accordion-header:has-text("Form Components")',
     );
     await formHeader.click();
     await page.waitForTimeout(1000);
@@ -60,7 +60,7 @@ test.describe("Form Component Accessibility", () => {
   }) => {
     // Open the Form Controls section
     const formHeader = page.locator(
-      '.accordion-header:has-text("Form Controls")',
+      '.accordion-header:has-text("Form Components")',
     );
     await formHeader.click();
     await page.waitForTimeout(1000);

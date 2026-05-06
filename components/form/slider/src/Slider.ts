@@ -45,7 +45,7 @@ export interface SliderProps {
 }
 
 export function Slider(props: SliderProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const {
     value,

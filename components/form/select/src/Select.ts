@@ -48,7 +48,7 @@ export interface SelectProps {
 }
 
 export function Select(props: SelectProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const {
     options,

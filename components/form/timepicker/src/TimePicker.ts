@@ -65,7 +65,7 @@ function parseTime(val: string): { hour: number; minute: number; second: number 
 }
 
 export function TimePicker(props: TimePickerProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const {
     value,

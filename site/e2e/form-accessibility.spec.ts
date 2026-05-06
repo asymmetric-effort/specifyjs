@@ -75,6 +75,11 @@ test.describe("Form Component Accessibility", () => {
       const forAttr = await label.getAttribute("for");
       if (!forAttr) continue;
 
+      // Verify label for values are valid HTML IDs (no colons)
+      if (forAttr && /[^a-zA-Z0-9_-]/.test(forAttr)) {
+        violations.push(`<label for="${forAttr}"> contains invalid ID characters`);
+      }
+
       // Check that an element with this id exists
       const target = page.locator(`#${CSS.escape(forAttr)}`);
       const count = await target.count();

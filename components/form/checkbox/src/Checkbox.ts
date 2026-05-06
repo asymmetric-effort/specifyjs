@@ -8,7 +8,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useEffect, useCallback } from '../../../../core/src/hooks/index';
+import { useState, useRef, useEffect, useCallback, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface CheckboxProps {
@@ -26,6 +26,8 @@ export interface CheckboxProps {
   error?: string;
   /** Size variant */
   size?: 'sm' | 'md' | 'lg';
+  /** HTML id for the input element */
+  id?: string;
 }
 
 const SIZE_MAP = {
@@ -35,6 +37,8 @@ const SIZE_MAP = {
 };
 
 export function Checkbox(props: CheckboxProps) {
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const inputId = props.id ?? autoId;
   const {
     checked,
     onChange,
@@ -116,6 +120,7 @@ export function Checkbox(props: CheckboxProps) {
   const hiddenInput = createElement('input', {
     ref: inputRef,
     type: 'checkbox',
+    id: inputId,
     checked,
     disabled,
     onChange: () => onChange(!checked),
@@ -138,6 +143,7 @@ export function Checkbox(props: CheckboxProps) {
 
   return createElement(FormFieldWrapper, {
     error,
+    htmlFor: inputId,
   },
     createElement(
       'div',

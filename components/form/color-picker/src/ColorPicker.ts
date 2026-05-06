@@ -48,7 +48,7 @@ function normalizeHex(s: string): string {
 }
 
 export function ColorPicker(props: ColorPickerProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const {
     value,

@@ -40,7 +40,7 @@ export interface RadioGroupProps {
 }
 
 export function RadioGroup(props: RadioGroupProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const groupId = props.id ?? autoId;
   const {
     options,

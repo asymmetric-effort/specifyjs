@@ -68,7 +68,7 @@ function toISODateString(d: Date): string {
 }
 
 export function DatePicker(props: DatePickerProps) {
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const {
     value,

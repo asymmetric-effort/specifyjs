@@ -113,7 +113,7 @@ const BUTTON_META: Record<ToolbarButton, { label: string; icon: string; command:
 export function TextEditor(props: TextEditorProps) {
   const [focused, setFocused] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const autoId = useId();
+  const autoId = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const inputId = props.id ?? autoId;
   const toolbar = props.toolbar ?? DEFAULT_TOOLBAR;
   const ts = props.toolbarStyle ?? {};

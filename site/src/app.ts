@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { createElement } from 'specifyjs';
+import { Http404 } from '../../components/errors/http-404/src/index';
 import { Router, useRouter, FeatureFlagProvider, useFeatureFlags } from 'specifyjs';
 import { NavBar } from './components/nav-bar';
 import { Footer } from './components/footer';
@@ -48,6 +49,11 @@ function AppContent() {
       dialogContent = route.flag && !isEnabled(route.flag) ? disabled : route.content;
       break;
     }
+  }
+
+  if (!isHome && dialogContent === null) {
+    dialogTitle = 'Not Found';
+    dialogContent = createElement(Http404, null);
   }
 
   const handleClose = () => navigate('/');

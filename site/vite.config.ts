@@ -181,6 +181,24 @@ createRoot(document.getElementById('root')).render(createElement(App, null));</c
   return sections;
 }
 
+/**
+ * Vite plugin to copy index.html to 404.html for GitHub Pages SPA support.
+ * GitHub Pages serves 404.html for unknown paths, enabling client-side routing.
+ */
+function copy404Plugin(): Plugin {
+  return {
+    name: 'copy-404',
+    closeBundle() {
+      const distDir = path.resolve(__dirname, 'dist');
+      const src = path.join(distDir, 'index.html');
+      const dest = path.join(distDir, '404.html');
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, dest);
+      }
+    },
+  };
+}
+
 function escapeHtmlBasic(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -219,6 +237,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    copy404Plugin(),
     cssBannerPlugin(),
     specifyJsSeoPlugin({
       siteUrl: 'https://specifyjs.asymmetric-effort.com',

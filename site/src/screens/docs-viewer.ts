@@ -72,6 +72,7 @@ function SearchBar(props: { onSelect: (path: string) => void }) {
       type: 'text',
       value: query,
       placeholder: 'Search docs...',
+      'aria-label': 'Search documentation',
       onInput: (e: Event) => setQuery((e.target as HTMLInputElement).value),
       onFocus: () => setFocused(true),
       onBlur: () => setTimeout(() => setFocused(false), 200),

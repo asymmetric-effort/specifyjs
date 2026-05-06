@@ -184,6 +184,8 @@ function TreeNodeRow(props: TreeNodeRowProps) {
         'span',
         {
           'aria-hidden': 'true',
+          role: 'button',
+          tabIndex: 0,
           style: {
             display: 'inline-flex',
             alignItems: 'center',

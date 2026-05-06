@@ -63,6 +63,8 @@ export function Slider(props: SliderProps) {
   } = props;
 
   const trackRef = useRef<HTMLDivElement>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
   const [dragging, setDragging] = useState<null | 'single' | 'start' | 'end'>(null);
 
   const values: [number, number] = useMemo(() => {
@@ -70,6 +72,9 @@ export function Slider(props: SliderProps) {
     const v = typeof value === 'number' ? value : 0;
     return [v, v];
   }, [value, range]);
+
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
 
   const clamp = (v: number) => {
     const snapped = Math.round((v - min) / step) * step + min;
@@ -121,12 +126,14 @@ export function Slider(props: SliderProps) {
 
     const handleMouseMove = (e: MouseEvent) => {
       const newVal = getValueFromEvent(e);
+      const curValues = valuesRef.current;
+      const curOnChange = onChangeRef.current;
       if (dragging === 'single') {
-        onChange(clamp(newVal));
+        curOnChange(clamp(newVal));
       } else if (dragging === 'start') {
-        onChange([Math.min(clamp(newVal), values[1]), values[1]]);
+        curOnChange([Math.min(clamp(newVal), curValues[1]), curValues[1]]);
       } else if (dragging === 'end') {
-        onChange([values[0], Math.max(values[0], clamp(newVal))]);
+        curOnChange([curValues[0], Math.max(curValues[0], clamp(newVal))]);
       }
     };
 
@@ -138,7 +145,7 @@ export function Slider(props: SliderProps) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragging, getValueFromEvent, values, onChange, min, max, step]);
+  }, [dragging, getValueFromEvent, min, max, step]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -308,6 +315,7 @@ export function Slider(props: SliderProps) {
         {
           ref: trackRef,
           style: trackStyle,
+          role: 'presentation',
           onClick: handleTrackClick,
         },
         createElement('div', { style: fillStyle }),

@@ -221,6 +221,7 @@ export function Tabs(props: TabsProps) {
       {
         className: 'tabs__list',
         role: 'tablist',
+        'aria-label': 'Tabs',
         'aria-orientation': isVertical ? 'vertical' : 'horizontal',
         style: tabListStyle,
         ref: tabListRef,

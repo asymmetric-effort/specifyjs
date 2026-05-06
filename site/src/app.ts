@@ -78,6 +78,7 @@ function AppContent() {
           'div',
           {
             className: 'dialog-backdrop',
+            role: 'presentation',
             onClick: handleBackdropClick,
           },
           createElement(

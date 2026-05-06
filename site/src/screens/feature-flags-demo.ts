@@ -81,6 +81,8 @@ export function FeatureFlagsDemo() {
               'div',
               {
                 className: 'demo-toggle',
+                role: 'button',
+                tabindex: 0,
                 onClick: () => setFlag(name, !isEnabled(name)),
               },
               createElement(

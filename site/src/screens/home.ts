@@ -290,6 +290,8 @@ export function HomeScreen() {
             {
               key: f.title,
               className: 'feature-card feature-card--clickable',
+              role: 'button',
+              tabindex: 0,
               onClick: () => setOpenArticle(i),
             },
             createElement('h3', null, f.title),
@@ -308,7 +310,7 @@ export function HomeScreen() {
     article
       ? createElement(
           'div',
-          { className: 'dialog-backdrop', onClick: handleBackdropClick },
+          { className: 'dialog-backdrop', role: 'presentation', onClick: handleBackdropClick },
           createElement(
             'div',
             { className: 'dialog-panel' },

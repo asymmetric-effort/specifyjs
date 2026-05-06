@@ -126,6 +126,7 @@ function SearchSuggestions() {
           ...matches.map(m =>
             createElement('li', {
               key: m,
+              role: 'option',
               onClick: () => { setSelected(m); setQuery(m); },
               style: { padding: '6px 12px', cursor: 'pointer', fontSize: '13px', borderBottom: '1px solid #f1f5f9' },
             }, m),
@@ -188,7 +189,7 @@ function field(label: string, value: string, onChange: (v: string) => void, erro
 function toggleRow(label: string, on: boolean, onClick: () => void) {
   return createElement('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
     createElement('span', { style: { fontSize: '14px' } }, label),
-    createElement('div', { className: 'demo-toggle', onClick },
+    createElement('div', { className: 'demo-toggle', onClick, role: 'button', tabindex: 0 },
       createElement('div', { className: `demo-toggle-track ${on ? 'on' : ''}` },
         createElement('div', { className: 'demo-toggle-thumb' }),
       ),

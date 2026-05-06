@@ -37,10 +37,9 @@ jobs:
       - run: bun run typecheck
       - run: bun run format:check
 
-  # ── Stage 2: Test ───────────────────────────────────────────────────
+  # ── Stage 1b: Test (parallel with Lint) ─────────────────────────────
   test:
     name: Unit & Integration Tests
-    needs: lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -60,10 +59,10 @@ jobs:
           path: core/coverage/
           retention-days: 7
 
-  # ── Stage 3: Build ──────────────────────────────────────────────────
+  # ── Stage 2: Build (after both Lint and Test pass) ──────────────────
   build:
     name: Build
-    needs: test
+    needs: [lint, test]
     runs-on: ubuntu-latest
     defaults:
       run:

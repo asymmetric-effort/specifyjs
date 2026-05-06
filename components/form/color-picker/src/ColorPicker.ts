@@ -7,7 +7,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useMemo, useRef, useEffect, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface ColorPickerProps {
@@ -48,7 +48,8 @@ function normalizeHex(s: string): string {
 }
 
 export function ColorPicker(props: ColorPickerProps) {
-  const inputId = props.id ?? `cp-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const {
     value,
     onChange,

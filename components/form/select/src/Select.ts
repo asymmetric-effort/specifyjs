@@ -10,7 +10,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface SelectOption {
@@ -48,7 +48,8 @@ export interface SelectProps {
 }
 
 export function Select(props: SelectProps) {
-  const inputId = props.id ?? `sel-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const {
     options,
     value,

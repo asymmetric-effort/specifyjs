@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface DatePickerProps {
@@ -68,7 +68,8 @@ function toISODateString(d: Date): string {
 }
 
 export function DatePicker(props: DatePickerProps) {
-  const inputId = props.id ?? `dp-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const {
     value,
     onChange,

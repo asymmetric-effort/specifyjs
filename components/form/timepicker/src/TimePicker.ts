@@ -7,7 +7,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useMemo, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 /** Default timezone options for the timezone selector */
@@ -65,7 +65,8 @@ function parseTime(val: string): { hour: number; minute: number; second: number 
 }
 
 export function TimePicker(props: TimePickerProps) {
-  const inputId = props.id ?? `tp-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const {
     value,
     onChange,

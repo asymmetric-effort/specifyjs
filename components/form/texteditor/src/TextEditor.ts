@@ -10,7 +10,7 @@
  */
 
 import { createElement, Fragment } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useRef, useEffect, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 import type { FormFieldWrapperStyle } from '../../wrapper/src/FormFieldWrapper';
 
@@ -113,7 +113,8 @@ const BUTTON_META: Record<ToolbarButton, { label: string; icon: string; command:
 export function TextEditor(props: TextEditorProps) {
   const [focused, setFocused] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
-  const inputId = props.id ?? `te-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const toolbar = props.toolbar ?? DEFAULT_TOOLBAR;
   const ts = props.toolbarStyle ?? {};
   const es = props.editorStyle ?? {};
@@ -247,6 +248,7 @@ export function TextEditor(props: TextEditorProps) {
     FormFieldWrapper,
     {
       label: props.label,
+      htmlFor: inputId,
       helpText: props.helpText,
       error: props.error,
       required: props.required,

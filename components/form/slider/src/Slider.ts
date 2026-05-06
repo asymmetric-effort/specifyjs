@@ -7,7 +7,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useCallback, useEffect, useMemo } from '../../../../core/src/hooks/index';
+import { useState, useRef, useCallback, useEffect, useMemo, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface SliderMark {
@@ -45,7 +45,8 @@ export interface SliderProps {
 }
 
 export function Slider(props: SliderProps) {
-  const inputId = props.id ?? `sl-${Math.random().toString(36).slice(2, 8)}`;
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   const {
     value,
     onChange,

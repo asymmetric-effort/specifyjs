@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useCallback } from '../../../../core/src/hooks/index';
+import { useCallback, useId } from '../../../../core/src/hooks/index';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface RadioOption {
@@ -35,9 +35,13 @@ export interface RadioGroupProps {
   error?: string;
   /** Label for the group */
   label?: string;
+  /** HTML id for the radio group */
+  id?: string;
 }
 
 export function RadioGroup(props: RadioGroupProps) {
+  const autoId = useId();
+  const groupId = props.id ?? autoId;
   const {
     options,
     value,
@@ -87,9 +91,10 @@ export function RadioGroup(props: RadioGroupProps) {
     gap: direction === 'horizontal' ? '16px' : '8px',
   };
 
-  const radioButtons = options.map((opt) => {
+  const radioButtons = options.map((opt, idx) => {
     const isSelected = opt.value === value;
     const isDisabled = disabled || !!opt.disabled;
+    const optionId = `${groupId}-opt-${idx}`;
 
     const outerCircleStyle: Record<string, string> = {
       width: '18px',
@@ -126,11 +131,13 @@ export function RadioGroup(props: RadioGroupProps) {
       'label',
       {
         key: opt.value,
+        htmlFor: optionId,
         style: itemStyle,
         onClick: isDisabled ? undefined : (e: Event) => { e.preventDefault(); handleSelect(opt.value); },
       },
       createElement('input', {
         type: 'radio',
+        id: optionId,
         name,
         value: opt.value,
         checked: isSelected,
@@ -146,10 +153,12 @@ export function RadioGroup(props: RadioGroupProps) {
   return createElement(FormFieldWrapper, {
     label,
     error,
+    htmlFor: `${groupId}-opt-0`,
   },
     createElement(
       'div',
       {
+        id: groupId,
         style: groupStyle,
         role: 'radiogroup',
         'aria-label': label,

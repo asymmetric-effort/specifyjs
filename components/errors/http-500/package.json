@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-500",
+  "version": "0.0.1",
+  "description": "500 Internal Server Error error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

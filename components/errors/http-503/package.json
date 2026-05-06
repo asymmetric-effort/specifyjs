@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-503",
+  "version": "0.0.1",
+  "description": "503 Service Unavailable error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

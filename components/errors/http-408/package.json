@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-408",
+  "version": "0.0.1",
+  "description": "408 Request Timeout error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

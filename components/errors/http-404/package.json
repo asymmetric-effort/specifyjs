@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-404",
+  "version": "0.0.1",
+  "description": "404 Not Found error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

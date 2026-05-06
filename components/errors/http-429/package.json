@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-429",
+  "version": "0.0.1",
+  "description": "429 Too Many Requests error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

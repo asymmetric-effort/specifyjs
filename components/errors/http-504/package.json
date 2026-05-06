@@ -1,0 +1,10 @@
+{
+  "name": "@specifyjs/errors-http-504",
+  "version": "0.0.1",
+  "description": "504 Gateway Timeout error page for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  }
+}

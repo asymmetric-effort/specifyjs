@@ -33,6 +33,35 @@ async function collectSourceLinks(
   return hrefs;
 }
 
+/**
+ * Check a URL with retry and timeout handling.
+ * Returns null on success, or an error string on failure.
+ */
+async function checkUrl(
+  request: import('@playwright/test').APIRequestContext,
+  url: string,
+): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await request.head(url, { timeout: 15_000 });
+      if (response.status() < 400) return null;
+      // GitHub sometimes returns 429 for rate limiting — retry once
+      if (response.status() === 429 && attempt === 0) {
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      return `${url} => HTTP ${response.status()}`;
+    } catch (err) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      return `${url} => network error: ${(err as Error).message}`;
+    }
+  }
+  return null;
+}
+
 test.describe('Component Gallery Source Links', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
@@ -45,23 +74,20 @@ test.describe('Component Gallery Source Links', () => {
     page,
     request,
   }) => {
+    test.setTimeout(120_000);
     const hrefs = await collectSourceLinks(page);
-
-    // There should be a meaningful number of source links
     expect(hrefs.size).toBeGreaterThan(0);
 
-    // Verify each unique source link returns a successful HTTP response
+    // Check links in batches of 5 to avoid overwhelming GitHub
     const failures: string[] = [];
-    for (const href of hrefs) {
-      try {
-        const response = await request.head(href);
-        const status = response.status();
-        // Accept 200-399 (success + redirects)
-        if (status >= 400) {
-          failures.push(`${href} => HTTP ${status}`);
-        }
-      } catch (err) {
-        failures.push(`${href} => network error: ${(err as Error).message}`);
+    const hrefList = [...hrefs];
+    for (let i = 0; i < hrefList.length; i += 5) {
+      const batch = hrefList.slice(i, i + 5);
+      const results = await Promise.all(
+        batch.map((href) => checkUrl(request, href)),
+      );
+      for (const result of results) {
+        if (result) failures.push(result);
       }
     }
 
@@ -75,28 +101,23 @@ test.describe('Component Gallery Source Links', () => {
     page,
     request,
   }) => {
+    test.setTimeout(120_000);
     const hrefs = await collectSourceLinks(page);
     expect(hrefs.size).toBeGreaterThan(0);
 
-    // For each source link, verify the corresponding README.md exists on GitHub
     const failures: string[] = [];
-    for (const href of hrefs) {
-      // Source links point to directories like .../tree/main/components/form/button
-      // The README.md should be at .../blob/main/components/form/button/README.md
-      const readmeUrl = href
-        .replace('/tree/main/', '/blob/main/')
-        .replace(/\/?$/, '/README.md');
+    const readmeUrls = [...hrefs].map((href) =>
+      href.replace('/tree/main/', '/blob/main/').replace(/\/?$/, '/README.md'),
+    );
 
-      try {
-        const response = await request.head(readmeUrl);
-        const status = response.status();
-        if (status >= 400) {
-          failures.push(`${readmeUrl} => HTTP ${status}`);
-        }
-      } catch (err) {
-        failures.push(
-          `${readmeUrl} => network error: ${(err as Error).message}`,
-        );
+    // Check in batches of 5
+    for (let i = 0; i < readmeUrls.length; i += 5) {
+      const batch = readmeUrls.slice(i, i + 5);
+      const results = await Promise.all(
+        batch.map((url) => checkUrl(request, url)),
+      );
+      for (const result of results) {
+        if (result) failures.push(result);
       }
     }
 

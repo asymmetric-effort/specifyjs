@@ -2,4 +2,4 @@
 // SPDX-License-Identifier: MIT
 
 export { VectorField } from './VectorField';
-export type { VectorFieldProps, VectorDatum } from './VectorField';
+export type { VectorFieldProps, VectorDatum, ComputeWorkerFn } from './VectorField';

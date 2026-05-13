@@ -83,7 +83,7 @@ function lineIntersectsCircle(
 
 // ── Compute vector field ────────────────────────────────────────────
 
-function computeField(objects: SimObject[]): VectorDatum[] {
+function computeField(objects: SimObject[], time: number): VectorDatum[] {
   const result: VectorDatum[] = [];
   const sources = objects.filter((o) => o.type === "source");
   const absorbers = objects.filter((o) => o.type === "absorber");
@@ -165,7 +165,7 @@ function computeField(objects: SimObject[]): VectorDatum[] {
         if (blocked) continue;
 
         const magnitude = em.amplitude / Math.max(r, 0.1);
-        const phase = TWO_PI * em.frequency * r;
+        const phase = TWO_PI * em.frequency * r - TWO_PI * em.frequency * time;
         const cosPhase = Math.cos(phase);
         const dirX = ex / r;
         const dirY = ey / r;
@@ -182,6 +182,14 @@ function computeField(objects: SimObject[]): VectorDatum[] {
   return result;
 }
 
+// ── Object colors ───────────────────────────────────────────────────
+
+const OBJECT_COLORS: Record<ObjectType, { fill: string; stroke: string; glow: string }> = {
+  source: { fill: "#ef4444", stroke: "#fca5a5", glow: "rgba(239, 68, 68, 0.25)" },
+  absorber: { fill: "#22c55e", stroke: "#86efac", glow: "" },
+  reflector: { fill: "#3b82f6", stroke: "#93c5fd", glow: "" },
+};
+
 // ── Object overlay circles (SVG) ────────────────────────────────────
 
 function objectCircles(
@@ -189,6 +197,8 @@ function objectCircles(
   chartWidth: number,
   chartHeight: number,
   padding: number,
+  onMouseOver: (id: number) => void,
+  onMouseOut: () => void,
 ): ReturnType<typeof createElement>[] {
   const elements: ReturnType<typeof createElement>[] = [];
   const xSpan = X_RANGE[1] - X_RANGE[0];
@@ -199,6 +209,12 @@ function objectCircles(
     const cx = padding + ((obj.x - X_RANGE[0]) / xSpan) * chartWidth;
     const cy = padding + ((Y_RANGE[1] - obj.y) / ySpan) * chartHeight;
     const radius = 8;
+    const colors = OBJECT_COLORS[obj.type];
+    const hoverProps = {
+      pointerEvents: "all" as const,
+      onMouseOver: () => onMouseOver(obj.id),
+      onMouseOut: () => onMouseOut(),
+    };
 
     if (obj.type === "source") {
       // Pulsing glow for radio sources
@@ -208,7 +224,7 @@ function objectCircles(
           cx: String(cx),
           cy: String(cy),
           r: "14",
-          fill: "rgba(59, 130, 246, 0.25)",
+          fill: colors.glow,
           stroke: "none",
         }),
       );
@@ -218,9 +234,10 @@ function objectCircles(
           cx: String(cx),
           cy: String(cy),
           r: String(radius),
-          fill: "#3b82f6",
-          stroke: "#93c5fd",
+          fill: colors.fill,
+          stroke: colors.stroke,
           "stroke-width": "2",
+          ...hoverProps,
         }),
       );
     } else if (obj.type === "absorber") {
@@ -230,22 +247,24 @@ function objectCircles(
           cx: String(cx),
           cy: String(cy),
           r: String(radius),
-          fill: "#1e293b",
-          stroke: "#475569",
+          fill: colors.fill,
+          stroke: colors.stroke,
           "stroke-width": "2",
+          ...hoverProps,
         }),
       );
     } else {
-      // Reflector: silver/grey
+      // Reflector
       elements.push(
         createElement("circle", {
           key: `ref-${obj.id}`,
           cx: String(cx),
           cy: String(cy),
           r: String(radius),
-          fill: "#94a3b8",
-          stroke: "#e2e8f0",
+          fill: colors.fill,
+          stroke: colors.stroke,
           "stroke-width": "2",
+          ...hoverProps,
         }),
       );
     }
@@ -269,19 +288,48 @@ export function RadioPropagation() {
   const [contextPos, setContextPos] = useState<{ x: number; y: number } | null>(
     null,
   );
+  const [time, setTime] = useState(0);
+  const [animSpeed, setAnimSpeed] = useState(1);
+  const [hoveredObject, setHoveredObject] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Compute the vector field data from current objects
-  const fieldData = useMemo(() => computeField(objects), [objects]);
+  // Animation loop
+  useEffect(() => {
+    if (animSpeed === 0) return;
+    const intervalMs = animSpeed * 1000;
+    const id = setInterval(() => {
+      setTime((prev: number) => prev + animSpeed);
+    }, intervalMs);
+    return () => clearInterval(id);
+  }, [animSpeed]);
+
+  // Compute the vector field data from current objects and time
+  const fieldData = useMemo(() => computeField(objects, time), [objects, time]);
 
   // Chart area dimensions (must match VectorField padding)
   const chartWidth = FIELD_WIDTH - FIELD_PADDING * 2;
   const chartHeight = FIELD_HEIGHT - FIELD_PADDING * 2;
 
+  // Hover handlers for overlay circles
+  const onCircleMouseOver = useCallback((id: number) => {
+    setHoveredObject(id);
+  }, []);
+  const onCircleMouseOut = useCallback(() => {
+    setHoveredObject(null);
+  }, []);
+
   // Build overlay circles
   const overlayCircles = useMemo(
-    () => objectCircles(objects, chartWidth, chartHeight, FIELD_PADDING),
-    [objects, chartWidth, chartHeight],
+    () =>
+      objectCircles(
+        objects,
+        chartWidth,
+        chartHeight,
+        FIELD_PADDING,
+        onCircleMouseOver,
+        onCircleMouseOut,
+      ),
+    [objects, chartWidth, chartHeight, onCircleMouseOver, onCircleMouseOut],
   );
 
   // Convert pixel click to data coordinates
@@ -404,20 +452,13 @@ export function RadioPropagation() {
       if (contextTarget === null) return;
       setObjects((prev: SimObject[]) =>
         prev.map((o: SimObject) =>
-          o.id === contextTarget
-            ? {
-                ...o,
-                type,
-                frequency: type === "source" ? frequency : o.frequency,
-                amplitude: type === "source" ? amplitude : o.amplitude,
-              }
-            : o,
+          o.id === contextTarget ? { ...o, type } : o,
         ),
       );
       setContextPos(null);
       setContextTarget(null);
     },
-    [contextTarget, frequency, amplitude],
+    [contextTarget],
   );
 
   const deleteObject = useCallback(() => {
@@ -453,27 +494,21 @@ export function RadioPropagation() {
     [setObjectType, deleteObject],
   );
 
-  // Frequency/amplitude change handlers
+  // Frequency/amplitude change handlers (set defaults for new sources only)
   const onFrequencyChange = useCallback((v: number | [number, number]) => {
     const val = typeof v === "number" ? v : v[0];
     setFrequency(val);
-    // Update all sources to use new frequency
-    setObjects((prev: SimObject[]) =>
-      prev.map((o: SimObject) =>
-        o.type === "source" ? { ...o, frequency: val } : o,
-      ),
-    );
   }, []);
 
   const onAmplitudeChange = useCallback((v: number | [number, number]) => {
     const val = typeof v === "number" ? v : v[0];
     setAmplitude(val);
-    // Update all sources to use new amplitude
-    setObjects((prev: SimObject[]) =>
-      prev.map((o: SimObject) =>
-        o.type === "source" ? { ...o, amplitude: val } : o,
-      ),
-    );
+  }, []);
+
+  // Animation speed change handler
+  const onAnimSpeedChange = useCallback((v: number | [number, number]) => {
+    const val = typeof v === "number" ? v : v[0];
+    setAnimSpeed(val);
   }, []);
 
   // Object counts
@@ -481,8 +516,69 @@ export function RadioPropagation() {
   const absorberCount = objects.filter((o) => o.type === "absorber").length;
   const reflectorCount = objects.filter((o) => o.type === "reflector").length;
 
+  // Build hover tooltip
+  const hoveredObj = hoveredObject !== null
+    ? objects.find((o) => o.id === hoveredObject) ?? null
+    : null;
+
+  const tooltipElement = hoveredObj !== null
+    ? (() => {
+        const xSpan = X_RANGE[1] - X_RANGE[0];
+        const ySpan = Y_RANGE[1] - Y_RANGE[0];
+        const tooltipX =
+          FIELD_PADDING +
+          ((hoveredObj.x - X_RANGE[0]) / xSpan) * chartWidth +
+          16;
+        const tooltipY =
+          FIELD_PADDING +
+          ((Y_RANGE[1] - hoveredObj.y) / ySpan) * chartHeight -
+          20;
+        return createElement(
+          "g",
+          { key: "tooltip" },
+          createElement("rect", {
+            x: String(tooltipX - 4),
+            y: String(tooltipY - 14),
+            width: "110",
+            height: "36",
+            rx: "4",
+            fill: "rgba(15, 23, 42, 0.9)",
+            stroke: "#475569",
+            "stroke-width": "1",
+          }),
+          createElement(
+            "text",
+            {
+              x: String(tooltipX),
+              y: String(tooltipY),
+              fill: "#e2e8f0",
+              "font-size": "11",
+              "font-family": "monospace",
+            },
+            `Freq: ${hoveredObj.frequency.toFixed(1)} Hz`,
+          ),
+          createElement(
+            "text",
+            {
+              x: String(tooltipX),
+              y: String(tooltipY + 14),
+              fill: "#e2e8f0",
+              "font-size": "11",
+              "font-family": "monospace",
+            },
+            `Amp: ${hoveredObj.amplitude.toFixed(1)}`,
+          ),
+        );
+      })()
+    : null;
+
   // Build the SVG with overlaid circles using VectorField data prop + extra elements
   // We wrap VectorField in a div that has the overlay SVG on top
+  const overlaySvgChildren = [...overlayCircles];
+  if (tooltipElement !== null) {
+    overlaySvgChildren.push(tooltipElement);
+  }
+
   const fieldElement = createElement(
     "div",
     {
@@ -512,7 +608,7 @@ export function RadioPropagation() {
       title: "",
       arrowWidth: 1.5,
     }),
-    // Overlay SVG for object circles
+    // Overlay SVG for object circles (SVG-level pointerEvents none, individual circles all)
     createElement(
       "svg",
       {
@@ -528,7 +624,7 @@ export function RadioPropagation() {
         preserveAspectRatio: "xMidYMid meet",
         "aria-hidden": "true",
       },
-      ...overlayCircles,
+      ...overlaySvgChildren,
     ),
   );
 
@@ -638,18 +734,29 @@ export function RadioPropagation() {
     ),
     createElement(
       "div",
+      { style: { minWidth: "140px", flex: "1" } },
+      createElement(Slider, {
+        value: animSpeed,
+        onChange: onAnimSpeedChange,
+        min: 0,
+        max: 5,
+        step: 0.1,
+        label: "Animation Speed (s)",
+      }),
+    ),
+    createElement(
+      "div",
       {
         style: {
           display: "flex",
           gap: "12px",
           fontSize: "11px",
-          color: "var(--color-text-muted, #94a3b8)",
           whiteSpace: "nowrap",
         },
       },
-      createElement("span", null, `Sources: ${sourceCount}`),
-      createElement("span", null, `Absorbers: ${absorberCount}`),
-      createElement("span", null, `Reflectors: ${reflectorCount}`),
+      createElement("span", { style: { color: "#ef4444" } }, `Sources: ${sourceCount}`),
+      createElement("span", { style: { color: "#22c55e" } }, `Absorbers: ${absorberCount}`),
+      createElement("span", { style: { color: "#3b82f6" } }, `Reflectors: ${reflectorCount}`),
     ),
   );
 

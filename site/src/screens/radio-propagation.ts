@@ -37,7 +37,7 @@ interface SimObject {
 // ── Constants ─────────────────────────────────────────────────────────
 
 const TWO_PI = 2 * Math.PI;
-const GRID_SIZE = 20;
+const GRID_SIZE = 30;
 const X_RANGE: [number, number] = [0, 10];
 const Y_RANGE: [number, number] = [0, 10];
 const REFLECTOR_AMP_FACTOR = 0.4;
@@ -291,6 +291,12 @@ export function RadioPropagation() {
   const [time, setTime] = useState(0);
   const [animSpeed, setAnimSpeed] = useState(1);
   const [hoveredObject, setHoveredObject] = useState<number | null>(null);
+  const [configMode, setConfigMode] = useState<{
+    objectId: number;
+    field: "frequency" | "amplitude";
+    x: number;
+    y: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Animation loop
@@ -470,29 +476,102 @@ export function RadioPropagation() {
     setContextTarget(null);
   }, [contextTarget]);
 
-  // Context menu items
-  const contextMenuItems = useMemo(
-    () => [
-      {
-        label: "Radio Source",
-        icon: "\uD83D\uDCE1",
-        onClick: () => setObjectType("source"),
-      },
-      {
-        label: "Absorber",
-        icon: "\u26AB",
-        onClick: () => setObjectType("absorber"),
-      },
-      {
-        label: "Reflector",
-        icon: "\uD83D\uDEE1\uFE0F",
-        onClick: () => setObjectType("reflector"),
-      },
-      { divider: true as const },
-      { label: "Delete", icon: "\uD83D\uDDD1\uFE0F", onClick: deleteObject },
-    ],
-    [setObjectType, deleteObject],
+  // Open inline input for per-source frequency or amplitude
+  const openConfigInput = useCallback(
+    (field: "frequency" | "amplitude") => {
+      if (contextTarget === null || contextPos === null) return;
+      setConfigMode({
+        objectId: contextTarget,
+        field,
+        x: contextPos.x,
+        y: contextPos.y,
+      });
+      setContextPos(null);
+      setContextTarget(null);
+    },
+    [contextTarget, contextPos],
   );
+
+  // Apply the configured value from the inline input
+  const applyConfigValue = useCallback(
+    (value: number) => {
+      if (configMode === null) return;
+      setObjects((prev: SimObject[]) =>
+        prev.map((o: SimObject) =>
+          o.id === configMode.objectId
+            ? { ...o, [configMode.field]: value }
+            : o,
+        ),
+      );
+      setConfigMode(null);
+    },
+    [configMode],
+  );
+
+  // Close config input on Escape
+  useEffect(() => {
+    if (configMode === null) return;
+    const handleKeyDown = (e: Event) => {
+      if ((e as KeyboardEvent).key === "Escape") {
+        setConfigMode(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [configMode]);
+
+  // Context menu items — include per-source config options when target is a source
+  const targetObj = contextTarget !== null
+    ? objects.find((o) => o.id === contextTarget) ?? null
+    : null;
+
+  const contextMenuItems = useMemo(() => {
+    const items: {
+      label?: string;
+      icon?: string;
+      onClick?: () => void;
+      divider?: true;
+    }[] = [];
+
+    // Per-source configuration options
+    if (targetObj !== null && targetObj.type === "source") {
+      items.push({
+        label: "Set Frequency...",
+        icon: "\uD83C\uDF10",
+        onClick: () => openConfigInput("frequency"),
+      });
+      items.push({
+        label: "Set Amplitude...",
+        icon: "\uD83D\uDD0A",
+        onClick: () => openConfigInput("amplitude"),
+      });
+      items.push({ divider: true as const });
+    }
+
+    items.push({
+      label: "Radio Source",
+      icon: "\uD83D\uDCE1",
+      onClick: () => setObjectType("source"),
+    });
+    items.push({
+      label: "Absorber",
+      icon: "\u26AB",
+      onClick: () => setObjectType("absorber"),
+    });
+    items.push({
+      label: "Reflector",
+      icon: "\uD83D\uDEE1\uFE0F",
+      onClick: () => setObjectType("reflector"),
+    });
+    items.push({ divider: true as const });
+    items.push({
+      label: "Delete",
+      icon: "\uD83D\uDDD1\uFE0F",
+      onClick: deleteObject,
+    });
+
+    return items;
+  }, [targetObj, setObjectType, deleteObject, openConfigInput]);
 
   // Frequency/amplitude change handlers (set defaults for new sources only)
   const onFrequencyChange = useCallback((v: number | [number, number]) => {
@@ -607,6 +686,7 @@ export function RadioPropagation() {
       padding: FIELD_PADDING,
       title: "",
       arrowWidth: 1.5,
+      renderer: "canvas",
     }),
     // Overlay SVG for object circles (SVG-level pointerEvents none, individual circles all)
     createElement(
@@ -691,6 +771,90 @@ export function RadioPropagation() {
                 ),
           ),
         )
+      : null;
+
+  // Inline config input for per-source frequency/amplitude editing
+  const configInputElement =
+    configMode !== null
+      ? (() => {
+          const configObj = objects.find((o) => o.id === configMode.objectId);
+          if (!configObj) return null;
+          const currentValue =
+            configMode.field === "frequency"
+              ? configObj.frequency
+              : configObj.amplitude;
+          const fieldLabel =
+            configMode.field === "frequency" ? "Frequency (Hz)" : "Amplitude";
+          return createElement(
+            "div",
+            {
+              onMouseDown: (e: Event) => e.stopPropagation(),
+              style: {
+                position: "fixed",
+                left: `${configMode.x}px`,
+                top: `${configMode.y}px`,
+                zIndex: "10200",
+                backgroundColor: "var(--color-bg, #ffffff)",
+                border: "1px solid var(--color-border, #e2e8f0)",
+                borderRadius: "6px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                padding: "8px 12px",
+                fontSize: "13px",
+                color: "currentColor",
+              },
+            },
+            createElement(
+              "label",
+              {
+                style: {
+                  display: "block",
+                  marginBottom: "4px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                },
+              },
+              fieldLabel,
+            ),
+            createElement("input", {
+              type: "number",
+              defaultValue: String(currentValue),
+              step: configMode.field === "frequency" ? "0.5" : "0.1",
+              min: configMode.field === "frequency" ? "0.1" : "0.1",
+              max: configMode.field === "frequency" ? "20" : "10",
+              "aria-label": fieldLabel,
+              style: {
+                width: "80px",
+                padding: "4px 6px",
+                border: "1px solid var(--color-border, #e2e8f0)",
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontFamily: "monospace",
+                outline: "none",
+              },
+              onKeyDown: (e: Event) => {
+                const ke = e as KeyboardEvent;
+                if (ke.key === "Enter") {
+                  const val = parseFloat(
+                    (ke.target as HTMLInputElement).value,
+                  );
+                  if (!isNaN(val) && val > 0) {
+                    applyConfigValue(val);
+                  }
+                }
+              },
+              onBlur: (e: Event) => {
+                const val = parseFloat(
+                  (e.target as HTMLInputElement).value,
+                );
+                if (!isNaN(val) && val > 0) {
+                  applyConfigValue(val);
+                } else {
+                  setConfigMode(null);
+                }
+              },
+            }),
+          );
+        })()
       : null;
 
   // Controls panel
@@ -786,11 +950,13 @@ export function RadioPropagation() {
           lineHeight: "1.4",
         },
       },
-      "Left-click to place a radio source. Right-click an object to change its type or delete it.",
+      "Left-click to place a radio source. Right-click an object to change its type, configure frequency/amplitude, or delete it.",
     ),
     // Vector field takes remaining space
     fieldElement,
     // Context menu (rendered as fixed overlay)
     contextMenuElement,
+    // Inline config input (rendered as fixed overlay)
+    configInputElement,
   );
 }

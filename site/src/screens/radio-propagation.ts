@@ -20,7 +20,6 @@ import {
   type VectorDatum,
 } from "../../../components/viz/vector-field/src/index";
 import { Slider } from "../../../components/form/slider/src/index";
-import { ContextMenu } from "../../../components/overlay/context-menu/src/index";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -533,27 +532,66 @@ export function RadioPropagation() {
     ),
   );
 
-  // Context menu overlay (manual positioning since we need custom trigger)
+  // Context menu overlay (rendered directly when contextPos is set)
   const contextMenuElement =
     contextPos !== null
       ? createElement(
           "div",
           {
+            role: "menu",
+            "aria-label": "Object actions",
             style: {
               position: "fixed",
               left: `${contextPos.x}px`,
               top: `${contextPos.y}px`,
               zIndex: "10200",
+              backgroundColor: "var(--color-bg, #ffffff)",
+              border: "1px solid var(--color-border, #e2e8f0)",
+              borderRadius: "6px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              padding: "4px 0",
+              minWidth: "160px",
+              fontSize: "13px",
+              color: "currentColor",
             },
           },
-          createElement(
-            ContextMenu,
-            { items: contextMenuItems },
-            // Invisible trigger child — the menu auto-opens via right-click on this
-            createElement("div", {
-              style: { width: "1px", height: "1px" },
-              "aria-hidden": "true",
-            }),
+          ...contextMenuItems.map((item, i) =>
+            item.divider
+              ? createElement("div", {
+                  key: `divider-${i}`,
+                  style: {
+                    height: "1px",
+                    backgroundColor: "var(--color-border, #e2e8f0)",
+                    margin: "4px 0",
+                  },
+                })
+              : createElement(
+                  "button",
+                  {
+                    key: `item-${i}`,
+                    role: "menuitem",
+                    type: "button",
+                    onClick: item.onClick,
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      width: "100%",
+                      padding: "6px 12px",
+                      border: "none",
+                      background: "none",
+                      color: "currentColor",
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      fontFamily: "inherit",
+                      textAlign: "left",
+                    },
+                  },
+                  item.icon
+                    ? createElement("span", { "aria-hidden": "true" }, item.icon)
+                    : null,
+                  item.label,
+                ),
           ),
         )
       : null;

@@ -636,6 +636,7 @@ export function RadioPropagation() {
           {
             role: "menu",
             "aria-label": "Object actions",
+            onMouseDown: (e: Event) => e.stopPropagation(),
             style: {
               position: "fixed",
               left: `${contextPos.x}px`,

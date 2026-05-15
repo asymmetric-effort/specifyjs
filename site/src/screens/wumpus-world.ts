@@ -9,7 +9,7 @@
  *   - Human: manual control via buttons
  *   - AI: knowledge-based agent using logical inference, one turn/second
  *
- * The agent explores a 4x4 cave to find gold while avoiding:
+ * The agent explores a 10x10 cave to find gold while avoiding:
  *   - The Wumpus (a monster that kills the agent)
  *   - Bottomless pits
  *
@@ -30,7 +30,11 @@ import { Button } from '../../../components/form/button/src/index';
 
 // ── Constants ────────────────────────────────────────────────────────
 
-const GRID_SIZE = 4;
+const GRID_SIZE = 10;
+
+// Agent start position (bottom-left corner)
+const START_ROW = GRID_SIZE - 1;
+const START_COL = 0;
 
 // Cell content flags (bitmask)
 const EMPTY = 0;
@@ -134,12 +138,12 @@ function addPercepts(board: number[][]): void {
 function generateBoard(): number[][] {
   const board = emptyGrid4<number>(EMPTY);
 
-  // Place Wumpus (not at [3,0] — agent start)
+  // Place Wumpus (not at agent start)
   let wr: number, wc: number;
   do {
     wr = Math.floor(Math.random() * GRID_SIZE);
     wc = Math.floor(Math.random() * GRID_SIZE);
-  } while (wr === 3 && wc === 0);
+  } while (wr === START_ROW && wc === START_COL);
   board[wr]![wc]! |= WUMPUS;
 
   // Place gold (not at agent start)
@@ -147,20 +151,20 @@ function generateBoard(): number[][] {
   do {
     gr = Math.floor(Math.random() * GRID_SIZE);
     gc = Math.floor(Math.random() * GRID_SIZE);
-  } while (gr === 3 && gc === 0);
+  } while (gr === START_ROW && gc === START_COL);
   board[gr]![gc]! |= GOLD;
 
   // Place pits with 20% probability (not at agent start, not on wumpus/gold)
   for (let r = 0; r < GRID_SIZE; r++) {
     for (let c = 0; c < GRID_SIZE; c++) {
-      if (r === 3 && c === 0) continue;
+      if (r === START_ROW && c === START_COL) continue;
       if (board[r]![c]! & (WUMPUS | GOLD)) continue;
       if (Math.random() < 0.2) board[r]![c]! |= PIT;
     }
   }
 
   addPercepts(board);
-  board[3]![0]! |= AGENT;
+  board[START_ROW]![START_COL]! |= AGENT;
   return board;
 }
 
@@ -192,22 +196,22 @@ function createKnowledgeBase(): KnowledgeBase {
     wumpusLocation: null,
   };
   // Agent start is known safe
-  kb.visited[3]![0] = true;
-  kb.safe[3]![0] = true;
-  kb.noPit[3]![0] = true;
-  kb.noWumpus[3]![0] = true;
+  kb.visited[START_ROW]![START_COL] = true;
+  kb.safe[START_ROW]![START_COL] = true;
+  kb.noPit[START_ROW]![START_COL] = true;
+  kb.noWumpus[START_ROW]![START_COL] = true;
   return kb;
 }
 
 function createInitialState(): GameState {
   const board = generateBoard();
   const revealed = emptyGrid4(false);
-  revealed[3]![0] = true;
-  board[3]![0]! |= VISITED;
+  revealed[START_ROW]![START_COL] = true;
+  board[START_ROW]![START_COL]! |= VISITED;
   return {
     board,
-    agentRow: 3,
-    agentCol: 0,
+    agentRow: START_ROW,
+    agentCol: START_COL,
     agentDir: RIGHT as Direction,
     hasArrow: true,
     hasGold: false,
@@ -215,8 +219,8 @@ function createInitialState(): GameState {
     score: 0,
     gameOver: false,
     won: false,
-    percepts: getPercepts(board, 3, 0, false, false),
-    log: ['Entered the cave at [1,1]. Facing East.'],
+    percepts: getPercepts(board, START_ROW, START_COL, false, false),
+    log: [`Entered the cave at ${displayCoord(START_ROW, START_COL)}. Facing East.`],
     revealed,
     kb: createKnowledgeBase(),
     aiPlan: [],
@@ -411,8 +415,8 @@ function doGrab(s: GameState): GameState {
 
 function doClimb(s: GameState): GameState {
   if (s.gameOver) return s;
-  if (s.agentRow !== 3 || s.agentCol !== 0) {
-    return { ...s, log: addLog(s, 'Can only climb out at the entrance [1,1].') };
+  if (s.agentRow !== START_ROW || s.agentCol !== START_COL) {
+    return { ...s, log: addLog(s, `Can only climb out at the entrance ${displayCoord(START_ROW, START_COL)}.`) };
   }
   const bonus = s.hasGold ? 1000 : 0;
   const finalScore = s.score + bonus;
@@ -720,10 +724,10 @@ function aiDecide(s: GameState): [string[], string] {
 
   // 2. Have gold → go home and climb
   if (s.hasGold) {
-    if (r === 3 && c === 0) {
+    if (r === START_ROW && c === START_COL) {
       return [['climb'], 'At entrance with gold \u2192 climb out'];
     }
-    const path = findPath(kb, r, c, 3, 0);
+    const path = findPath(kb, r, c, START_ROW, START_COL);
     if (path && path.length > 0) {
       const actions = pathToActions(s.agentDir, path, r, c);
       actions.push('climb');
@@ -848,10 +852,10 @@ function aiDecide(s: GameState): [string[], string] {
   }
 
   // 7. Give up — go home
-  if (r === 3 && c === 0) {
+  if (r === START_ROW && c === START_COL) {
     return [['climb'], 'No options left \u2192 climbing out'];
   }
-  const homePath = findPath(kb, r, c, 3, 0);
+  const homePath = findPath(kb, r, c, START_ROW, START_COL);
   if (homePath) {
     const actions = pathToActions(s.agentDir, homePath, r, c);
     actions.push('climb');
@@ -1017,11 +1021,11 @@ export function WumpusWorld() {
       ),
 
       // Grid with overlay labels
-      createElement('div', { style: { position: 'relative', width: '480px', height: '480px' } },
+      createElement('div', { style: { position: 'relative', width: '600px', height: '600px' } },
         createElement(DiscreteCartesian2D, {
           data: displayGrid,
-          width: 480,
-          height: 480,
+          width: 600,
+          height: 600,
           cellGap: 2,
           cellRadius: 4,
           backgroundColor: '#0f172a',
@@ -1030,7 +1034,7 @@ export function WumpusWorld() {
         createElement('div', {
           style: {
             position: 'absolute', top: '10px', left: '10px', right: '10px', bottom: '10px',
-            display: 'grid', gridTemplateRows: 'repeat(4, 1fr)', gridTemplateColumns: 'repeat(4, 1fr)',
+            display: 'grid', gridTemplateRows: `repeat(${GRID_SIZE}, 1fr)`, gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
             pointerEvents: 'none',
           },
         },
@@ -1043,7 +1047,7 @@ export function WumpusWorld() {
               key: `${r}-${c}`,
               style: {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: isAgent ? '28px' : '18px',
+                fontSize: isAgent ? '18px' : '11px',
                 fontWeight: isAgent ? '700' : '600',
                 color: 'white',
                 textShadow: '0 0 4px rgba(0,0,0,0.8)',
@@ -1218,7 +1222,7 @@ export function WumpusWorld() {
             ),
             createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'The Cave'),
             createElement('p', null,
-              'The world is a 4\u00d74 grid of rooms connected by passageways. Somewhere in the cave lurks the Wumpus, a beast that eats anyone entering its room. Some rooms contain bottomless pits. One room contains a heap of gold.',
+              'The world is a 10\u00d710 grid of rooms connected by passageways. Somewhere in the cave lurks the Wumpus, a beast that eats anyone entering its room. Some rooms contain bottomless pits. One room contains a heap of gold.',
             ),
             createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Percepts'),
             createElement('ul', { style: { paddingLeft: '18px', margin: '4px 0' } },

@@ -23,6 +23,7 @@ import { PendulumScreen } from "./screens/pendulum";
 import { PlanetsScreen } from "./screens/planets";
 import { ConwaysGameOfLife } from "./screens/conways-game-of-life";
 import { RadioPropagation } from "./screens/radio-propagation";
+import { WumpusWorld } from "./screens/wumpus-world";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -99,6 +100,11 @@ function AppContent() {
       path: "/radio-propagation",
       title: "Radio Propagation",
       content: createElement(RadioPropagation, null),
+    },
+    {
+      path: "/wumpus",
+      title: "Wumpus World",
+      content: createElement(WumpusWorld, null),
     },
   ];
 

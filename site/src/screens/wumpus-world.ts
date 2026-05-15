@@ -70,6 +70,10 @@ export function WumpusWorld() {
   const [mode, setMode] = useState<PlayMode>('human');
   const [aiRunning, setAiRunning] = useState(false);
   const aiRunningRef = useRef(false);
+  const [wins, setWins] = useState(0);
+  const [losses, setLosses] = useState(0);
+  const totalGames = wins + losses;
+  const winPct = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : '0.0';
 
   useEffect(() => { aiRunningRef.current = aiRunning; }, [aiRunning]);
 
@@ -87,7 +91,9 @@ export function WumpusWorld() {
 
       setState((s: GameState) => {
         if (s.gameOver) {
-          // Auto-restart: begin a new game after the result is shown
+          // Record result before auto-restart
+          if (s.won) setWins((w: number) => w + 1);
+          else setLosses((l: number) => l + 1);
           const fresh = createInitialState();
           fresh.log = [...s.log, '--- New Game ---'];
           if (fresh.log.length > 50) fresh.log.splice(0, fresh.log.length - 50);
@@ -150,11 +156,19 @@ export function WumpusWorld() {
 
   const newGame = useCallback(() => {
     setAiRunning(false);
-    setState(createInitialState());
+    setState((s: GameState) => {
+      if (s.gameOver) {
+        if (s.won) setWins((w: number) => w + 1);
+        else setLosses((l: number) => l + 1);
+      }
+      return createInitialState();
+    });
   }, []);
 
   const toggleMode = useCallback(() => {
     setAiRunning(false);
+    setWins(0);
+    setLosses(0);
     setMode((m: PlayMode) => m === 'human' ? 'ai' : 'human');
     setState(createInitialState());
   }, []);
@@ -248,13 +262,17 @@ export function WumpusWorld() {
         state.percepts.join(', '),
       ),
 
-      // Status bar
+      // Scoreboard + Status bar
       createElement('div', {
         style: {
           marginTop: '6px', display: 'flex', gap: '16px', flexWrap: 'wrap',
           fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)',
+          alignItems: 'center',
         },
       },
+        createElement('span', {
+          style: { fontWeight: '600', color: 'var(--color-text, #1f2937)' },
+        }, `W:${wins} L:${losses} (${winPct}%)`),
         ...statusItems.map((item, i) =>
           createElement('span', { key: `s${i}` }, item),
         ),

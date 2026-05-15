@@ -899,8 +899,12 @@ export function WumpusWorld() {
 
       setState((s: GameState) => {
         if (s.gameOver) {
-          // Stop the AI when game ends
-          return s;
+          // Auto-restart: begin a new game after the result is shown
+          const fresh = createInitialState();
+          fresh.log = [...s.log, '--- New Game ---'];
+          if (fresh.log.length > 50) fresh.log.splice(0, fresh.log.length - 50);
+          fresh.aiReasoning = s.won ? 'Victory! Starting new game...' : 'Died. Starting new game...';
+          return fresh;
         }
 
         // If there's a queued plan, execute next action
@@ -951,10 +955,10 @@ export function WumpusWorld() {
     return () => clearInterval(id);
   }, [mode, aiRunning]);
 
-  // Stop AI when game ends
+  // Stop AI when game ends in human mode only
   useEffect(() => {
-    if (state.gameOver && aiRunning) setAiRunning(false);
-  }, [state.gameOver, aiRunning]);
+    if (state.gameOver && aiRunning && mode === 'human') setAiRunning(false);
+  }, [state.gameOver, aiRunning, mode]);
 
   // ── Human action callbacks ──
   const doAction = useCallback((fn: (s: GameState) => GameState) => {

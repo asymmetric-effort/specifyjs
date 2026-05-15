@@ -143,11 +143,6 @@ export function WumpusWorld() {
     return () => clearInterval(id);
   }, [mode, aiRunning]);
 
-  // Stop AI when game ends in human mode only
-  useEffect(() => {
-    if (state.gameOver && aiRunning && mode === 'human') setAiRunning(false);
-  }, [state.gameOver, aiRunning, mode]);
-
   // ── Human action callbacks ──
   const doAction = useCallback((fn: (s: GameState) => GameState) => {
     setState((s: GameState) => fn(s));
@@ -200,7 +195,6 @@ export function WumpusWorld() {
           size: 'sm',
           variant: aiRunning ? 'danger' : 'primary',
           onClick: toggleAi,
-          disabled: state.gameOver,
         }, aiRunning ? 'Pause AI' : 'Start AI') : null,
       ),
 

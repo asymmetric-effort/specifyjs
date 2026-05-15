@@ -143,6 +143,15 @@ export function generateBoard(): number[][] {
     }
   }
 
+  // Invariant: board must contain exactly one Wumpus
+  let wumpusCount = 0;
+  for (let r = 0; r < GRID_SIZE; r++) {
+    for (let c = 0; c < GRID_SIZE; c++) {
+      if (board[r]![c]! & WUMPUS) wumpusCount++;
+    }
+  }
+  if (wumpusCount !== 1) throw new Error(`Board invariant violated: expected 1 Wumpus, found ${wumpusCount}`);
+
   addPercepts(board);
   board[START_ROW]![START_COL]! |= AGENT;
   return board;

@@ -1,8 +1,13 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-// @vitest-environment node
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from '@asymmetric-effort/nogginlessdom';
+
+/** Helper: check that an array of arrays contains a specific sub-array (deep equality) */
+function containsEqual(arr: unknown[][], target: unknown[]): boolean {
+  return arr.some(item => JSON.stringify(item) === JSON.stringify(target));
+}
+
 import {
   // Constants
   GRID_SIZE, START_ROW, START_COL,
@@ -148,22 +153,22 @@ describe('neighbors', () => {
   it('corner (0,0) has 2 neighbors', () => {
     const n = neighbors(0, 0);
     expect(n.length).toBe(2);
-    expect(n).toContainEqual([1, 0]);
-    expect(n).toContainEqual([0, 1]);
+    expect(containsEqual(n, [1, 0])).toBe(true);
+    expect(containsEqual(n, [0, 1])).toBe(true);
   });
 
   it('corner (0, GRID_SIZE-1) has 2 neighbors', () => {
     const n = neighbors(0, GRID_SIZE - 1);
     expect(n.length).toBe(2);
-    expect(n).toContainEqual([1, GRID_SIZE - 1]);
-    expect(n).toContainEqual([0, GRID_SIZE - 2]);
+    expect(containsEqual(n, [1, GRID_SIZE - 1])).toBe(true);
+    expect(containsEqual(n, [0, GRID_SIZE - 2])).toBe(true);
   });
 
   it('corner (GRID_SIZE-1, 0) has 2 neighbors', () => {
     const n = neighbors(GRID_SIZE - 1, 0);
     expect(n.length).toBe(2);
-    expect(n).toContainEqual([GRID_SIZE - 2, 0]);
-    expect(n).toContainEqual([GRID_SIZE - 1, 1]);
+    expect(containsEqual(n, [GRID_SIZE - 2, 0])).toBe(true);
+    expect(containsEqual(n, [GRID_SIZE - 1, 1])).toBe(true);
   });
 
   it('corner (GRID_SIZE-1, GRID_SIZE-1) has 2 neighbors', () => {
@@ -174,9 +179,9 @@ describe('neighbors', () => {
   it('edge cell (0,5) has 3 neighbors', () => {
     const n = neighbors(0, 5);
     expect(n.length).toBe(3);
-    expect(n).toContainEqual([1, 5]);
-    expect(n).toContainEqual([0, 4]);
-    expect(n).toContainEqual([0, 6]);
+    expect(containsEqual(n, [1, 5])).toBe(true);
+    expect(containsEqual(n, [0, 4])).toBe(true);
+    expect(containsEqual(n, [0, 6])).toBe(true);
   });
 
   it('edge cell (5,0) has 3 neighbors', () => {
@@ -187,10 +192,10 @@ describe('neighbors', () => {
   it('interior cell (5,5) has 4 neighbors', () => {
     const n = neighbors(5, 5);
     expect(n.length).toBe(4);
-    expect(n).toContainEqual([4, 5]);
-    expect(n).toContainEqual([6, 5]);
-    expect(n).toContainEqual([5, 4]);
-    expect(n).toContainEqual([5, 6]);
+    expect(containsEqual(n, [4, 5])).toBe(true);
+    expect(containsEqual(n, [6, 5])).toBe(true);
+    expect(containsEqual(n, [5, 4])).toBe(true);
+    expect(containsEqual(n, [5, 6])).toBe(true);
   });
 });
 

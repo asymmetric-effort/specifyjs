@@ -1,8 +1,12 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-// @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+
+function containsEqual(arr: unknown[][], target: unknown[]): boolean {
+  return arr.some(item => JSON.stringify(item) === JSON.stringify(target));
+}
+
 import {
   // Constants
   GRID_SIZE, START_ROW, START_COL,
@@ -970,17 +974,17 @@ describe('neighbors', () => {
   it('returns 4 neighbors for interior cell', () => {
     const n = neighbors(5, 5);
     expect(n.length).toBe(4);
-    expect(n).toContainEqual([4, 5]);
-    expect(n).toContainEqual([6, 5]);
-    expect(n).toContainEqual([5, 4]);
-    expect(n).toContainEqual([5, 6]);
+    expect(containsEqual(n, [4, 5])).toBe(true);
+    expect(containsEqual(n, [6, 5])).toBe(true);
+    expect(containsEqual(n, [5, 4])).toBe(true);
+    expect(containsEqual(n, [5, 6])).toBe(true);
   });
 
   it('returns 2 neighbors for corner cell (0,0)', () => {
     const n = neighbors(0, 0);
     expect(n.length).toBe(2);
-    expect(n).toContainEqual([1, 0]);
-    expect(n).toContainEqual([0, 1]);
+    expect(containsEqual(n, [1, 0])).toBe(true);
+    expect(containsEqual(n, [0, 1])).toBe(true);
   });
 
   it('returns 3 neighbors for edge cell', () => {

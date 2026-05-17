@@ -121,10 +121,9 @@ test.describe('Unity Desktop PDV', () => {
   test('closing a window removes it from the desktop', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
     await dock.locator('button[role="button"]').first().click();
-    const dialog = page.locator('[role="dialog"]').first();
-    await expect(dialog).toBeVisible({ timeout: 5000 });
-    // Click close button within the dialog
-    await dialog.locator('[aria-label="Close"]').click();
+    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(1, { timeout: 5000 });
+    // Click the close button (scoped to unity desktop to avoid the gallery close button)
+    await page.locator('.unity-desktop [aria-label="Close"]').first().click();
     await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(0, { timeout: 5000 });
   });
 

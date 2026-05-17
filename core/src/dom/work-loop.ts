@@ -570,8 +570,8 @@ function reconcileClassComponent(fiber: Fiber): void {
     instance._forceUpdate = false;
 
     if (!shouldUpdate) {
-      // Bail out — preserve existing children
-      fiber.child = fiber.alternate?.child ?? null;
+      // Bail out — clone the child subtree from alternate
+      fiber.child = cloneFiberSubtree(fiber.alternate?.child ?? null, fiber);
       return;
     }
   }

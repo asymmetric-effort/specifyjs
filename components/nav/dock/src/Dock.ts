@@ -56,6 +56,19 @@ function isImageUrl(icon: string): boolean {
   return icon.startsWith('http') || icon.startsWith('/') || icon.startsWith('.');
 }
 
+const ICON_COLORS = [
+  '#3465a4', '#e67e22', '#2ecc71', '#3498db', '#e74c3c',
+  '#9b59b6', '#f39c12', '#1abc9c', '#e91e63', '#00bcd4',
+];
+
+function getIconColor(icon: string): string {
+  let hash = 0;
+  for (let i = 0; i < icon.length; i++) {
+    hash = ((hash << 5) - hash + icon.charCodeAt(i)) | 0;
+  }
+  return ICON_COLORS[Math.abs(hash) % ICON_COLORS.length]!;
+}
+
 function formatBadge(badge: number): string {
   return badge > 99 ? '99+' : String(badge);
 }
@@ -188,7 +201,11 @@ function DockItemComponent(props: {
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: `${Math.round(iconSize * 0.6)}px`,
+          fontWeight: '700',
           userSelect: 'none',
+          backgroundColor: getIconColor(item.icon),
+          color: '#ffffff',
+          borderRadius: '8px',
         },
         'aria-hidden': 'true',
       }, item.icon);

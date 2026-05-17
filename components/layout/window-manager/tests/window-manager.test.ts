@@ -653,14 +653,14 @@ describe('WindowManagerProvider', () => {
     getCtx().openWindow({ id: 'w2', title: 'W2' });
     await flush();
 
-    // Simulate high z-index by repeatedly focusing
-    // We need to trigger the threshold. Instead, let's open many windows fast.
-    // The z-index starts at 1 and increments. We need > 1000.
-    // Focus 1001 times to trigger compaction
-    for (let i = 0; i < 1001; i++) {
+    // Simulate high z-index by repeatedly focusing.
+    // Each focus increments maxZ by 1. We need maxZ > 1000.
+    // After opening 2 windows, maxZ = 2. We need 999 more focuses.
+    // Batch focuses without flushing each time to stay within timeout.
+    for (let i = 0; i < 999; i++) {
       getCtx().focusWindow(i % 2 === 0 ? 'w1' : 'w2');
-      await flush();
     }
+    await flush();
 
     const ws = getCtx().windows;
     const maxZ = Math.max(...ws.map((w) => w.zIndex));

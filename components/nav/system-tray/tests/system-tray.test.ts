@@ -20,7 +20,11 @@ function cleanup(container: HTMLElement) {
 }
 
 async function tick() {
-  await new Promise(r => setTimeout(r, 0));
+  // Use microtask flush instead of setTimeout to work with fake timers.
+  // Multiple flushes ensure batched state updates and re-renders complete.
+  for (let i = 0; i < 4; i++) {
+    await new Promise(r => queueMicrotask(r));
+  }
 }
 
 const sampleUser: SystemTrayUser = {
@@ -182,7 +186,7 @@ describe('SystemTray', () => {
       const container = renderToContainer(
         createElement(SystemTray, {}),
       );
-      expect(container.textContent).toContain('Sat, May 17');
+      expect(container.textContent).toContain('Sun, May 17');
       cleanup(container);
     });
 
@@ -190,7 +194,7 @@ describe('SystemTray', () => {
       const container = renderToContainer(
         createElement(SystemTray, { showDate: false }),
       );
-      expect(container.textContent).not.toContain('Sat, May 17');
+      expect(container.textContent).not.toContain('Sun, May 17');
       cleanup(container);
     });
 

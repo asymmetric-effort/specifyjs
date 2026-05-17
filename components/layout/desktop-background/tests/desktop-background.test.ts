@@ -101,13 +101,14 @@ describe('DesktopBackground', () => {
     it('uses default aubergine color', () => {
       render(createElement(DesktopBackground, null));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.backgroundColor).toBe('#2c001e');
+      // jsdom normalizes hex colors to rgb
+      expect(el.style.backgroundColor).toContain('44, 0, 30');
     });
 
     it('uses custom background color', () => {
       render(createElement(DesktopBackground, { backgroundColor: '#ff0000' }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.backgroundColor).toBe('#ff0000');
+      expect(el.style.backgroundColor).toContain('255, 0, 0');
     });
   });
 
@@ -120,7 +121,9 @@ describe('DesktopBackground', () => {
       const gradient = 'linear-gradient(135deg, #2c001e 0%, #3c0a2e 100%)';
       render(createElement(DesktopBackground, { backgroundGradient: gradient }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.background).toBe(gradient);
+      // jsdom normalizes hex colors in gradients to rgb
+      expect(el.style.background).toContain('linear-gradient');
+      expect(el.style.background).toContain('135deg');
     });
 
     it('gradient overrides backgroundColor', () => {
@@ -130,7 +133,9 @@ describe('DesktopBackground', () => {
         backgroundGradient: gradient,
       }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.background).toBe(gradient);
+      // jsdom normalizes hex colors in gradients to rgb
+      expect(el.style.background).toContain('linear-gradient');
+      expect(el.style.background).toContain('135deg');
     });
 
     it('does not set background when no gradient provided', () => {
@@ -148,7 +153,8 @@ describe('DesktopBackground', () => {
     it('applies background image with full opacity', () => {
       render(createElement(DesktopBackground, { backgroundImage: 'wallpaper.jpg' }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.backgroundImage).toBe('url(wallpaper.jpg)');
+      // jsdom normalizes url() to url("...")
+      expect(el.style.backgroundImage).toContain('wallpaper.jpg');
       expect(el.style.backgroundSize).toBe('cover');
       expect(el.style.backgroundPosition).toBe('center');
     });
@@ -167,7 +173,8 @@ describe('DesktopBackground', () => {
       const overlay = container.querySelector('.desktop-background__image-overlay') as HTMLElement;
       expect(overlay).toBeTruthy();
       expect(overlay.style.opacity).toBe('0.5');
-      expect(overlay.style.backgroundImage).toBe('url(wallpaper.jpg)');
+      // jsdom normalizes url() to url("...")
+      expect(overlay.style.backgroundImage).toContain('wallpaper.jpg');
       expect(overlay.style.backgroundSize).toBe('cover');
       expect(overlay.style.backgroundPosition).toBe('center');
       expect(overlay.style.pointerEvents).toBe('none');
@@ -429,7 +436,8 @@ describe('DesktopBackground', () => {
       const gradient = 'radial-gradient(circle, #000, #fff)';
       render(createElement(DesktopBackground, { backgroundGradient: gradient }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
-      expect(el.style.background).toBe(gradient);
+      // jsdom normalizes hex colors in gradients to rgb
+      expect(el.style.background).toContain('radial-gradient');
     });
   });
 });

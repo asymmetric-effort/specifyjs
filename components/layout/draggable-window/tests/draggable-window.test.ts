@@ -271,8 +271,9 @@ describe('DraggableWindow', () => {
       const el = container.querySelector('.draggable-window') as HTMLElement;
       expect(el.style.width).toBe('100%');
       expect(el.style.height).toBe('100%');
-      expect(el.style.top).toBe('0');
-      expect(el.style.left).toBe('0');
+      // jsdom normalizes '0' to '0px'
+      expect(el.style.top).toBe('0px');
+      expect(el.style.left).toBe('0px');
     });
 
     it('maximized state has no border radius', () => {
@@ -280,7 +281,8 @@ describe('DraggableWindow', () => {
         createElement(DraggableWindow, { id: 'w', title: 'T', windowState: 'maximized' }),
       );
       const el = container.querySelector('.draggable-window') as HTMLElement;
-      expect(el.style.borderRadius).toBe('0');
+      // jsdom normalizes '0' to '0px'
+      expect(el.style.borderRadius).toBe('0px');
     });
 
     it('maximized state has no resize handles', () => {

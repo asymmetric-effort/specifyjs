@@ -15,6 +15,9 @@ import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
 import { DraggableWindow } from '../../../layout/draggable-window/src/index';
+import { WordProcessor } from '../../../page/word-processor/src/index';
+import { IDE } from '../../../page/ide/src/index';
+import { TradingDashboard } from '../../../page/trading-dashboard/src/index';
 import type { DockItem } from '../../../nav/dock/src/index';
 import type { WindowManagerContextValue } from '../../../layout/window-manager/src/index';
 
@@ -175,6 +178,12 @@ function getMockContent(title: string): unknown {
           createElement('div', { style: { padding: '8px 0', borderBottom: '1px solid #e2e8f0' } }, s),
         ),
       );
+    case 'Word Processor':
+      return createElement(WordProcessor, null);
+    case 'IDE':
+      return createElement(IDE, null);
+    case 'Trading':
+      return createElement(TradingDashboard, null);
     default:
       return createElement('div', { style: contentStyle },
         createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#94a3b8' } }, `${title} application content`),
@@ -203,6 +212,10 @@ function UnityDesktopInner(props: {
 
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [showAppsGrid, setShowAppsGrid] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [contextMenuAppId, setContextMenuAppId] = useState<string | null>(null);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [aboutAppId, setAboutAppId] = useState<string | null>(null);
 
   const toggleAppsGrid = useCallback(() => {
     setShowAppsGrid((prev: boolean) => !prev);
@@ -276,17 +289,33 @@ function UnityDesktopInner(props: {
     return focused ? focused.title : undefined;
   }, [windowManager.focusedWindowId, windowManager.windows]);
 
+  const handleLock = useCallback(() => {
+    setLocked(true);
+  }, []);
+
+  const handleUnlock = useCallback(() => {
+    setLocked(false);
+  }, []);
+
+  const handleContextMenu = useCallback((id: string, pos: { x: number; y: number }) => {
+    setContextMenuAppId(id);
+    setContextMenuPos(pos);
+  }, []);
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenuAppId(null);
+  }, []);
+
   const userMenuItems = useMemo(() => {
     const items: Array<{ label: string; icon?: string; onClick: () => void; divider?: boolean }> = [];
     if (user) {
       items.push({ label: user.name, icon: undefined, onClick: () => {}, divider: false });
       items.push({ label: '', icon: undefined, onClick: () => {}, divider: true });
     }
-    if (onLogout) {
-      items.push({ label: 'Log Out', icon: undefined, onClick: onLogout, divider: false });
-    }
+    items.push({ label: 'Lock', icon: undefined, onClick: handleLock, divider: false });
+    items.push({ label: 'Logout', icon: undefined, onClick: onLogout || (() => {}), divider: false });
     return items;
-  }, [user, onLogout]);
+  }, [user, onLogout, handleLock]);
 
   // -----------------------------------------------------------------------
   // Styles
@@ -351,6 +380,7 @@ function UnityDesktopInner(props: {
     position: 'left' as const,
     iconSize: 36,
     onItemClick: handleDockItemClick,
+    onItemContextMenu: handleContextMenu,
   });
 
   const toastEl = createElement(ToastContainer, {
@@ -447,6 +477,105 @@ function UnityDesktopInner(props: {
     ),
   ) : null;
 
+  // Lock overlay
+  const lockOverlayEl = locked ? createElement('div', {
+    className: 'unity-desktop__lock-overlay',
+    style: {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '9999',
+      backgroundColor: 'rgba(0,0,0,0.85)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      color: '#ffffff',
+    },
+    onClick: handleUnlock,
+  },
+    createElement('div', { style: { fontSize: '64px', marginBottom: '16px' } }, '\u{1F512}'),
+    createElement('div', { style: { fontSize: '24px', fontWeight: '600', marginBottom: '8px' } }, 'Locked'),
+    createElement('div', { style: { fontSize: '14px', opacity: '0.7' } }, 'Click to unlock'),
+  ) : null;
+
+  // Context menu
+  const contextMenuEl = contextMenuAppId ? createElement('div', {
+    className: 'unity-desktop__context-menu-backdrop',
+    style: {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '9000',
+    },
+    onClick: closeContextMenu,
+  },
+    createElement('div', {
+      className: 'unity-desktop__context-menu',
+      style: {
+        position: 'absolute',
+        top: `${contextMenuPos.y}px`,
+        left: `${contextMenuPos.x}px`,
+        backgroundColor: '#2d2d2d',
+        border: '1px solid #555',
+        borderRadius: '6px',
+        padding: '4px 0',
+        minWidth: '160px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        zIndex: '9001',
+        color: '#ffffff',
+        fontSize: '13px',
+      },
+      onClick: (e: Event) => e.stopPropagation(),
+    },
+      createElement('div', {
+        style: { padding: '6px 14px', fontWeight: '600', borderBottom: '1px solid #444', marginBottom: '4px' },
+      }, apps.find((a: UnityDesktopApp) => a.id === contextMenuAppId)?.label || contextMenuAppId),
+      createElement('div', {
+        style: { padding: '6px 14px', cursor: 'pointer' },
+        onClick: () => { setAboutAppId(contextMenuAppId); setContextMenuAppId(null); },
+        role: 'menuitem',
+      }, 'About'),
+    ),
+  ) : null;
+
+  // About dialog
+  const aboutApp = aboutAppId ? apps.find((a: UnityDesktopApp) => a.id === aboutAppId) : null;
+  const aboutDialogEl = aboutApp ? createElement('div', {
+    className: 'unity-desktop__about-backdrop',
+    style: {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '9500',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    onClick: () => setAboutAppId(null),
+  },
+    createElement('div', {
+      style: {
+        backgroundColor: '#2d2d2d',
+        border: '1px solid #555',
+        borderRadius: '8px',
+        padding: '24px',
+        minWidth: '280px',
+        color: '#ffffff',
+        textAlign: 'center',
+      },
+      onClick: (e: Event) => e.stopPropagation(),
+    },
+      createElement('div', { style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px' } }, aboutApp.label),
+      createElement('div', { style: { fontSize: '13px', marginBottom: '4px', color: '#aaa' } }, 'SpecifyJS Demo App'),
+      createElement('div', { style: { fontSize: '13px', marginBottom: '4px', color: '#aaa' } }, 'MIT License'),
+      createElement('div', { style: { fontSize: '13px', color: '#aaa' } }, 'v0.2.47'),
+      createElement('button', {
+        style: { marginTop: '16px', padding: '6px 16px', border: '1px solid #555', borderRadius: '4px', backgroundColor: '#444', color: '#fff', cursor: 'pointer' },
+        onClick: () => setAboutAppId(null),
+      }, 'Close'),
+    ),
+  ) : null;
+
   return createElement('div', {
     className: 'unity-desktop',
     style: containerStyle,
@@ -468,6 +597,10 @@ function UnityDesktopInner(props: {
         style: { flex: '1', position: 'relative', overflow: 'hidden' },
       }, desktopEl, appsGridEl),
     ),
+    // Overlays
+    contextMenuEl,
+    aboutDialogEl,
+    lockOverlayEl,
   );
 }
 

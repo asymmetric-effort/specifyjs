@@ -32,10 +32,10 @@ test.describe('Unity Desktop PDV', () => {
 
     // Each dock icon button should exist
     const buttons = dock.locator('button[role="button"]');
-    await expect(buttons).toHaveCount(5); // 5 apps in gallery demo
+    await expect(buttons).toHaveCount(8); // 8 apps in gallery demo
 
     // Each icon should have a visible colored background (not transparent/black)
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const btn = buttons.nth(i);
       await expect(btn).toBeVisible();
       // The icon span inside should have a background-color that isn't transparent
@@ -153,5 +153,71 @@ test.describe('Unity Desktop PDV', () => {
     await page.waitForTimeout(300);
 
     expect(errors).toEqual([]);
+  });
+
+  // ── Lock & Logout ────────────────────────────────────────────────────
+
+  test('user menu has Lock and Logout options', async ({ page }) => {
+    // Open user menu
+    const userTrigger = page.locator('[aria-haspopup="true"]');
+    await userTrigger.click();
+    await expect(page.locator('[role="menu"]')).toBeVisible();
+    await expect(page.locator('[role="menuitem"]:has-text("Lock")')).toBeVisible();
+    await expect(page.locator('[role="menuitem"]:has-text("Logout")')).toBeVisible();
+  });
+
+  test('Lock button shows lock overlay', async ({ page }) => {
+    const userTrigger = page.locator('[aria-haspopup="true"]');
+    await userTrigger.click();
+    await page.locator('[role="menuitem"]:has-text("Lock")').click();
+    // Lock overlay should cover the screen
+    const overlay = page.locator('text=Locked');
+    await expect(overlay).toBeVisible();
+  });
+
+  test('clicking lock overlay unlocks', async ({ page }) => {
+    const userTrigger = page.locator('[aria-haspopup="true"]');
+    await userTrigger.click();
+    await page.locator('[role="menuitem"]:has-text("Lock")').click();
+    await expect(page.locator('text=Locked')).toBeVisible();
+    // Click to unlock
+    await page.locator('text=Click to unlock').click();
+    await expect(page.locator('text=Locked')).not.toBeVisible();
+  });
+
+  // ── Right-click context menu ─────────────────────────────────────────
+
+  test('right-clicking dock icon shows context menu with About', async ({ page }) => {
+    const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click({ button: 'right' });
+    await page.waitForTimeout(200);
+    await expect(page.locator('text=About')).toBeVisible();
+  });
+
+  test('About context menu item shows app info dialog', async ({ page }) => {
+    const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click({ button: 'right' });
+    await page.waitForTimeout(200);
+    await page.locator('text=About').click();
+    await expect(page.locator('text=MIT License')).toBeVisible();
+  });
+
+  // ── New app dock items ───────────────────────────────────────────────
+
+  test('Word Processor app opens from dock', async ({ page }) => {
+    const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
+    await dock.locator('[data-dock-item-id="word"]').click();
+    await page.waitForTimeout(300);
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog.first()).toBeVisible();
+  });
+
+  test('IDE app opens from dock', async ({ page }) => {
+    const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
+    await dock.locator('[data-dock-item-id="ide"]').click();
+    await page.waitForTimeout(300);
+    await expect(page.locator('[role="dialog"]').first()).toBeVisible();
   });
 });

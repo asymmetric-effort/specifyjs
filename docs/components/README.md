@@ -1,8 +1,8 @@
 # Component Library Reference
 
-60 components across 9 families. All zero-dependency, pure SpecifyJS, ARIA accessible, keyboard navigable.
+65 components across 9 families. All zero-dependency, pure SpecifyJS, ARIA accessible, keyboard navigable.
 
-## Layout (7)
+## Layout (10)
 
 | Component | Description | Docs |
 |-----------|-------------|------|
@@ -13,6 +13,9 @@
 | Splitter | Resizable split pane with draggable divider | [layout/splitter.md](layout/splitter.md) |
 | Tabs | Tabbed content with line/card/pill variants | [layout/tabs.md](layout/tabs.md) |
 | ScrollContainer | Scrollable container with edge shadow indicators | [layout/scroll-container.md](layout/scroll-container.md) |
+| DraggableWindow | Draggable, resizable window with title bar and edge snapping | [layout/draggable-window.md](layout/draggable-window.md) |
+| WindowManager | Context provider for multi-window state management | [layout/window-manager.md](layout/window-manager.md) |
+| DesktopBackground | Full-area workspace background with color/gradient/image | [layout/desktop-background.md](layout/desktop-background.md) |
 
 ## Form (14)
 
@@ -33,7 +36,7 @@
 | FileUpload | Drag-and-drop zone with file list | [form/file-upload.md](form/file-upload.md) |
 | NumberSpinner | Numeric input with +/- buttons | [form/number-spinner.md](form/number-spinner.md) |
 
-## Navigation (10)
+## Navigation (12)
 
 | Component | Description | Docs |
 |-----------|-------------|------|
@@ -47,6 +50,8 @@
 | Sidebar | Collapsible sidebar with nested sections | [nav/sidebar.md](nav/sidebar.md) |
 | Toolbar | Horizontal toolbar with button groups | [nav/toolbar.md](nav/toolbar.md) |
 | Menubar | Menu bar with hover-switch dropdowns | [nav/menubar.md](nav/menubar.md) |
+| Dock | Application launcher bar with active indicators and badges | [nav/dock.md](nav/dock.md) |
+| SystemTray | Top panel with clock, indicators, and user menu | [nav/system-tray.md](nav/system-tray.md) |
 
 ## Overlay (6)
 
@@ -92,7 +97,7 @@
 
 | Component | Description | Docs |
 |-----------|-------------|------|
-| UnityDesktop | Ubuntu Unity-style desktop with launcher sidebar and top panel | [page/unity-desktop.md](page/unity-desktop.md) |
+| UnityDesktop | Configurable Unity desktop with WindowManager, Dock, SystemTray, and DraggableWindow integration | [page/unity-desktop.md](page/unity-desktop.md) |
 | WordProcessor | Word processor layout with menu bar, toolbar, ruler, and document page | [page/word-processor.md](page/word-processor.md) |
 | IDE | VS Code-style IDE with file explorer, editor, terminal, and status bar | [page/ide.md](page/ide.md) |
 | TradingDashboard | Stock trading terminal with chart, order book, and watchlist grid | [page/trading-dashboard.md](page/trading-dashboard.md) |

@@ -11,16 +11,18 @@ test.describe('Unity Desktop PDV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     // Wait for the component gallery dialog to render
-    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 10000 });
-    // Open the "Page Layouts" accordion section
-    const pageLayoutsHeader = page.locator('button', { hasText: 'Page Layouts' });
+    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });
+    // Wait for feature flags to load and Page Layouts section to appear
+    const pageLayoutsHeader = page.locator('.accordion-header', { hasText: 'Page Layouts' });
+    await pageLayoutsHeader.waitFor({ state: 'visible', timeout: 15000 });
     await pageLayoutsHeader.scrollIntoViewIfNeeded();
     await pageLayoutsHeader.click();
-    // Click the "Unity Desktop" button inside the accordion
-    const unityBtn = page.locator('button', { hasText: 'Unity Desktop' });
+    // Wait for accordion content to expand, then click Unity Desktop
+    await page.waitForTimeout(300);
+    const unityBtn = page.locator('button', { hasText: 'Unity Desktop' }).last();
     await unityBtn.waitFor({ state: 'visible', timeout: 5000 });
     await unityBtn.click();
-    // Wait for the Unity Desktop layout to appear
+    // Wait for the Unity Desktop layout to appear in the fullscreen overlay
     await expect(page.locator('.unity-desktop')).toBeVisible({ timeout: 10000 });
   });
 

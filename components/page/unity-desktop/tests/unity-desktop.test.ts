@@ -9,6 +9,13 @@ import { createRoot } from '../../../../core/src/dom/create-root';
 
 let container: HTMLDivElement;
 
+/** Flush microtasks to allow deferred state updates (setState, WindowManager registration) */
+async function flush(): Promise<void> {
+  for (let i = 0; i < 4; i++) {
+    await new Promise<void>((r) => queueMicrotask(r));
+  }
+}
+
 function render(vnode: unknown): HTMLElement {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -200,7 +207,8 @@ describe('UnityDesktop', () => {
 // ---------------------------------------------------------------------------
 
 describe('UnityApp', () => {
-  it('renders a DraggableWindow inside UnityDesktop', () => {
+  it('renders a DraggableWindow inside UnityDesktop', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -211,13 +219,15 @@ describe('UnityApp', () => {
         ),
       ),
     );
+    await flush();
     // DraggableWindow renders with role="dialog"
     const dialog = el.querySelector('[role="dialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.getAttribute('aria-label')).toBe('Test App');
   });
 
-  it('renders children inside the window', () => {
+  it('renders children inside the window', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -228,12 +238,14 @@ describe('UnityApp', () => {
         ),
       ),
     );
+    await flush();
     const content = el.querySelector('.inner-content');
     expect(content).not.toBeNull();
     expect(content?.textContent).toBe('Inside the window');
   });
 
-  it('displays the window title', () => {
+  it('displays the window title', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -242,11 +254,13 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const dialog = el.querySelector('[role="dialog"]');
     expect(dialog?.textContent).toContain('My Window Title');
   });
 
-  it('renders with icon when provided', () => {
+  it('renders with icon when provided', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -256,12 +270,14 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const img = el.querySelector('.draggable-window__icon') as HTMLImageElement;
     expect(img).not.toBeNull();
     expect(img.getAttribute('src')).toBe('/test-icon.svg');
   });
 
-  it('renders with emoji icon', () => {
+  it('renders with emoji icon', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -271,11 +287,13 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const iconEl = el.querySelector('.draggable-window__icon');
     expect(iconEl).not.toBeNull();
   });
 
-  it('calls onClose when window close button is clicked', () => {
+  it('calls onClose when window close button is clicked', async () => {
+
     const onClose = vi.fn();
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
@@ -286,13 +304,15 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const closeBtn = el.querySelector('.draggable-window__btn-close') as HTMLElement;
     expect(closeBtn).not.toBeNull();
     closeBtn.click();
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('removes window from DOM when closed', () => {
+  it('removes window from DOM when closed', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -301,6 +321,7 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     // Window should exist
     let dialog = el.querySelector('[role="dialog"][aria-label="Removable App"]');
     expect(dialog).not.toBeNull();
@@ -312,18 +333,21 @@ describe('UnityApp', () => {
     expect(dialog).toBeNull();
   });
 
-  it('supports multiple windows simultaneously', () => {
+  it('supports multiple windows simultaneously', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'app-1', title: 'Window 1' }),
         createElement(UnityApp, { id: 'app-2', title: 'Window 2' }),
       ),
     );
+    await flush();
     const dialogs = el.querySelectorAll('[role="dialog"]');
     expect(dialogs.length).toBe(2);
   });
 
-  it('passes minSize to DraggableWindow', () => {
+  it('passes minSize to DraggableWindow', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -333,11 +357,13 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const dialog = el.querySelector('[role="dialog"]');
     expect(dialog).not.toBeNull();
   });
 
-  it('renders as not resizable when resizable=false', () => {
+  it('renders as not resizable when resizable=false', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -347,12 +373,14 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     // When resizable=false, no resize handles should be rendered
     const handles = el.querySelectorAll('.draggable-window__resize-handle');
     expect(handles.length).toBe(0);
   });
 
-  it('renders resize handles when resizable=true (default)', () => {
+  it('renders resize handles when resizable=true (default)', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -361,11 +389,13 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const handles = el.querySelectorAll('.draggable-window__resize-handle');
     expect(handles.length).toBe(8); // 8 directions
   });
 
-  it('applies defaultPosition', () => {
+  it('applies defaultPosition', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -375,13 +405,15 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const dialog = el.querySelector('[role="dialog"]') as HTMLElement;
     expect(dialog).not.toBeNull();
     expect(dialog.style.left).toBe('100px');
     expect(dialog.style.top).toBe('200px');
   });
 
-  it('applies defaultSize', () => {
+  it('applies defaultSize', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -391,13 +423,15 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const dialog = el.querySelector('[role="dialog"]') as HTMLElement;
     expect(dialog).not.toBeNull();
     expect(dialog.style.width).toBe('800px');
     expect(dialog.style.height).toBe('600px');
   });
 
-  it('has window controls (minimize, maximize, close)', () => {
+  it('has window controls (minimize, maximize, close)', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -406,6 +440,7 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     const minimize = el.querySelector('.draggable-window__btn-minimize');
     const maximize = el.querySelector('.draggable-window__btn-maximize');
     const close = el.querySelector('.draggable-window__btn-close');
@@ -414,7 +449,8 @@ describe('UnityApp', () => {
     expect(close).not.toBeNull();
   });
 
-  it('minimizes window when minimize button is clicked', () => {
+  it('minimizes window when minimize button is clicked', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -423,6 +459,7 @@ describe('UnityApp', () => {
         }),
       ),
     );
+    await flush();
     // Window should be visible
     let dialog = el.querySelector('[role="dialog"][aria-label="Minimize App"]');
     expect(dialog).not.toBeNull();
@@ -434,25 +471,29 @@ describe('UnityApp', () => {
     expect(dialog).toBeNull();
   });
 
-  it('has focused styling on the most recent window', () => {
+  it('has focused styling on the most recent window', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'focus-1', title: 'Focus 1' }),
         createElement(UnityApp, { id: 'focus-2', title: 'Focus 2' }),
       ),
     );
+    await flush();
     // The last opened window should have the focused class
     const focused = el.querySelectorAll('.draggable-window--focused');
     expect(focused.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders with correct z-index ordering', () => {
+  it('renders with correct z-index ordering', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'z-1', title: 'Z1' }),
         createElement(UnityApp, { id: 'z-2', title: 'Z2' }),
       ),
     );
+    await flush();
     const dialogs = el.querySelectorAll('[role="dialog"]');
     expect(dialogs.length).toBe(2);
     // Both should have zIndex style set
@@ -462,13 +503,15 @@ describe('UnityApp', () => {
     expect(z2).toBeGreaterThan(z1);
   });
 
-  it('focuses window on click (via onMouseDown)', () => {
+  it('focuses window on click (via onMouseDown)', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'click-1', title: 'Click 1' }),
         createElement(UnityApp, { id: 'click-2', title: 'Click 2' }),
       ),
     );
+    await flush();
     // Click on the first window to focus it
     const firstDialog = el.querySelector('[aria-label="Click 1"]') as HTMLElement;
     expect(firstDialog).not.toBeNull();
@@ -478,11 +521,13 @@ describe('UnityApp', () => {
     expect(firstDialog.classList.contains('draggable-window--focused')).toBe(true);
   });
 
-  it('integrates dock click to open/focus window', () => {
+  it('integrates dock click to open/focus window', async () => {
+
     const onAppOpen = vi.fn();
     const el = render(
       createElement(UnityDesktop, { apps: testApps, onAppOpen }),
     );
+    await flush();
     // Click on the dashboard dock item
     const dock = el.querySelector('.unity-desktop__dock');
     const dashboardBtn = dock?.querySelector('button[data-dock-item-id="dashboard"]') as HTMLElement;
@@ -491,22 +536,26 @@ describe('UnityApp', () => {
     expect(onAppOpen).toHaveBeenCalledWith('dashboard');
   });
 
-  it('marks dock item as active when its window is open', () => {
+  it('marks dock item as active when its window is open', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'dashboard', title: 'Dashboard' }),
       ),
     );
+    await flush();
     // The dock button for dashboard should have aria-pressed="true"
     const dock = el.querySelector('.unity-desktop__dock');
     const dashboardBtn = dock?.querySelector('button[data-dock-item-id="dashboard"]');
     expect(dashboardBtn?.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('marks dock item as inactive when window is not open', () => {
+  it('marks dock item as inactive when window is not open', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps }),
     );
+    await flush();
     // No windows open, all dock items should be aria-pressed="false"
     const dock = el.querySelector('.unity-desktop__dock');
     const btn = dock?.querySelector('button[data-dock-item-id="terminal"]');
@@ -519,7 +568,8 @@ describe('UnityApp', () => {
 // ---------------------------------------------------------------------------
 
 describe('UnityDesktop + UnityApp integration', () => {
-  it('full desktop renders with multiple app windows', () => {
+  it('full desktop renders with multiple app windows', async () => {
+
     const el = render(
       createElement(UnityDesktop, {
         apps: testApps,
@@ -546,6 +596,7 @@ describe('UnityDesktop + UnityApp integration', () => {
         ),
       ),
     );
+    await flush();
 
     // Should have the full layout
     expect(el.querySelector('.unity-desktop')).not.toBeNull();
@@ -562,7 +613,8 @@ describe('UnityDesktop + UnityApp integration', () => {
     expect(el.textContent).toContain('Terminal Content');
   });
 
-  it('closing all windows clears the desktop', () => {
+  it('closing all windows clears the desktop', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, { id: 'single-app', title: 'Single App' },
@@ -570,6 +622,7 @@ describe('UnityDesktop + UnityApp integration', () => {
         ),
       ),
     );
+    await flush();
 
     // Window exists
     expect(el.querySelector('[role="dialog"]')).not.toBeNull();
@@ -582,14 +635,17 @@ describe('UnityDesktop + UnityApp integration', () => {
     expect(el.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it('renders correctly without user prop', () => {
+  it('renders correctly without user prop', async () => {
+
     const el = render(
       createElement(UnityDesktop, { apps: testApps, theme: 'dark' }),
     );
+    await flush();
     expect(el.querySelector('.unity-desktop')).not.toBeNull();
   });
 
-  it('supports light theme throughout all sub-components', () => {
+  it('supports light theme throughout all sub-components', async () => {
+
     const el = render(
       createElement(UnityDesktop, {
         apps: testApps,
@@ -598,6 +654,7 @@ describe('UnityDesktop + UnityApp integration', () => {
         createElement(UnityApp, { id: 'light-app', title: 'Light App' }),
       ),
     );
+    await flush();
     const root = el.querySelector('.unity-desktop');
     expect(root?.getAttribute('data-theme')).toBe('light');
   });

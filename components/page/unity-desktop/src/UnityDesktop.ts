@@ -14,6 +14,7 @@ import { WindowManagerProvider, useWindowManager } from '../../../layout/window-
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
+import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import type { DockItem } from '../../../nav/dock/src/index';
 import type { WindowManagerContextValue } from '../../../layout/window-manager/src/index';
 
@@ -124,6 +125,61 @@ function ToastContainer(props: { toasts: ToastNotification[]; onDismiss: (id: nu
     style: containerStyle,
     'aria-label': 'Notifications',
   }, ...toastEls);
+}
+
+// ---------------------------------------------------------------------------
+// Mock app content for demo windows
+// ---------------------------------------------------------------------------
+
+function getMockContent(title: string): unknown {
+  const contentStyle: Record<string, string> = {
+    padding: '16px',
+    fontSize: '13px',
+    color: 'var(--color-text, #333)',
+    height: '100%',
+    overflow: 'auto',
+  };
+  switch (title) {
+    case 'Files':
+      return createElement('div', { style: contentStyle },
+        createElement('div', { style: { fontWeight: '600', marginBottom: '12px' } }, 'Home'),
+        createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+          ...['\u{1F4C1} Documents', '\u{1F4C1} Downloads', '\u{1F4C1} Music', '\u{1F4C1} Pictures', '\u{1F4C1} Videos', '\u{1F4C4} readme.txt']
+            .map((f) => createElement('span', { style: { cursor: 'pointer' } }, f)),
+        ),
+      );
+    case 'Terminal':
+      return createElement('div', { style: { ...contentStyle, backgroundColor: '#1a1a2e', color: '#00ff41', fontFamily: 'monospace', fontSize: '12px' } },
+        createElement('div', null, '$ whoami'),
+        createElement('div', null, 'operator'),
+        createElement('div', null, '$ uname -a'),
+        createElement('div', null, 'Linux specifyjs 6.1.0 #1 SMP x86_64 GNU/Linux'),
+        createElement('div', null, '$ _'),
+      );
+    case 'Browser':
+      return createElement('div', { style: contentStyle },
+        createElement('div', { style: { padding: '6px 10px', backgroundColor: '#f1f5f9', borderRadius: '4px', marginBottom: '12px', fontSize: '12px', color: '#64748b' } }, 'https://specifyjs.asymmetric-effort.com'),
+        createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#94a3b8' } }, 'Web page content area'),
+      );
+    case 'Mail':
+      return createElement('div', { style: contentStyle },
+        createElement('div', { style: { fontWeight: '600', marginBottom: '8px' } }, 'Inbox (3)'),
+        ...['Build passed \u2014 CI/CD Pipeline', 'PR Review: feat/unity-desktop', 'Weekly sync notes'].map((subj) =>
+          createElement('div', { style: { padding: '8px', borderBottom: '1px solid #e2e8f0', cursor: 'pointer' } }, subj),
+        ),
+      );
+    case 'Settings':
+      return createElement('div', { style: contentStyle },
+        createElement('div', { style: { fontWeight: '600', marginBottom: '12px' } }, 'System Settings'),
+        ...['Appearance', 'Network', 'Sound', 'Power', 'Users', 'About'].map((s) =>
+          createElement('div', { style: { padding: '8px 0', borderBottom: '1px solid #e2e8f0' } }, s),
+        ),
+      );
+    default:
+      return createElement('div', { style: contentStyle },
+        createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#94a3b8' } }, `${title} application content`),
+      );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -302,10 +358,37 @@ function UnityDesktopInner(props: {
     onDismiss: dismissToast,
   });
 
+  // Render windows from WindowManager state
+  const windowEls = windowManager.windows
+    .filter((w) => w.windowState !== 'minimized')
+    .map((w) => createElement(DraggableWindow, {
+      key: w.id,
+      id: w.id,
+      title: w.title,
+      icon: w.icon,
+      defaultPosition: w.position,
+      defaultSize: w.size,
+      zIndex: w.zIndex,
+      focused: w.focused,
+      windowState: w.windowState as 'normal' | 'maximized' | 'minimized',
+      onClose: () => windowManager.closeWindow(w.id),
+      onFocus: () => windowManager.focusWindow(w.id),
+      onMinimize: () => windowManager.minimizeWindow(w.id),
+      onMaximize: () => {
+        if (w.windowState === 'maximized') windowManager.restoreWindow(w.id);
+        else windowManager.maximizeWindow(w.id);
+      },
+      onMove: (pos: { x: number; y: number }) => windowManager.moveWindow(w.id, pos),
+      onResize: (size: { width: number; height: number }) => windowManager.resizeWindow(w.id, size),
+    },
+      getMockContent(w.title),
+    ));
+
   const desktopContentChildren: unknown[] = [];
   if (children) {
     desktopContentChildren.push(children);
   }
+  desktopContentChildren.push(...windowEls);
   desktopContentChildren.push(toastEl);
 
   const desktopEl = createElement(DesktopBackground, {

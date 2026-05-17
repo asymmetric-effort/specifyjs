@@ -10,10 +10,18 @@ import { test, expect } from '@playwright/test';
 test.describe('Unity Desktop PDV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
-    // Open the Unity Desktop layout
-    await page.locator('button', { hasText: 'Unity Desktop' }).click();
-    // Wait for the layout dialog to appear
-    await expect(page.locator('.unity-desktop')).toBeVisible();
+    // Wait for the component gallery dialog to render
+    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 10000 });
+    // Open the "Page Layouts" accordion section
+    const pageLayoutsHeader = page.locator('button', { hasText: 'Page Layouts' });
+    await pageLayoutsHeader.scrollIntoViewIfNeeded();
+    await pageLayoutsHeader.click();
+    // Click the "Unity Desktop" button inside the accordion
+    const unityBtn = page.locator('button', { hasText: 'Unity Desktop' });
+    await unityBtn.waitFor({ state: 'visible', timeout: 5000 });
+    await unityBtn.click();
+    // Wait for the Unity Desktop layout to appear
+    await expect(page.locator('.unity-desktop')).toBeVisible({ timeout: 10000 });
   });
 
   // ── Dock visibility ──────────────────────────────────────────────────

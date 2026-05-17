@@ -2,4 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 export { UnityDesktop } from './UnityDesktop';
-export type { UnityDesktopProps } from './UnityDesktop';
+export type { UnityDesktopProps, UnityDesktopApp, UnityDesktopUser, ToastNotification } from './UnityDesktop';
+
+export { UnityApp } from './UnityApp';
+export type { UnityAppProps } from './UnityApp';

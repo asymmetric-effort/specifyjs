@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/layout-draggable-window",
+  "version": "0.0.1",
+  "description": "Desktop-style draggable, resizable window component for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

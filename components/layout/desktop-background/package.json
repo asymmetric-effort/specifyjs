@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/layout-desktop-background",
+  "version": "0.0.1",
+  "description": "Desktop workspace background with context menu integration for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

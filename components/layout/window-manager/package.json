@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/layout-window-manager",
+  "version": "0.0.1",
+  "description": "Context-based window manager for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/nav-dock",
+  "version": "0.0.1",
+  "description": "Application dock/launcher bar component for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/nav-system-tray",
+  "version": "0.0.1",
+  "description": "Horizontal status bar with clock, indicators, and user menu for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

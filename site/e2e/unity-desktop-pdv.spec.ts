@@ -101,9 +101,8 @@ test.describe('Unity Desktop PDV', () => {
   test('opened window has title bar with controls', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
     await dock.locator('button[role="button"]').first().click();
-    await page.waitForTimeout(200);
     const dialog = page.locator('[role="dialog"]').first();
-    await expect(dialog).toBeVisible();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
     // Title bar with close/minimize/maximize buttons
     await expect(dialog.locator('[aria-label="Close"]')).toBeVisible();
     await expect(dialog.locator('[aria-label="Minimize"]')).toBeVisible();
@@ -122,13 +121,11 @@ test.describe('Unity Desktop PDV', () => {
   test('closing a window removes it from the desktop', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
     await dock.locator('button[role="button"]').first().click();
-    await page.waitForTimeout(200);
     const dialog = page.locator('[role="dialog"]').first();
-    await expect(dialog).toBeVisible();
-    // Click close
+    await expect(dialog).toBeVisible({ timeout: 5000 });
+    // Click close button within the dialog
     await dialog.locator('[aria-label="Close"]').click();
-    await page.waitForTimeout(200);
-    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(0, { timeout: 5000 });
   });
 
   // ── Multiple windows ─────────────────────────────────────────────────
@@ -203,7 +200,7 @@ test.describe('Unity Desktop PDV', () => {
     await firstBtn.click({ button: 'right' });
     await page.waitForTimeout(200);
     await page.locator('text=About').click();
-    await expect(page.locator('text=MIT License')).toBeVisible();
+    await expect(page.locator('.unity-desktop').locator('text=MIT License')).toBeVisible();
   });
 
   // ── New app dock items ───────────────────────────────────────────────
@@ -211,9 +208,8 @@ test.describe('Unity Desktop PDV', () => {
   test('Word Processor app opens from dock', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
     await dock.locator('[data-dock-item-id="word"]').click();
-    await page.waitForTimeout(300);
-    const dialog = page.locator('[role="dialog"]');
-    await expect(dialog.first()).toBeVisible();
+    const dialog = page.locator('[role="dialog"]').first();
+    await expect(dialog).toBeVisible({ timeout: 5000 });
   });
 
   test('IDE app opens from dock', async ({ page }) => {

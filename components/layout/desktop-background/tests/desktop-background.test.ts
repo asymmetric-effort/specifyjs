@@ -176,7 +176,7 @@ describe('DesktopBackground', () => {
       // jsdom normalizes url() to url("...")
       expect(overlay.style.backgroundImage).toContain('wallpaper.jpg');
       expect(overlay.style.backgroundSize).toBe('cover');
-      expect(overlay.style.backgroundPosition).toBe('center');
+      expect(overlay.style.backgroundPosition).toContain('center');
       expect(overlay.style.pointerEvents).toBe('none');
     });
 

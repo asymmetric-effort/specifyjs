@@ -61,6 +61,11 @@ export interface ClassComponentInstance<P extends Props = Props, S = unknown> {
   shouldComponentUpdate?(nextProps: P, nextState: S): boolean;
   getSnapshotBeforeUpdate?(prevProps: P, prevState: S): unknown;
   componentDidCatch?(error: unknown, info: ErrorInfo): void;
+  // Internal: set by the reconciler for setState/forceUpdate wiring
+  _fiber: unknown;
+  _pendingState: Array<Partial<S> | ((prevState: S, props: P) => Partial<S> | null)>;
+  _forceUpdate: boolean;
+  _enqueueUpdate(callback?: () => void): void;
 }
 
 export interface ErrorInfo {

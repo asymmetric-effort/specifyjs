@@ -53,8 +53,8 @@ export class Component<P extends Props = Props, S = unknown> {
   getSnapshotBeforeUpdate?(_prevProps: P, _prevState: S): unknown;
   componentDidCatch?(_error: unknown, _info: ErrorInfo): void;
 
-  // Internal: will be replaced by the reconciler
-  protected _enqueueUpdate(_callback?: () => void): void {
+  // Internal: replaced by the reconciler when the instance is mounted
+  _enqueueUpdate(_callback?: () => void): void {
     // Placeholder — the reconciler attaches the real implementation
   }
 }

@@ -28,7 +28,7 @@ import {
 } from '../hooks/hook-state';
 import { installDispatcher, uninstallDispatcher } from '../hooks/install-dispatcher';
 import { setRerenderCallback } from '../hooks/dispatcher';
-import { scheduleMicrotask } from '../core/scheduler';
+import { scheduleMicrotask, scheduleUpdate } from '../core/scheduler';
 import { notifyDevToolsOfCommit } from '../devtools/index';
 import {
   NoLanes,
@@ -125,21 +125,29 @@ export function performSyncWork(root: FiberRoot, children: SpecNode): void {
   performWork(root);
 }
 
+/**
+ * Schedule a re-render for the fiber tree containing the given fiber.
+ * Walks up to the root and calls scheduleRender.
+ * Used by both hook dispatchers and class component setState.
+ */
+function scheduleUpdateOnFiber(fiber: Fiber): void {
+  let node: Fiber | null = fiber;
+  while (node?.return) {
+    node = node.return;
+  }
+  if (node && node.stateNode) {
+    const fRoot = findRootForContainer(node.stateNode as Element);
+    if (fRoot) {
+      scheduleRender(fRoot, fRoot.pendingChildren);
+    }
+  }
+}
+
 // Install a persistent re-render callback that routes state updates
 // back through scheduleRender for async batching.
 function installPersistentRerenderCallback(): void {
   setRerenderCallback((fiber: Fiber) => {
-    // Walk up to the root fiber
-    let node: Fiber | null = fiber;
-    while (node?.return) {
-      node = node.return;
-    }
-    if (node && node.stateNode) {
-      const fRoot = findRootForContainer(node.stateNode as Element);
-      if (fRoot) {
-        scheduleRender(fRoot, fRoot.pendingChildren);
-      }
-    }
+    scheduleUpdateOnFiber(fiber);
   });
 }
 
@@ -520,10 +528,52 @@ function reconcileClassComponent(fiber: Fiber): void {
     // Mount
     instance = new Constructor(fiber.pendingProps);
     fiber.stateNode = instance;
+
+    // Wire the instance to the fiber for setState / forceUpdate
+    instance._fiber = fiber;
+    instance._enqueueUpdate = function (callback?: () => void) {
+      scheduleUpdate(() => {
+        scheduleUpdateOnFiber(fiber);
+        if (typeof callback === 'function') callback();
+      });
+    };
   } else {
     // Update
     instance = fiber.stateNode as ClassComponentInstance;
     instance.props = fiber.pendingProps;
+    // Keep fiber reference current (fiber may be a new work-in-progress clone)
+    instance._fiber = fiber;
+  }
+
+  // Process pending state updates (from setState calls between renders)
+  if (instance._pendingState.length > 0 || instance._forceUpdate) {
+    let nextState = instance.state as Record<string, unknown>;
+    for (const update of instance._pendingState) {
+      if (typeof update === 'function') {
+        const partial = update(nextState, instance.props) as Record<string, unknown> | null;
+        if (partial !== null) {
+          nextState = { ...nextState, ...partial };
+        }
+      } else {
+        nextState = { ...nextState, ...(update as Record<string, unknown>) };
+      }
+    }
+    instance._pendingState = [];
+
+    // PureComponent / shouldComponentUpdate bailout
+    const shouldUpdate =
+      instance._forceUpdate ||
+      !instance.shouldComponentUpdate ||
+      instance.shouldComponentUpdate(instance.props, nextState);
+
+    instance.state = nextState;
+    instance._forceUpdate = false;
+
+    if (!shouldUpdate) {
+      // Bail out — preserve existing children
+      fiber.child = fiber.alternate?.child ?? null;
+      return;
+    }
   }
 
   const children = instance.render();

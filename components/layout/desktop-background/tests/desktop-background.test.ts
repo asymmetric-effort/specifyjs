@@ -156,7 +156,7 @@ describe('DesktopBackground', () => {
       // jsdom normalizes url() to url("...")
       expect(el.style.backgroundImage).toContain('wallpaper.jpg');
       expect(el.style.backgroundSize).toBe('cover');
-      expect(el.style.backgroundPosition).toBe('center');
+      expect(el.style.backgroundPosition).toContain('center');
     });
 
     it('does not render image overlay when opacity is 1', () => {

@@ -3112,6 +3112,17 @@ const PAGE_LAYOUTS = [
     label: "Unity Desktop",
     desc: "Ubuntu Unity-style desktop with launcher and window management",
     component: UnityDesktop,
+    props: {
+      apps: [
+        { id: 'files', icon: 'F', label: 'Files' },
+        { id: 'browser', icon: 'W', label: 'Browser' },
+        { id: 'terminal', icon: 'T', label: 'Terminal' },
+        { id: 'mail', icon: 'M', label: 'Mail' },
+        { id: 'settings', icon: 'G', label: 'Settings' },
+      ],
+      user: { name: 'Demo User' },
+      theme: 'dark' as const,
+    },
   },
   {
     id: "word",
@@ -3269,7 +3280,7 @@ function PageLayoutSelector() {
             {
               style: { flex: "1", overflow: "auto" },
             },
-            createElement(active.component, null),
+            createElement(active.component, (active as any).props || null),
           ),
         )
       : null,

@@ -190,10 +190,11 @@ function Clock(props: {
     'aria-label': 'System clock',
     style: {
       display: 'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      lineHeight: '1.2',
+      gap: '6px',
+      lineHeight: '1',
       padding: '0 8px',
     },
   },

@@ -146,6 +146,11 @@ function UnityDesktopInner(props: {
   // -----------------------------------------------------------------------
 
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+  const [showAppsGrid, setShowAppsGrid] = useState(false);
+
+  const toggleAppsGrid = useCallback(() => {
+    setShowAppsGrid((prev: boolean) => !prev);
+  }, []);
 
   const dismissToast = useCallback((id: number) => {
     setToasts((prev: ToastNotification[]) => prev.filter((t: ToastNotification) => t.id !== id));
@@ -275,7 +280,7 @@ function UnityDesktopInner(props: {
 
   const systemTrayEl = createElement(SystemTray, {
     activeAppName,
-    activitiesButton: { label: 'Activities', onClick: () => {} },
+    activitiesButton: { label: 'Activities', onClick: toggleAppsGrid },
     clockFormat: '24h' as const,
     showSeconds: true,
     showDate: true,
@@ -313,6 +318,52 @@ function UnityDesktopInner(props: {
     style: workspaceStyle,
   }, ...desktopContentChildren));
 
+  // Apps grid overlay (Activities)
+  const appsGridEl = showAppsGrid ? createElement('div', {
+    style: {
+      position: 'absolute',
+      inset: '0',
+      zIndex: '100',
+      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+      gap: '24px',
+      padding: '48px',
+      alignContent: 'start',
+      overflowY: 'auto',
+    },
+    onClick: toggleAppsGrid,
+  },
+    ...apps.map((app: UnityDesktopApp) =>
+      createElement('button', {
+        key: app.id,
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+          background: 'none',
+          border: 'none',
+          color: '#ffffff',
+          cursor: 'pointer',
+          padding: '12px',
+          borderRadius: '8px',
+          fontSize: '12px',
+        },
+        onClick: (e: Event) => {
+          e.stopPropagation();
+          setShowAppsGrid(false);
+          handleDockItemClick(app.id);
+        },
+      },
+        createElement('span', {
+          style: { fontSize: '32px', display: 'block' },
+        }, app.icon),
+        createElement('span', null, app.label),
+      ),
+    ),
+  ) : null;
+
   return createElement('div', {
     className: 'unity-desktop',
     style: containerStyle,
@@ -332,7 +383,7 @@ function UnityDesktopInner(props: {
       createElement('main', {
         className: 'unity-desktop__desktop',
         style: { flex: '1', position: 'relative', overflow: 'hidden' },
-      }, desktopEl),
+      }, desktopEl, appsGridEl),
     ),
   );
 }

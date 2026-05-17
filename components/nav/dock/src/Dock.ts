@@ -377,6 +377,7 @@ export function Dock(props: DockProps): SpecNode {
     gap: '2px',
     padding: '4px',
     backgroundColor: 'var(--dock-bg, rgba(0, 0, 0, 0.7))',
+    color: '#ffffff',
     border: '1px solid var(--dock-border, rgba(255, 255, 255, 0.1))',
     borderRadius: '8px',
     boxSizing: 'border-box',

@@ -532,18 +532,10 @@ function reconcileClassComponent(fiber: Fiber): void {
     // Wire the instance to the fiber for setState / forceUpdate
     instance._fiber = fiber;
     instance._enqueueUpdate = function (callback?: () => void) {
-      // Walk up to the root and perform a synchronous render pass
-      let node: Fiber | null = fiber;
-      while (node?.return) {
-        node = node.return;
+      scheduleUpdateOnFiber(fiber);
+      if (typeof callback === 'function') {
+        scheduleMicrotask(callback);
       }
-      if (node && node.stateNode) {
-        const fRoot = findRootForContainer(node.stateNode as Element);
-        if (fRoot) {
-          performSyncWork(fRoot, fRoot.pendingChildren);
-        }
-      }
-      if (typeof callback === 'function') callback();
     };
   } else {
     // Update

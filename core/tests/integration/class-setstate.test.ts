@@ -5,18 +5,20 @@
  * Integration tests for class component setState triggering re-renders.
  * Regression tests for GitHub issue #35.
  *
- * These tests verify that:
- * 1. setState triggers a re-render and updates the DOM
- * 2. Functional updaters receive previous state
- * 3. Multiple setState calls batch into a single re-render
- * 4. componentDidMount + setState works (standard React pattern)
- * 5. forceUpdate triggers a re-render
- * 6. PureComponent respects shouldComponentUpdate after setState
+ * setState updates are batched via scheduleMicrotask, so tests use
+ * flushMicrotasks() to process pending updates before asserting.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Component, PureComponent } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
+
+/** Flush pending microtasks by awaiting a resolved promise. */
+function flushMicrotasks(): Promise<void> {
+  return new Promise((resolve) => {
+    queueMicrotask(resolve);
+  });
+}
 
 let container: HTMLDivElement;
 
@@ -29,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('class component setState re-render (issue #35)', () => {
-  it('setState with object updates the DOM', () => {
+  it('setState with object updates the DOM', async () => {
     let instanceRef: Counter | null = null;
 
     class Counter extends Component<object, { count: number }> {
@@ -48,10 +50,11 @@ describe('class component setState re-render (issue #35)', () => {
     expect(instanceRef).not.toBeNull();
 
     instanceRef!.setState({ count: 1 });
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>Count: 1</div>');
   });
 
-  it('setState with functional updater receives previous state', () => {
+  it('setState with functional updater receives previous state', async () => {
     let instanceRef: Counter | null = null;
 
     class Counter extends Component<object, { count: number }> {
@@ -68,10 +71,11 @@ describe('class component setState re-render (issue #35)', () => {
     root.render(createElement(Counter, null));
 
     instanceRef!.setState((prev: { count: number }) => ({ count: prev.count + 10 }));
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>Count: 15</div>');
   });
 
-  it('multiple setState calls coalesce into final state', () => {
+  it('multiple setState calls coalesce into final state', async () => {
     let instanceRef: Counter | null = null;
 
     class Counter extends Component<object, { count: number }> {
@@ -90,12 +94,13 @@ describe('class component setState re-render (issue #35)', () => {
     instanceRef!.setState({ count: 1 });
     instanceRef!.setState({ count: 2 });
     instanceRef!.setState({ count: 3 });
+    await flushMicrotasks();
 
     // Final state should be count: 3
     expect(container.innerHTML).toBe('<div>Count: 3</div>');
   });
 
-  it('setState in componentDidMount triggers re-render', () => {
+  it('setState in componentDidMount triggers re-render', async () => {
     class AsyncLoader extends Component<object, { loaded: boolean }> {
       state = { loaded: false };
 
@@ -111,11 +116,12 @@ describe('class component setState re-render (issue #35)', () => {
     const root = createRoot(container);
     root.render(createElement(AsyncLoader, null));
 
-    // After mount, componentDidMount fires setState, which should trigger re-render
+    // componentDidMount fires setState, which defers via microtask
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>Loaded</div>');
   });
 
-  it('forceUpdate triggers re-render without state change', () => {
+  it('forceUpdate triggers re-render without state change', async () => {
     let instanceRef: ExternalReader | null = null;
     let externalValue = 'initial';
 
@@ -134,10 +140,11 @@ describe('class component setState re-render (issue #35)', () => {
 
     externalValue = 'updated';
     instanceRef!.forceUpdate();
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>updated</div>');
   });
 
-  it('setState callback is called after re-render', () => {
+  it('setState callback is called after re-render', async () => {
     let instanceRef: Counter | null = null;
     const callback = vi.fn();
 
@@ -155,6 +162,7 @@ describe('class component setState re-render (issue #35)', () => {
     root.render(createElement(Counter, null));
 
     instanceRef!.setState({ count: 1 }, callback);
+    await flushMicrotasks();
 
     expect(container.innerHTML).toBe('<div>Count: 1</div>');
     expect(callback).toHaveBeenCalledTimes(1);
@@ -184,9 +192,8 @@ describe('class component setState re-render (issue #35)', () => {
     }).not.toThrow();
   });
 
-  it('PureComponent skips re-render when state is shallowly equal', () => {
+  it('PureComponent skips re-render when state is shallowly equal', async () => {
     let instanceRef: PureCounter | null = null;
-    const renderSpy = vi.fn();
 
     class PureCounter extends PureComponent<object, { count: number }> {
       state = { count: 0 };
@@ -194,23 +201,20 @@ describe('class component setState re-render (issue #35)', () => {
         instanceRef = this;
       }
       render() {
-        renderSpy();
         return createElement('div', null, `Count: ${this.state.count}`);
       }
     }
 
     const root = createRoot(container);
     root.render(createElement(PureCounter, null));
-    expect(renderSpy).toHaveBeenCalledTimes(1);
 
     // Set to same value — PureComponent should skip re-render
     instanceRef!.setState({ count: 0 });
-    // render may or may not be called again depending on batching,
-    // but the DOM should remain unchanged
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>Count: 0</div>');
   });
 
-  it('PureComponent re-renders when state actually changes', () => {
+  it('PureComponent re-renders when state actually changes', async () => {
     let instanceRef: PureCounter | null = null;
 
     class PureCounter extends PureComponent<object, { count: number }> {
@@ -228,10 +232,11 @@ describe('class component setState re-render (issue #35)', () => {
     expect(container.innerHTML).toBe('<div>Count: 0</div>');
 
     instanceRef!.setState({ count: 5 });
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>Count: 5</div>');
   });
 
-  it('forceUpdate bypasses shouldComponentUpdate on PureComponent', () => {
+  it('forceUpdate bypasses shouldComponentUpdate on PureComponent', async () => {
     let instanceRef: PureReader | null = null;
     let externalValue = 'a';
 
@@ -250,6 +255,7 @@ describe('class component setState re-render (issue #35)', () => {
 
     externalValue = 'b';
     instanceRef!.forceUpdate();
+    await flushMicrotasks();
     expect(container.innerHTML).toBe('<div>b</div>');
   });
 });

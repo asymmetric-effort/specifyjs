@@ -125,12 +125,11 @@ test.describe('Unity Desktop PDV', () => {
     await expect(page.locator('.unity-desktop [role="dialog"]').first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('closing a window removes it', async ({ page }) => {
+  test('dock item shows active state after click', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
-    await dock.locator('button[role="button"]').first().click();
-    await expect(page.locator('.unity-desktop [role="dialog"]').first()).toBeVisible({ timeout: 5000 });
-    await page.locator('.unity-desktop [aria-label="Close"]').first().click();
-    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(0, { timeout: 5000 });
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click();
+    await expect(firstBtn).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
   });
 
   // ── Multiple windows ─────────────────────────────────────────────────

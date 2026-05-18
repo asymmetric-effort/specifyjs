@@ -10,7 +10,7 @@
 
 import { createElement } from '../../../../core/src/index';
 import { useState, useCallback, useMemo, useEffect } from '../../../../core/src/hooks/index';
-import { WindowManagerProvider, useWindowManager } from '../../../layout/window-manager/src/index';
+import { WindowManagerProvider } from '../../../layout/window-manager/src/index';
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
@@ -19,7 +19,6 @@ import { WordProcessor } from '../../../page/word-processor/src/index';
 import { IDE } from '../../../page/ide/src/index';
 import { TradingDashboard } from '../../../page/trading-dashboard/src/index';
 import type { DockItem } from '../../../nav/dock/src/index';
-import type { WindowManagerContextValue } from '../../../layout/window-manager/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -192,6 +191,23 @@ function getMockContent(title: string): unknown {
 }
 
 // ---------------------------------------------------------------------------
+// Internal: Open window state for UnityDesktopInner
+// ---------------------------------------------------------------------------
+
+interface InternalOpenWindow {
+  id: string;
+  title: string;
+  icon?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  focused: boolean;
+  windowState: 'normal' | 'maximized' | 'minimized';
+}
+
+// ---------------------------------------------------------------------------
 // Internal: Inner layout (has access to WindowManager context)
 // ---------------------------------------------------------------------------
 
@@ -209,20 +225,7 @@ function UnityDesktopInner(props: {
   // Local window state (direct state, not context-dependent)
   // -----------------------------------------------------------------------
 
-  interface OpenWindow {
-    id: string;
-    title: string;
-    icon?: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    zIndex: number;
-    focused: boolean;
-    windowState: 'normal' | 'maximized' | 'minimized';
-  }
-
-  const [openWindows, setOpenWindows] = useState<OpenWindow[]>([]);
+  const [openWindows, setOpenWindows] = useState<InternalOpenWindow[]>([]);
 
   // -----------------------------------------------------------------------
   // Toast state
@@ -264,21 +267,21 @@ function UnityDesktopInner(props: {
     : 1;
 
   const handleDockItemClick = useCallback((id: string) => {
-    setOpenWindows((prev: OpenWindow[]) => {
-      const existing = prev.find((w: OpenWindow) => w.id === id);
+    setOpenWindows((prev: InternalOpenWindow[]) => {
+      const existing = prev.find((w: InternalOpenWindow) => w.id === id);
       if (existing) {
         // Focus or restore
-        const maxZ = Math.max(...prev.map((w: OpenWindow) => w.zIndex)) + 1;
-        return prev.map((w: OpenWindow) => w.id === id
+        const maxZ = Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1;
+        return prev.map((w: InternalOpenWindow) => w.id === id
           ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
           : { ...w, focused: false });
       }
       // Open new window
       const app = apps.find((a: UnityDesktopApp) => a.id === id);
       if (!app) return prev;
-      const maxZ = prev.length > 0 ? Math.max(...prev.map((w: OpenWindow) => w.zIndex)) + 1 : 1;
+      const maxZ = prev.length > 0 ? Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1 : 1;
       const cascadeN = prev.length;
-      const newWin: OpenWindow = {
+      const newWin: InternalOpenWindow = {
         id: app.id,
         title: app.label,
         icon: app.icon,
@@ -290,7 +293,7 @@ function UnityDesktopInner(props: {
         focused: true,
         windowState: 'normal',
       };
-      return [...prev.map((w: OpenWindow) => ({ ...w, focused: false })), newWin];
+      return [...prev.map((w: InternalOpenWindow) => ({ ...w, focused: false })), newWin];
     });
     if (onAppOpen) onAppOpen(id);
   }, [apps, onAppOpen]);
@@ -301,7 +304,7 @@ function UnityDesktopInner(props: {
 
   const dockItems: DockItem[] = useMemo(() => {
     return apps.map((app: UnityDesktopApp) => {
-      const isRunning = openWindows.some((w: OpenWindow) => w.id === app.id);
+      const isRunning = openWindows.some((w: InternalOpenWindow) => w.id === app.id);
       return {
         id: app.id,
         icon: app.icon,
@@ -309,16 +312,16 @@ function UnityDesktopInner(props: {
         active: isRunning,
       };
     });
-  }, [apps, windowManager.windows]);
+  }, [apps, openWindows]);
 
   // -----------------------------------------------------------------------
   // SystemTray config
   // -----------------------------------------------------------------------
 
   const activeAppName = useMemo(() => {
-    const focused = openWindows.find((w: OpenWindow) => w.focused);
+    const focused = openWindows.find((w: InternalOpenWindow) => w.focused);
     return focused ? focused.title : undefined;
-  }, [windowManager.focusedWindowId, windowManager.windows]);
+  }, [openWindows]);
 
   const handleLock = useCallback(() => {
     setLocked(true);
@@ -421,8 +424,8 @@ function UnityDesktopInner(props: {
 
   // Render windows from local state
   const windowEls = openWindows
-    .filter((w: OpenWindow) => w.windowState !== 'minimized')
-    .map((w: OpenWindow) => createElement(DraggableWindow, {
+    .filter((w: InternalOpenWindow) => w.windowState !== 'minimized')
+    .map((w: InternalOpenWindow) => createElement(DraggableWindow, {
       key: w.id,
       id: w.id,
       title: w.title,
@@ -433,23 +436,23 @@ function UnityDesktopInner(props: {
       focused: w.focused,
       windowState: w.windowState,
       onClose: () => {
-        setOpenWindows((prev: OpenWindow[]) => prev.filter((ww: OpenWindow) => ww.id !== w.id));
+        setOpenWindows((prev: InternalOpenWindow[]) => prev.filter((ww: InternalOpenWindow) => ww.id !== w.id));
       },
       onFocus: () => {
-        setOpenWindows((prev: OpenWindow[]) => {
-          const maxZ = Math.max(...prev.map((ww: OpenWindow) => ww.zIndex)) + 1;
-          return prev.map((ww: OpenWindow) => ww.id === w.id
+        setOpenWindows((prev: InternalOpenWindow[]) => {
+          const maxZ = Math.max(...prev.map((ww: InternalOpenWindow) => ww.zIndex)) + 1;
+          return prev.map((ww: InternalOpenWindow) => ww.id === w.id
             ? { ...ww, focused: true, zIndex: maxZ }
             : { ...ww, focused: false });
         });
       },
       onMinimize: () => {
-        setOpenWindows((prev: OpenWindow[]) =>
-          prev.map((ww: OpenWindow) => ww.id === w.id ? { ...ww, windowState: 'minimized' as const } : ww));
+        setOpenWindows((prev: InternalOpenWindow[]) =>
+          prev.map((ww: InternalOpenWindow) => ww.id === w.id ? { ...ww, windowState: 'minimized' as const } : ww));
       },
       onMaximize: () => {
-        setOpenWindows((prev: OpenWindow[]) =>
-          prev.map((ww: OpenWindow) => ww.id === w.id
+        setOpenWindows((prev: InternalOpenWindow[]) =>
+          prev.map((ww: InternalOpenWindow) => ww.id === w.id
             ? { ...ww, windowState: ww.windowState === 'maximized' ? 'normal' as const : 'maximized' as const }
             : ww));
       },

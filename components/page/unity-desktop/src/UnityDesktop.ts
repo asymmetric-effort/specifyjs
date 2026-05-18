@@ -262,10 +262,6 @@ function UnityDesktopInner(props: {
   // Dock item click handler
   // -----------------------------------------------------------------------
 
-  let nextZIndex = openWindows.length > 0
-    ? Math.max(...openWindows.map((w) => w.zIndex)) + 1
-    : 1;
-
   const handleDockItemClick = useCallback((id: string) => {
     setOpenWindows((prev: InternalOpenWindow[]) => {
       const existing = prev.find((w: InternalOpenWindow) => w.id === id);
@@ -302,26 +298,23 @@ function UnityDesktopInner(props: {
   // Build dock items from apps + running state
   // -----------------------------------------------------------------------
 
-  const dockItems: DockItem[] = useMemo(() => {
-    return apps.map((app: UnityDesktopApp) => {
-      const isRunning = openWindows.some((w: InternalOpenWindow) => w.id === app.id);
-      return {
-        id: app.id,
-        icon: app.icon,
-        label: app.label,
-        active: isRunning,
-      };
-    });
-  }, [apps, openWindows]);
+  // Compute dock items directly (no useMemo — openWindows reference changes cause staleness issues)
+  const dockItems: DockItem[] = apps.map((app: UnityDesktopApp) => {
+    const isRunning = openWindows.some((w: InternalOpenWindow) => w.id === app.id);
+    return {
+      id: app.id,
+      icon: app.icon,
+      label: app.label,
+      active: isRunning,
+    };
+  });
 
   // -----------------------------------------------------------------------
   // SystemTray config
   // -----------------------------------------------------------------------
 
-  const activeAppName = useMemo(() => {
-    const focused = openWindows.find((w: InternalOpenWindow) => w.focused);
-    return focused ? focused.title : undefined;
-  }, [openWindows]);
+  const focusedWindow = openWindows.find((w: InternalOpenWindow) => w.focused);
+  const activeAppName = focusedWindow ? focusedWindow.title : undefined;
 
   const handleLock = useCallback(() => {
     setLocked(true);
@@ -340,16 +333,16 @@ function UnityDesktopInner(props: {
     setContextMenuAppId(null);
   }, []);
 
-  const userMenuItems = useMemo(() => {
-    const items: Array<{ label: string; icon?: string; onClick: () => void; divider?: boolean }> = [];
-    if (user) {
-      items.push({ label: user.name, icon: undefined, onClick: () => {}, divider: false });
-      items.push({ label: '', icon: undefined, onClick: () => {}, divider: true });
-    }
-    items.push({ label: 'Lock', icon: undefined, onClick: handleLock, divider: false });
-    items.push({ label: 'Logout', icon: undefined, onClick: onLogout || (() => {}), divider: false });
-    return items;
-  }, [user, onLogout, handleLock]);
+  const noop = useCallback(() => {}, []);
+  const handleLogout = useCallback(() => { if (onLogout) onLogout(); }, [onLogout]);
+
+  const userMenuItems: Array<{ label: string; icon?: string; onClick: () => void; divider?: boolean }> = [];
+  if (user) {
+    userMenuItems.push({ label: user.name, icon: undefined, onClick: noop, divider: false });
+    userMenuItems.push({ label: '', icon: undefined, onClick: noop, divider: true });
+  }
+  userMenuItems.push({ label: 'Lock', icon: undefined, onClick: handleLock, divider: false });
+  userMenuItems.push({ label: 'Logout', icon: undefined, onClick: handleLogout, divider: false });
 
   // -----------------------------------------------------------------------
   // Styles

@@ -204,7 +204,25 @@ function UnityDesktopInner(props: {
   children?: unknown;
 }) {
   const { apps, user, onAppOpen, onLogout, theme = 'dark', children } = props;
-  const windowManager: WindowManagerContextValue = useWindowManager();
+
+  // -----------------------------------------------------------------------
+  // Local window state (direct state, not context-dependent)
+  // -----------------------------------------------------------------------
+
+  interface OpenWindow {
+    id: string;
+    title: string;
+    icon?: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    zIndex: number;
+    focused: boolean;
+    windowState: 'normal' | 'maximized' | 'minimized';
+  }
+
+  const [openWindows, setOpenWindows] = useState<OpenWindow[]>([]);
 
   // -----------------------------------------------------------------------
   // Toast state
@@ -241,27 +259,41 @@ function UnityDesktopInner(props: {
   // Dock item click handler
   // -----------------------------------------------------------------------
 
+  let nextZIndex = openWindows.length > 0
+    ? Math.max(...openWindows.map((w) => w.zIndex)) + 1
+    : 1;
+
   const handleDockItemClick = useCallback((id: string) => {
-    // Check if window already open
-    const existingWindow = windowManager.windows.find((w) => w.id === id);
-    if (existingWindow) {
-      if (existingWindow.windowState === 'minimized') {
-        windowManager.restoreWindow(id);
+    setOpenWindows((prev: OpenWindow[]) => {
+      const existing = prev.find((w: OpenWindow) => w.id === id);
+      if (existing) {
+        // Focus or restore
+        const maxZ = Math.max(...prev.map((w: OpenWindow) => w.zIndex)) + 1;
+        return prev.map((w: OpenWindow) => w.id === id
+          ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
+          : { ...w, focused: false });
       }
-      windowManager.focusWindow(id);
-    } else {
-      // Find the app definition
+      // Open new window
       const app = apps.find((a: UnityDesktopApp) => a.id === id);
-      if (app) {
-        windowManager.openWindow({
-          id: app.id,
-          title: app.label,
-          icon: app.icon,
-        });
-      }
-    }
+      if (!app) return prev;
+      const maxZ = prev.length > 0 ? Math.max(...prev.map((w: OpenWindow) => w.zIndex)) + 1 : 1;
+      const cascadeN = prev.length;
+      const newWin: OpenWindow = {
+        id: app.id,
+        title: app.label,
+        icon: app.icon,
+        x: 60 + cascadeN * 30,
+        y: 40 + cascadeN * 30,
+        width: 600,
+        height: 400,
+        zIndex: maxZ,
+        focused: true,
+        windowState: 'normal',
+      };
+      return [...prev.map((w: OpenWindow) => ({ ...w, focused: false })), newWin];
+    });
     if (onAppOpen) onAppOpen(id);
-  }, [windowManager, apps, onAppOpen]);
+  }, [apps, onAppOpen]);
 
   // -----------------------------------------------------------------------
   // Build dock items from apps + running state
@@ -269,7 +301,7 @@ function UnityDesktopInner(props: {
 
   const dockItems: DockItem[] = useMemo(() => {
     return apps.map((app: UnityDesktopApp) => {
-      const isRunning = windowManager.windows.some((w) => w.id === app.id);
+      const isRunning = openWindows.some((w: OpenWindow) => w.id === app.id);
       return {
         id: app.id,
         icon: app.icon,
@@ -284,8 +316,7 @@ function UnityDesktopInner(props: {
   // -----------------------------------------------------------------------
 
   const activeAppName = useMemo(() => {
-    if (!windowManager.focusedWindowId) return undefined;
-    const focused = windowManager.windows.find((w) => w.id === windowManager.focusedWindowId);
+    const focused = openWindows.find((w: OpenWindow) => w.focused);
     return focused ? focused.title : undefined;
   }, [windowManager.focusedWindowId, windowManager.windows]);
 
@@ -388,28 +419,40 @@ function UnityDesktopInner(props: {
     onDismiss: dismissToast,
   });
 
-  // Render windows from WindowManager state
-  const windowEls = windowManager.windows
-    .filter((w) => w.windowState !== 'minimized')
-    .map((w) => createElement(DraggableWindow, {
+  // Render windows from local state
+  const windowEls = openWindows
+    .filter((w: OpenWindow) => w.windowState !== 'minimized')
+    .map((w: OpenWindow) => createElement(DraggableWindow, {
       key: w.id,
       id: w.id,
       title: w.title,
       icon: w.icon,
-      defaultPosition: w.position,
-      defaultSize: w.size,
+      defaultPosition: { x: w.x, y: w.y },
+      defaultSize: { width: w.width, height: w.height },
       zIndex: w.zIndex,
       focused: w.focused,
-      windowState: w.windowState as 'normal' | 'maximized' | 'minimized',
-      onClose: () => windowManager.closeWindow(w.id),
-      onFocus: () => windowManager.focusWindow(w.id),
-      onMinimize: () => windowManager.minimizeWindow(w.id),
-      onMaximize: () => {
-        if (w.windowState === 'maximized') windowManager.restoreWindow(w.id);
-        else windowManager.maximizeWindow(w.id);
+      windowState: w.windowState,
+      onClose: () => {
+        setOpenWindows((prev: OpenWindow[]) => prev.filter((ww: OpenWindow) => ww.id !== w.id));
       },
-      onMove: (pos: { x: number; y: number }) => windowManager.moveWindow(w.id, pos),
-      onResize: (size: { width: number; height: number }) => windowManager.resizeWindow(w.id, size),
+      onFocus: () => {
+        setOpenWindows((prev: OpenWindow[]) => {
+          const maxZ = Math.max(...prev.map((ww: OpenWindow) => ww.zIndex)) + 1;
+          return prev.map((ww: OpenWindow) => ww.id === w.id
+            ? { ...ww, focused: true, zIndex: maxZ }
+            : { ...ww, focused: false });
+        });
+      },
+      onMinimize: () => {
+        setOpenWindows((prev: OpenWindow[]) =>
+          prev.map((ww: OpenWindow) => ww.id === w.id ? { ...ww, windowState: 'minimized' as const } : ww));
+      },
+      onMaximize: () => {
+        setOpenWindows((prev: OpenWindow[]) =>
+          prev.map((ww: OpenWindow) => ww.id === w.id
+            ? { ...ww, windowState: ww.windowState === 'maximized' ? 'normal' as const : 'maximized' as const }
+            : ww));
+      },
     },
       getMockContent(w.title),
     ));

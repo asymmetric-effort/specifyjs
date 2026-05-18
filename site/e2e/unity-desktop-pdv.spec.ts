@@ -118,12 +118,19 @@ test.describe('Unity Desktop PDV', () => {
     expect(text.length).toBeGreaterThan(10);
   });
 
-  test('clicking a dock icon registers the app as active', async ({ page }) => {
+  test('clicking a dock icon opens a window', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
-    const firstBtn = dock.locator('button[role="button"]').first();
-    await firstBtn.click();
-    // The dock item should show as active (aria-pressed="true")
-    await expect(firstBtn).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
+    await dock.locator('button[role="button"]').first().click();
+    // A DraggableWindow should appear
+    await expect(page.locator('.unity-desktop [role="dialog"]').first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('closing a window removes it', async ({ page }) => {
+    const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
+    await dock.locator('button[role="button"]').first().click();
+    await expect(page.locator('.unity-desktop [role="dialog"]').first()).toBeVisible({ timeout: 5000 });
+    await page.locator('.unity-desktop [aria-label="Close"]').first().click();
+    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(0, { timeout: 5000 });
   });
 
   // ── Multiple windows ─────────────────────────────────────────────────

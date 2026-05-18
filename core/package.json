@@ -1,6 +1,6 @@
 {
   "name": "@asymmetric-effort/specifyjs",
-  "version": "0.2.49",
+  "version": "0.2.50",
   "description": "A declarative TypeScript UI framework built for performance and simplicity",
   "publishConfig": {
     "access": "public"

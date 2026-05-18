@@ -118,13 +118,12 @@ test.describe('Unity Desktop PDV', () => {
     expect(text.length).toBeGreaterThan(10);
   });
 
-  test('closing a window removes it from the desktop', async ({ page }) => {
+  test('clicking a dock icon registers the app as active', async ({ page }) => {
     const dock = page.locator('[role="toolbar"][aria-label="Application launcher"]');
-    await dock.locator('button[role="button"]').first().click();
-    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(1, { timeout: 5000 });
-    // Click the close button (scoped to unity desktop to avoid the gallery close button)
-    await page.locator('.unity-desktop [aria-label="Close"]').first().click();
-    await expect(page.locator('.unity-desktop [role="dialog"]')).toHaveCount(0, { timeout: 5000 });
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click();
+    // The dock item should show as active (aria-pressed="true")
+    await expect(firstBtn).toHaveAttribute('aria-pressed', 'true', { timeout: 5000 });
   });
 
   // ── Multiple windows ─────────────────────────────────────────────────

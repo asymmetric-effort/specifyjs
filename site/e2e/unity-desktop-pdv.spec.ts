@@ -63,12 +63,19 @@ test.describe('Unity Desktop PDV', () => {
     expect(winBox!.width).toBeGreaterThan(100);
     expect(winBox!.height).toBeGreaterThan(100);
 
-    // Verify the workspace container also has real dimensions
+    // Verify the workspace container has real dimensions
     const workspace = page.locator(`${desktop} .unity-desktop__desktop`);
     const wsBox = await workspace.boundingBox();
     expect(wsBox).not.toBeNull();
     expect(wsBox!.width).toBeGreaterThan(100);
     expect(wsBox!.height).toBeGreaterThan(100);
+
+    // Verify the window is within the workspace bounds (not clipped)
+    expect(winBox!.top).toBeGreaterThanOrEqual(wsBox!.top - 10);
+    expect(winBox!.left).toBeGreaterThanOrEqual(wsBox!.left - 10);
+
+    // Take a screenshot for visual verification
+    await page.locator(desktop).screenshot({ path: 'test-results/unity-desktop-after-dock-click.png' });
   });
 
   test('opened window contains mock app content', async ({ page }) => {

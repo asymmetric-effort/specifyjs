@@ -57,9 +57,18 @@ test.describe('Unity Desktop PDV', () => {
     const windowInDesktop = page.locator(`${desktop} [role="dialog"]`);
     await expect(windowInDesktop.first()).toBeVisible({ timeout: 10000 });
 
-    // Verify it has a title bar
-    const titleBar = windowInDesktop.first().locator('[role="toolbar"]');
-    await expect(titleBar).toBeVisible({ timeout: 5000 });
+    // Verify the window has real dimensions (not clipped to zero)
+    const winBox = await windowInDesktop.first().boundingBox();
+    expect(winBox).not.toBeNull();
+    expect(winBox!.width).toBeGreaterThan(100);
+    expect(winBox!.height).toBeGreaterThan(100);
+
+    // Verify the workspace container also has real dimensions
+    const workspace = page.locator(`${desktop} .unity-desktop__desktop`);
+    const wsBox = await workspace.boundingBox();
+    expect(wsBox).not.toBeNull();
+    expect(wsBox!.width).toBeGreaterThan(100);
+    expect(wsBox!.height).toBeGreaterThan(100);
   });
 
   test('opened window contains mock app content', async ({ page }) => {

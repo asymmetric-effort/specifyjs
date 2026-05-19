@@ -71,9 +71,10 @@ test.describe('Unity Desktop PDV', () => {
     expect(wsBox!.height).toBeGreaterThan(100);
 
     // Verify the window is within the workspace bounds (not clipped)
+    // boundingBox returns { x, y, width, height }
     if (wsBox && winBox) {
-      expect(winBox.top).toBeGreaterThanOrEqual(wsBox.top - 10);
-      expect(winBox.left).toBeGreaterThanOrEqual(wsBox.left - 10);
+      expect(winBox.y).toBeGreaterThanOrEqual(wsBox.y - 10);
+      expect(winBox.x).toBeGreaterThanOrEqual(wsBox.x - 10);
     }
   });
 

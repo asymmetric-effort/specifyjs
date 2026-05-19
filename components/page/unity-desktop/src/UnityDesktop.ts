@@ -9,7 +9,7 @@
  */
 
 import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useEffect } from '../../../../core/src/hooks/index';
+import { useState, useCallback, useMemo, useEffect, useRef } from '../../../../core/src/hooks/index';
 import { WindowManagerProvider } from '../../../layout/window-manager/src/index';
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
@@ -262,27 +262,31 @@ function UnityDesktopInner(props: {
   // Dock item click handler
   // -----------------------------------------------------------------------
 
+  // Use a ref for apps to avoid stale closures in useCallback
+  const appsRef = useRef(apps);
+  appsRef.current = apps;
+  const onAppOpenRef = useRef(onAppOpen);
+  onAppOpenRef.current = onAppOpen;
+
   const handleDockItemClick = useCallback((id: string) => {
     setOpenWindows((prev: InternalOpenWindow[]) => {
       const existing = prev.find((w: InternalOpenWindow) => w.id === id);
       if (existing) {
-        // Focus or restore
         const maxZ = Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1;
         return prev.map((w: InternalOpenWindow) => w.id === id
           ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
           : { ...w, focused: false });
       }
-      // Open new window
-      const app = apps.find((a: UnityDesktopApp) => a.id === id);
+      const currentApps = appsRef.current;
+      const app = currentApps.find((a: UnityDesktopApp) => a.id === id);
       if (!app) return prev;
       const maxZ = prev.length > 0 ? Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1 : 1;
-      const cascadeN = prev.length;
       const newWin: InternalOpenWindow = {
         id: app.id,
         title: app.label,
         icon: app.icon,
-        x: 60 + cascadeN * 30,
-        y: 40 + cascadeN * 30,
+        x: 60 + prev.length * 30,
+        y: 40 + prev.length * 30,
         width: 600,
         height: 400,
         zIndex: maxZ,
@@ -291,8 +295,8 @@ function UnityDesktopInner(props: {
       };
       return [...prev.map((w: InternalOpenWindow) => ({ ...w, focused: false })), newWin];
     });
-    if (onAppOpen) onAppOpen(id);
-  }, [apps, onAppOpen]);
+    if (onAppOpenRef.current) onAppOpenRef.current(id);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Build dock items from apps + running state

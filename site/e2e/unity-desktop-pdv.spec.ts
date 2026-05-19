@@ -77,10 +77,11 @@ test.describe('Unity Desktop PDV', () => {
   test('window has close button that removes it', async ({ page }) => {
     const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
     await dock.locator('button[role="button"]').first().click();
-    await expect(page.locator(`${desktop} [role="dialog"]`).first()).toBeVisible({ timeout: 10000 });
+    const win = page.locator(`${desktop} [role="dialog"]`).first();
+    await expect(win).toBeVisible({ timeout: 10000 });
 
-    // Close it
-    await page.locator(`${desktop} [role="dialog"] [aria-label="Close"]`).first().click();
+    // Close using the DraggableWindow's close button (specific class)
+    await win.locator('.draggable-window__btn-close').click();
     await expect(page.locator(`${desktop} [role="dialog"]`)).toHaveCount(0, { timeout: 5000 });
   });
 

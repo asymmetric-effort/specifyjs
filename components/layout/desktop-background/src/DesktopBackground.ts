@@ -38,6 +38,10 @@ export interface DesktopBackgroundProps {
   /** Called when the background is double-clicked. */
   onDoubleClick?: () => void;
 
+  /** Overflow behavior for the background container. Default: 'visible'.
+   *  Use 'hidden' to clip children at the container bounds. */
+  overflow?: 'hidden' | 'visible' | 'auto';
+
   /** Content rendered on top of the background. */
   children?: unknown;
 }
@@ -61,6 +65,7 @@ export function DesktopBackground(props: DesktopBackgroundProps) {
     contextMenuItems,
     onClick,
     onDoubleClick,
+    overflow = 'visible',
     children,
   } = props;
 
@@ -91,7 +96,7 @@ export function DesktopBackground(props: DesktopBackgroundProps) {
       position: 'relative',
       width: '100%',
       height: '100%',
-      overflow: 'hidden',
+      overflow,
       cursor: 'default',
       margin: '0',
       padding: '0',

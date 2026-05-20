@@ -40,10 +40,30 @@ describe('DesktopBackground', () => {
       expect(el.style.position).toBe('relative');
     });
 
-    it('renders with overflow hidden', () => {
+    it('defaults to overflow visible', () => {
       render(createElement(DesktopBackground, null));
       const el = container.querySelector('.desktop-background') as HTMLElement;
+      expect(el.style.overflow).toBe('visible');
+    });
+
+    it('accepts overflow prop', () => {
+      render(createElement(DesktopBackground, { overflow: 'hidden' }));
+      const el = container.querySelector('.desktop-background') as HTMLElement;
       expect(el.style.overflow).toBe('hidden');
+    });
+
+    it('absolutely-positioned children are visible with default overflow', () => {
+      render(createElement(DesktopBackground, null,
+        createElement('div', {
+          style: { position: 'absolute', top: '10px', left: '10px', width: '100px', height: '100px' },
+          className: 'test-absolute-child',
+        }),
+      ));
+      const child = container.querySelector('.test-absolute-child') as HTMLElement;
+      expect(child).not.toBeNull();
+      // Child should not be clipped by overflow:hidden
+      const parent = container.querySelector('.desktop-background') as HTMLElement;
+      expect(parent.style.overflow).toBe('visible');
     });
 
     it('renders with cursor default', () => {

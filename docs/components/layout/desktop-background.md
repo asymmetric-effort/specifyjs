@@ -20,6 +20,7 @@ import type { DesktopBackgroundProps } from 'specifyjs/components/layout/desktop
 | `contextMenuItems` | `ContextMenuItem[]` | `undefined` | Context menu items shown on right-click of the background. |
 | `onClick` | `() => void` | `undefined` | Called when the background itself is clicked (not a child). |
 | `onDoubleClick` | `() => void` | `undefined` | Called when the background is double-clicked. |
+| `overflow` | `'hidden' \| 'visible' \| 'auto'` | `'visible'` | Overflow behavior. Use `'visible'` (default) when children use `position: absolute` (e.g., DraggableWindow). Use `'hidden'` to clip children at the container bounds. |
 | `children` | `unknown` | -- | Content rendered on top of the background |
 
 ## Usage

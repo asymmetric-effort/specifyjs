@@ -74,7 +74,7 @@ test.describe('3D Space — PDV', () => {
     await expect(page.locator('.dialog-body')).toBeVisible();
     const body = page.locator('.dialog-body');
     await expect(body).toContainText('About This Demo');
-    await expect(body).toContainText('Space3D');
+    await expect(body).toContainText('3dSpace');
   });
 
   test('sidebar content renders — Scene Objects list', async ({ page }) => {

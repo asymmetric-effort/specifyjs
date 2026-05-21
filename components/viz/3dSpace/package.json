@@ -1,0 +1,11 @@
+{
+  "name": "@specifyjs/3d-space",
+  "version": "0.0.1",
+  "description": "3D scene graph, camera, lighting, and render pipeline for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "specifyjs": "*"
+  },
+  "keywords": ["specifyjs", "component", "3d", "scene", "visualization", "webgl"]
+}

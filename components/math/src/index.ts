@@ -3,4 +3,6 @@
 
 export * from './vec';
 export * from './mat';
+export * from './mat4';
+export * from './quaternion';
 export * from './solver';

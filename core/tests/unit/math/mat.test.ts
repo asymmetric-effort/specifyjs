@@ -14,7 +14,7 @@ import {
   matNAdd,
   matNCopy,
   matNFromArray,
-} from '../../../src/math/index';
+} from '../../../../components/math/src/index';
 
 describe('MatN', () => {
   it('should create a zero-initialized NxN matrix', () => {

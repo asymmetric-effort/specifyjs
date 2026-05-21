@@ -94,8 +94,8 @@ import {
   type ForceEdge as ForceEdgeType,
   type MousePosition,
 } from "../../../components/viz/force-graph/src/index";
-import { matN, matNSet, matNGet } from "../../../core/src/math/mat";
-import { solve } from "../../../core/src/math/solver";
+import { matN, matNSet, matNGet } from "../../../components/math/src/mat";
+import { solve } from "../../../components/math/src/solver";
 import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";

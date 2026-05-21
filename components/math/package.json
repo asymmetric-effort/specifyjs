@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/math",
+  "version": "0.0.1",
+  "description": "Linear algebra library (vectors, matrices, solvers) for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

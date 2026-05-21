@@ -14,7 +14,7 @@ import {
   luSolve,
   determinant,
   inverse,
-} from '../../../src/math/index';
+} from '../../../../components/math/src/index';
 
 describe('solve', () => {
   it('should solve a simple 2x2 system', () => {

@@ -7,8 +7,8 @@ import { ForceGraph, type ForceSimNode, type ForceEdge, type MousePosition } fro
 import { NumberSpinner } from '../../../components/form/number-spinner/src/index';
 import { Button } from '../../../components/form/button/src/index';
 import { Toggle } from '../../../components/form/toggle/src/index';
-import { matN, matNSet } from '../../../core/src/math/mat';
-import { solve } from '../../../core/src/math/solver';
+import { matN, matNSet } from '../../../components/math/src/mat';
+import { solve } from '../../../components/math/src/solver';
 
 // ── Constants ────────────────────────────────────────────────────────
 

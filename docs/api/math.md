@@ -23,7 +23,7 @@ import {
 
 > **Note:** The `math` subpath is an internal module. Depending on your project
 > setup you may need to import directly from the source files
-> (e.g. `../../core/src/math/vec`).
+> (e.g. `../../components/math/src/vec`).
 
 ---
 

@@ -20,7 +20,7 @@ import {
   vec3Cross,
   vec3Length,
   vec3Normalize,
-} from '../../../src/math/index';
+} from '../../../../components/math/src/index';
 
 describe('Vec2', () => {
   it('should create a Vec2 with given x and y', () => {

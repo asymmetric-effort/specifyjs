@@ -155,4 +155,66 @@ export class Mesh {
 
     return new Mesh(vertices, normals, indices, uvs);
   }
+
+  /**
+   * Create a UV sphere.
+   * @param radius - Sphere radius.
+   * @param stacks - Number of horizontal slices (latitude). Default 16.
+   * @param slices - Number of vertical slices (longitude). Default 24.
+   */
+  static createSphere(radius: number, stacks: number = 16, slices: number = 24): Mesh {
+    const vertCount = (stacks + 1) * (slices + 1);
+    const triCount = stacks * slices * 2;
+    const vertices = new Float32Array(vertCount * 3);
+    const normals = new Float32Array(vertCount * 3);
+    const indices = new Uint32Array(triCount * 3);
+
+    let vi = 0;
+    for (let st = 0; st <= stacks; st++) {
+      const phi = (st / stacks) * Math.PI; // 0 to PI (top to bottom)
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+
+      for (let sl = 0; sl <= slices; sl++) {
+        const theta = (sl / slices) * Math.PI * 2; // 0 to 2PI
+        const sinTheta = Math.sin(theta);
+        const cosTheta = Math.cos(theta);
+
+        // Normal = unit sphere position
+        const nx = sinPhi * cosTheta;
+        const ny = cosPhi;
+        const nz = sinPhi * sinTheta;
+
+        normals[vi] = nx;
+        normals[vi + 1] = ny;
+        normals[vi + 2] = nz;
+
+        vertices[vi] = nx * radius;
+        vertices[vi + 1] = ny * radius;
+        vertices[vi + 2] = nz * radius;
+
+        vi += 3;
+      }
+    }
+
+    let ii = 0;
+    for (let st = 0; st < stacks; st++) {
+      for (let sl = 0; sl < slices; sl++) {
+        const a = st * (slices + 1) + sl;
+        const b = a + slices + 1;
+
+        indices[ii] = a;
+        indices[ii + 1] = b;
+        indices[ii + 2] = a + 1;
+
+        indices[ii + 3] = a + 1;
+        indices[ii + 4] = b;
+        indices[ii + 5] = b + 1;
+
+        ii += 6;
+      }
+    }
+
+    return new Mesh(vertices, normals, indices);
+  }
 }

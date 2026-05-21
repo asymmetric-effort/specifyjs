@@ -751,6 +751,54 @@ describe('Mesh (additional)', () => {
   });
 });
 
+describe('Mesh.createSphere', () => {
+  it('creates a sphere with correct vertex count', () => {
+    const sphere = Mesh.createSphere(1, 8, 12);
+    expect(sphere.vertexCount).toBe((8 + 1) * (12 + 1));
+  });
+
+  it('creates a sphere with correct index count', () => {
+    const sphere = Mesh.createSphere(1, 8, 12);
+    expect(sphere.indexCount).toBe(8 * 12 * 2 * 3);
+  });
+
+  it('vertices are on the sphere surface', () => {
+    const r = 2;
+    const sphere = Mesh.createSphere(r, 10, 16);
+    for (let i = 0; i < sphere.vertices.length; i += 3) {
+      const x = sphere.vertices[i]!;
+      const y = sphere.vertices[i + 1]!;
+      const z = sphere.vertices[i + 2]!;
+      const dist = Math.sqrt(x * x + y * y + z * z);
+      expect(dist).toBeCloseTo(r, 4);
+    }
+  });
+
+  it('normals are unit length', () => {
+    const sphere = Mesh.createSphere(3, 12, 18);
+    for (let i = 0; i < sphere.normals.length; i += 3) {
+      const nx = sphere.normals[i]!;
+      const ny = sphere.normals[i + 1]!;
+      const nz = sphere.normals[i + 2]!;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      expect(len).toBeCloseTo(1, 4);
+    }
+  });
+
+  it('indices are within valid range', () => {
+    const sphere = Mesh.createSphere(1, 8, 12);
+    for (let i = 0; i < sphere.indices.length; i++) {
+      expect(sphere.indices[i]).toBeLessThan(sphere.vertexCount);
+      expect(sphere.indices[i]).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('uses default stacks and slices', () => {
+    const sphere = Mesh.createSphere(1);
+    expect(sphere.vertexCount).toBe((16 + 1) * (24 + 1)); // defaults 16, 24
+  });
+});
+
 describe('SceneObject (additional)', () => {
   it('addChild to self sets parent to self', () => {
     const obj = new SceneObject('self');

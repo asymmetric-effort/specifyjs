@@ -6,10 +6,10 @@
  *
  * Two viewports on a single canvas:
  *   Left:  "View from Earth" — perspective camera near Earth looking at the Sun
- *   Right: "Oort Cloud view" — top-down orthographic showing the full system
+ *   Right: "Oort Cloud view" — orthographic at 45° from orbital plane
  *
  * Planets orbit the Sun in the XZ plane with simplified circular orbits.
- * Each body is a colored box (Mesh.createBox) scaled by relative size.
+ * Each body is a colored sphere (Mesh.createSphere) scaled by relative size.
  */
 
 import { createElement } from 'specifyjs';
@@ -88,7 +88,7 @@ export function PlanetsScreen() {
     const scene = new SceneGraph();
 
     // Sun at origin
-    const sunMesh = Mesh.createBox(SUN_SIZE, SUN_SIZE, SUN_SIZE);
+    const sunMesh = Mesh.createSphere(SUN_SIZE / 2, 20, 30);
     const sunObj = new SceneObject('sun');
     sunObj.position = { x: 0, y: 0, z: 0 };
     sunObj.mesh = sunMesh;
@@ -98,7 +98,7 @@ export function PlanetsScreen() {
     // Planet scene objects
     const planetObjects: SceneObject[] = [];
     for (const p of PLANETS) {
-      const mesh = Mesh.createBox(p.size, p.size, p.size);
+      const mesh = Mesh.createSphere(p.size / 2, 12, 18);
       const obj = new SceneObject(p.id);
       obj.position = { x: p.distance, y: 0, z: 0 };
       obj.mesh = mesh;
@@ -126,10 +126,16 @@ export function PlanetsScreen() {
       clearColor: { r: 0.02, g: 0.02, b: 0.06, a: 1 },
     });
 
-    // ── Camera 2: Oort Cloud top-down (orthographic) ──
+    // ── Camera 2: Oort Cloud view at 45° from orbital plane ──
+    const oortDist = 200;
+    const oortAngle = Math.PI / 4; // 45 degrees from horizontal
     const oortCam = new Camera({
       projectionMode: 'orthographic',
-      position: { x: 0, y: 200, z: 0.01 },
+      position: {
+        x: 0,
+        y: oortDist * Math.sin(oortAngle),
+        z: oortDist * Math.cos(oortAngle),
+      },
       left: -70,
       right: 70,
       top: 70,
@@ -217,16 +223,6 @@ export function PlanetsScreen() {
           ctx.stroke();
         }
 
-        // Draw Earth camera indicator on top-down view
-        const camPx = ocx + earthCam.position.x * scale;
-        const camPy = ocy + earthCam.position.z * scale;
-        ctx.fillStyle = '#ffff00';
-        ctx.beginPath();
-        ctx.arc(camPx, camPy, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '9px sans-serif';
-        ctx.fillText('CAM', camPx + 5, camPy + 3);
-
         ctx.restore();
       }
 
@@ -275,7 +271,7 @@ export function PlanetsScreen() {
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'Left: perspective view from Earth toward the Sun. Right: top-down orthographic view from the Oort Cloud. Yellow dot marks the Earth camera.'),
+      }, 'Left: perspective view from Earth toward the Sun. Right: Oort Cloud view at 45\u00b0 from the orbital plane.'),
     ),
     // Right: sidebar with planet data
     createElement('div', {
@@ -322,11 +318,11 @@ export function PlanetsScreen() {
         'Earth View: Perspective camera positioned near Earth, looking at the Sun. FOV 60 degrees.',
       ),
       createElement('p', { style: { fontSize: '12px', marginTop: '4px' } },
-        'Oort Cloud: Orthographic camera at y=200, looking straight down. Bounds: +/-70 units.',
+        'Oort Cloud: Orthographic camera at 45\u00b0 from orbital plane. Bounds: \u00b170 units.',
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Rendering'),
       createElement('p', { style: { fontSize: '12px' } },
-        'CPU pipeline with flat shading. Planets are colored boxes (Mesh.createBox) orbiting in the XZ plane.',
+        'CPU pipeline with flat shading. Planets are colored spheres (Mesh.createSphere) orbiting in the XZ plane.',
       ),
     ),
   );

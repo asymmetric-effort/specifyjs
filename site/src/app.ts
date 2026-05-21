@@ -24,6 +24,7 @@ import { PlanetsScreen } from "./screens/planets";
 import { ConwaysGameOfLife } from "./screens/conways-game-of-life";
 import { RadioPropagation } from "./screens/radio-propagation";
 import { WumpusWorld } from "./screens/wumpus-world";
+import { Space3DDemo } from "./screens/3d-space";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -105,6 +106,11 @@ function AppContent() {
       path: "/wumpus",
       title: "Wumpus World",
       content: createElement(WumpusWorld, null),
+    },
+    {
+      path: "/3dSpace",
+      title: "3D Space",
+      content: createElement(Space3DDemo, null),
     },
   ];
 

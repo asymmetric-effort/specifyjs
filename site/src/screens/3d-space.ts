@@ -52,20 +52,21 @@ export function Space3DDemo() {
     description: 'Camera flyby demo rendering five colored boxes in 3D space.',
   });
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const initializedRef = useRef(false);
   const rafRef = useRef<number>(0);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  // Use ref callback — fires synchronously when the DOM node is created
+  const containerCallback = (node: HTMLDivElement | null) => {
+    if (!node || initializedRef.current) return;
+    initializedRef.current = true;
 
-    // Create canvas via DOM to avoid ref timing issues
     const canvas = document.createElement('canvas');
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     canvas.style.display = 'block';
     canvas.style.backgroundColor = '#0f172a';
-    container.appendChild(canvas);
+    node.appendChild(canvas);
 
     // Build scene
     const scene = new SceneGraph();
@@ -129,10 +130,17 @@ export function Space3DDemo() {
 
     rafRef.current = requestAnimationFrame(frame);
 
-    return () => {
+    cleanupRef.current = () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       pipeline.dispose();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    };
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) cleanupRef.current();
     };
   }, []);
 
@@ -146,7 +154,7 @@ export function Space3DDemo() {
       }, '3D Space Demo'),
       createElement('div', { style: { flex: '1', minHeight: '300px' } },
         createElement('div', {
-          ref: containerRef,
+          ref: containerCallback,
           style: { width: `${WIDTH}px`, height: `${HEIGHT}px`, backgroundColor: '#0f172a' },
         }),
       ),

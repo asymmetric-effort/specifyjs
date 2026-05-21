@@ -18,7 +18,9 @@ interface ProjectedTriangle {
   sx: [number, number, number];
   /** Screen-space y coordinates for the 3 vertices. */
   sy: [number, number, number];
-  /** Average Z in clip space (used for depth sorting). */
+  /** Object center depth in view space (for coarse sorting). */
+  objectDepth: number;
+  /** Average Z in clip space (for fine sorting within an object). */
   avgZ: number;
   /** Shaded fill color. */
   color: Color;
@@ -72,6 +74,10 @@ export class CpuPipeline implements RenderPipeline {
       // model * view * projection
       const modelMat = obj.getWorldMatrix();
       const mvp = mat4Multiply(viewProj, modelMat);
+
+      // Compute object center depth in view space for coarse depth sorting
+      const viewModel = mat4Multiply(viewMat, modelMat);
+      const objCenterZ = viewModel[14]!; // Translation Z in view space (negative = into screen)
 
       const vertices = mesh.vertices;
       const indices = mesh.indices;
@@ -171,14 +177,21 @@ export class CpuPipeline implements RenderPipeline {
         triangles.push({
           sx: [sx0, sx1, sx2],
           sy: [sy0, sy1, sy2],
+          objectDepth: objCenterZ,
           avgZ,
           color,
         });
       }
     }
 
-    // Painter's algorithm: sort back-to-front (larger Z = closer in NDC)
-    triangles.sort((a, b) => a.avgZ - b.avgZ);
+    // Painter's algorithm: sort back-to-front
+    // Primary key: object center depth (more negative = farther in view space, paint first)
+    // Secondary key: triangle average NDC Z (for triangles within the same object)
+    triangles.sort((a, b) => {
+      const depthDiff = a.objectDepth - b.objectDepth;
+      if (Math.abs(depthDiff) > 0.01) return depthDiff;
+      return a.avgZ - b.avgZ;
+    });
 
     // Render sorted triangles
     for (const tri of triangles) {

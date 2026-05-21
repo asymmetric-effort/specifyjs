@@ -40,6 +40,12 @@ export interface Space3DProps {
   objects?: SceneObject[];
   /** Lights. */
   lights?: Light[];
+  /** Show a 3D grid on the XZ plane for spatial reference. Default: false. */
+  showGrid?: boolean;
+  /** Grid size in world units (default: 20). */
+  gridSize?: number;
+  /** Grid divisions (default: 20). */
+  gridDivisions?: number;
   /** Preferred renderer: 'webgl' | 'cpu' | 'auto' (default 'auto'). */
   renderer?: 'webgl' | 'cpu' | 'auto';
 }

@@ -198,4 +198,166 @@ export class CpuPipeline implements RenderPipeline {
 
     ctx.restore();
   }
+
+  /**
+   * Render wireframe edges (black outlines) for all visible scene objects.
+   * Call after render() to overlay edges on the filled triangles.
+   */
+  renderEdges(
+    scene: SceneGraph,
+    camera: Camera,
+    viewport: Viewport,
+    options?: { color?: string; lineWidth?: number; opacity?: number },
+  ): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+
+    const color = options?.color ?? '#000000';
+    const lineWidth = options?.lineWidth ?? 1;
+    const opacity = options?.opacity ?? 0.6;
+
+    const viewMat = camera.getViewMatrix();
+    const projMat = camera.getProjectionMatrix();
+    const viewProj = mat4Multiply(projMat, viewMat);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(viewport.x, viewport.y, viewport.width, viewport.height);
+    ctx.clip();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lineWidth;
+    ctx.globalAlpha = opacity;
+
+    const halfW = viewport.width / 2;
+    const halfH = viewport.height / 2;
+
+    for (const obj of scene.getVisibleObjects()) {
+      const mesh = obj.mesh;
+      if (!mesh) continue;
+
+      const modelMat = obj.getWorldMatrix();
+      const mvp = mat4Multiply(viewProj, modelMat);
+      const vertices = mesh.vertices;
+      const indices = mesh.indices;
+      const vertCount = mesh.vertexCount;
+
+      // Transform vertices
+      const sx = new Float64Array(vertCount);
+      const sy = new Float64Array(vertCount);
+      const sw = new Float64Array(vertCount);
+
+      for (let v = 0; v < vertCount; v++) {
+        const vi = v * 3;
+        const vx = vertices[vi]!;
+        const vy = vertices[vi + 1]!;
+        const vz = vertices[vi + 2]!;
+        const cw = mvp[3]! * vx + mvp[7]! * vy + mvp[11]! * vz + mvp[15]!;
+        sw[v] = cw;
+        if (cw <= 0) continue;
+        const invW = 1 / cw;
+        const ndcX = (mvp[0]! * vx + mvp[4]! * vy + mvp[8]! * vz + mvp[12]!) * invW;
+        const ndcY = (mvp[1]! * vx + mvp[5]! * vy + mvp[9]! * vz + mvp[13]!) * invW;
+        sx[v] = viewport.x + (ndcX + 1) * halfW;
+        sy[v] = viewport.y + (1 - ndcY) * halfH;
+      }
+
+      // Draw triangle edges
+      for (let i = 0; i < indices.length; i += 3) {
+        const i0 = indices[i]!;
+        const i1 = indices[i + 1]!;
+        const i2 = indices[i + 2]!;
+        if (sw[i0]! <= 0 && sw[i1]! <= 0 && sw[i2]! <= 0) continue;
+
+        ctx.beginPath();
+        ctx.moveTo(sx[i0]!, sy[i0]!);
+        ctx.lineTo(sx[i1]!, sy[i1]!);
+        ctx.lineTo(sx[i2]!, sy[i2]!);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Render a 3D grid on the XZ plane at y=0.
+   * Call this after render() to overlay the grid on top of the scene
+   * (or before render() to draw it behind — painter's order).
+   */
+  renderGrid(
+    camera: Camera,
+    viewport: Viewport,
+    options?: { size?: number; divisions?: number; color?: string; opacity?: number },
+  ): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+
+    const size = options?.size ?? 20;
+    const divisions = options?.divisions ?? 20;
+    const color = options?.color ?? '#ffffff';
+    const opacity = options?.opacity ?? 0.15;
+
+    const viewMat = camera.getViewMatrix();
+    const projMat = camera.getProjectionMatrix();
+    const vp = mat4Multiply(projMat, viewMat);
+
+    const half = size / 2;
+    const step = size / divisions;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(viewport.x, viewport.y, viewport.width, viewport.height);
+    ctx.clip();
+
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = opacity;
+    ctx.lineWidth = 1;
+
+    const halfW = viewport.width / 2;
+    const halfH = viewport.height / 2;
+
+    const project = (x: number, y: number, z: number): [number, number, number] | null => {
+      const cx = vp[0]! * x + vp[4]! * y + vp[8]! * z + vp[12]!;
+      const cy = vp[1]! * x + vp[5]! * y + vp[9]! * z + vp[13]!;
+      const cz = vp[2]! * x + vp[6]! * y + vp[10]! * z + vp[14]!;
+      const cw = vp[3]! * x + vp[7]! * y + vp[11]! * z + vp[15]!;
+      if (cw <= 0) return null;
+      const ndcX = cx / cw;
+      const ndcY = cy / cw;
+      return [
+        viewport.x + (ndcX + 1) * halfW,
+        viewport.y + (1 - ndcY) * halfH,
+        cz / cw,
+      ];
+    };
+
+    // Draw grid lines along X (varying Z)
+    for (let i = 0; i <= divisions; i++) {
+      const z = -half + i * step;
+      const a = project(-half, 0, z);
+      const b = project(half, 0, z);
+      if (a && b) {
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+    }
+
+    // Draw grid lines along Z (varying X)
+    for (let i = 0; i <= divisions; i++) {
+      const x = -half + i * step;
+      const a = project(x, 0, -half);
+      const b = project(x, 0, half);
+      if (a && b) {
+        ctx.beginPath();
+        ctx.moveTo(a[0], a[1]);
+        ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
 }

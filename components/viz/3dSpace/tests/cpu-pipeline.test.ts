@@ -25,7 +25,11 @@ function createMockCtx() {
     lineTo: vi.fn(),
     closePath: vi.fn(),
     fill: vi.fn(),
+    stroke: vi.fn(),
     fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    globalAlpha: 1,
   };
 }
 
@@ -372,6 +376,118 @@ describe('CpuPipeline', () => {
       expect(() => pipeline.render(scene, camera, viewport, lighting)).not.toThrow();
       // ctx methods should not be called after dispose
       expect(ctx.save).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── renderGrid ──────────────────────────────────────────────────────
+
+  describe('renderGrid', () => {
+    it('draws grid lines on mock context', () => {
+      const ctx = createMockCtx();
+      const pipeline = new CpuPipeline();
+      (pipeline as any).ctx = ctx;
+
+      const camera = new Camera({ position: { x: 0, y: 10, z: 10 }, near: 0.1, far: 100 });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+
+      pipeline.renderGrid(camera, viewport);
+
+      expect(ctx.save).toHaveBeenCalled();
+      expect(ctx.stroke).toHaveBeenCalled();
+      expect(ctx.restore).toHaveBeenCalled();
+    });
+
+    it('uses custom options', () => {
+      const ctx = createMockCtx();
+      const pipeline = new CpuPipeline();
+      (pipeline as any).ctx = ctx;
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+
+      pipeline.renderGrid(camera, viewport, { size: 10, divisions: 5, color: '#ff0000', opacity: 0.5 });
+
+      expect(ctx.strokeStyle).toBe('#ff0000');
+    });
+
+    it('does nothing when ctx is null', () => {
+      const pipeline = new CpuPipeline();
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+      expect(() => pipeline.renderGrid(camera, viewport)).not.toThrow();
+    });
+  });
+
+  // ── renderEdges ─────────────────────────────────────────────────────
+
+  describe('renderEdges', () => {
+    it('draws edges for scene objects with meshes', () => {
+      const ctx = createMockCtx();
+      const pipeline = new CpuPipeline();
+      (pipeline as any).ctx = ctx;
+
+      const scene = new SceneGraph();
+      const obj = new SceneObject('edge-test');
+      obj.mesh = Mesh.createBox(1, 1, 1);
+      obj.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+      scene.register(obj);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+
+      pipeline.renderEdges(scene, camera, viewport);
+
+      expect(ctx.stroke).toHaveBeenCalled();
+      expect(ctx.closePath).toHaveBeenCalled();
+    });
+
+    it('skips objects without mesh', () => {
+      const ctx = createMockCtx();
+      const pipeline = new CpuPipeline();
+      (pipeline as any).ctx = ctx;
+
+      const scene = new SceneGraph();
+      const obj = new SceneObject('no-mesh');
+      scene.register(obj);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+
+      pipeline.renderEdges(scene, camera, viewport);
+
+      expect(ctx.stroke).not.toHaveBeenCalled();
+    });
+
+    it('uses custom edge options', () => {
+      const ctx = createMockCtx();
+      const pipeline = new CpuPipeline();
+      (pipeline as any).ctx = ctx;
+
+      const scene = new SceneGraph();
+      const obj = new SceneObject('styled-edges');
+      obj.mesh = Mesh.createBox(1, 1, 1);
+      scene.register(obj);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+
+      pipeline.renderEdges(scene, camera, viewport, { color: '#ff0000', lineWidth: 2, opacity: 0.8 });
+
+      expect(ctx.strokeStyle).toBe('#ff0000');
+      expect(ctx.lineWidth).toBe(2);
+    });
+
+    it('does nothing when ctx is null', () => {
+      const pipeline = new CpuPipeline();
+      const scene = new SceneGraph();
+      const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+      expect(() => pipeline.renderEdges(scene, camera, viewport)).not.toThrow();
     });
   });
 });

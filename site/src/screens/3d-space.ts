@@ -122,8 +122,12 @@ export function Space3DDemo() {
       camera.position = { x, y, z };
       camera.lookAt({ x: 0, y: 0, z: 0 });
 
-      // Render
+      // Render scene
       pipeline.render(scene, camera, viewport, lighting);
+      // Draw grid on XZ plane for spatial reference
+      pipeline.renderGrid(camera, viewport, { size: 30, divisions: 30, opacity: 0.12 });
+      // Draw black edges on cubes for perspective
+      pipeline.renderEdges(scene, camera, viewport, { color: '#000000', lineWidth: 1, opacity: 0.5 });
 
       rafRef.current = requestAnimationFrame(frame);
     };

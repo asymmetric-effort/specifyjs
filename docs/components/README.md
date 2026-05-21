@@ -1,6 +1,6 @@
 # Component Library Reference
 
-65 components across 9 families. All zero-dependency, pure SpecifyJS, ARIA accessible, keyboard navigable.
+66 components across 9 families. All zero-dependency, pure SpecifyJS, ARIA accessible, keyboard navigable.
 
 ## Layout (10)
 
@@ -102,7 +102,7 @@
 | IDE | VS Code-style IDE with file explorer, editor, terminal, and status bar | [page/ide.md](page/ide.md) |
 | TradingDashboard | Stock trading terminal with chart, order book, and watchlist grid | [page/trading-dashboard.md](page/trading-dashboard.md) |
 
-## Visualization (5)
+## Visualization (6)
 
 | Component | Description | Docs |
 |-----------|-------------|------|
@@ -111,3 +111,4 @@
 | LineGraph | 2D line chart with multi-line support | [viz/2D-line-graph.md](viz/2D-line-graph.md) |
 | BarGraph | Vertical/horizontal bar chart | [viz/2D-bar-graph.md](viz/2D-bar-graph.md) |
 | PieGraph | Pie and donut chart | [viz/2D-pie-graph.md](viz/2D-pie-graph.md) |
+| Space3D | Composable 3D scene with camera, lighting, and CPU/WebGL pipelines | [viz/3d-space.md](viz/3d-space.md) |

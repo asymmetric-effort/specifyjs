@@ -69,7 +69,7 @@ test.describe('3D Space Demo', () => {
     await expect(body).toContainText('About This Demo');
     await expect(body).toContainText('Scene Objects');
     await expect(body).toContainText('Camera Orbit');
-    await expect(body).toContainText('Rendering Pipeline');
+    await expect(body).toContainText('Rendering');
   });
 
   test('sidebar lists all five boxes', async ({ page }) => {

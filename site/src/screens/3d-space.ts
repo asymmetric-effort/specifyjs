@@ -3,18 +3,20 @@
 
 /**
  * 3D Space Demo — Camera flyby around five colored boxes rendered
- * using the Space3D component's CPU rasterisation pipeline.
+ * using the CpuPipeline directly (bypasses Space3D component to
+ * eliminate hook lifecycle issues).
  */
 
 import { createElement } from 'specifyjs';
-import { useHead, useRef, useMemo } from 'specifyjs/hooks';
+import { useHead, useEffect, useRef } from 'specifyjs/hooks';
 import {
-  Space3D,
   SceneObject,
   SceneGraph,
   Mesh,
   Camera,
   Viewport,
+  CpuPipeline,
+  FlatShading,
   createMaterial,
 } from '../../../components/viz/3dSpace/src/index';
 
@@ -39,17 +41,6 @@ const BOXES: BoxDef[] = [
   { id: 'box-cyan',   x:  7, y:  3, z: -2, r: 0.1, g: 0.8, b: 0.8, label: 'Cyan' },
 ];
 
-function buildObjects(): SceneObject[] {
-  const mesh = Mesh.createBox(1, 1, 1);
-  return BOXES.map((b) => {
-    const obj = new SceneObject(b.id);
-    obj.position = { x: b.x, y: b.y, z: b.z };
-    obj.mesh = mesh;
-    obj.material = createMaterial({ r: b.r, g: b.g, b: b.b, a: 1 });
-    return obj;
-  });
-}
-
 // ── Component ───────────────────────────────────────────────────────
 
 const WIDTH = 720;
@@ -61,28 +52,35 @@ export function Space3DDemo() {
     description: 'Camera flyby demo rendering five colored boxes in 3D space.',
   });
 
-  // Stable references — created once, not every render
-  const objectsRef = useRef<SceneObject[] | null>(null);
-  if (!objectsRef.current) objectsRef.current = buildObjects();
-  const objects = objectsRef.current;
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const rafRef = useRef<number>(0);
 
-  const cameraRef = useRef<Camera | null>(null);
-  if (!cameraRef.current) {
-    const cam = new Camera({
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Build scene
+    const scene = new SceneGraph();
+    const mesh = Mesh.createBox(1, 1, 1);
+    for (const b of BOXES) {
+      const obj = new SceneObject(b.id);
+      obj.position = { x: b.x, y: b.y, z: b.z };
+      obj.mesh = mesh;
+      obj.material = createMaterial({ r: b.r, g: b.g, b: b.b, a: 1 });
+      scene.register(obj);
+    }
+
+    // Camera + viewport
+    const camera = new Camera({
       position: { x: 15, y: 1, z: 0 },
       fov: Math.PI / 4,
       aspect: WIDTH / HEIGHT,
       near: 0.1,
-      far: 1000,
+      far: 100,
     });
-    cam.lookAt({ x: 0, y: 0, z: 0 });
-    cameraRef.current = cam;
-  }
-  const camera = cameraRef.current;
+    camera.lookAt({ x: 0, y: 0, z: 0 });
 
-  const viewportRef = useRef<Viewport | null>(null);
-  if (!viewportRef.current) {
-    viewportRef.current = new Viewport({
+    const viewport = new Viewport({
       x: 0,
       y: 0,
       width: WIDTH,
@@ -90,28 +88,44 @@ export function Space3DDemo() {
       camera,
       clearColor: { r: 0.06, g: 0.09, b: 0.16, a: 1 },
     });
-  }
-  const viewport = viewportRef.current;
 
-  const totalTimeRef = useRef(0);
+    // Pipeline
+    const pipeline = new CpuPipeline();
+    pipeline.initialize(canvas);
 
-  const camerasArray = useMemo(() => [camera], []);
-  const viewportsArray = useMemo(() => [viewport], []);
+    const lighting = new FlatShading();
 
-  const onFrame = (deltaTime: number, _scene: SceneGraph, cameras: Camera[]) => {
-    totalTimeRef.current += deltaTime;
-    const t = totalTimeRef.current;
-    const cam = cameras[0];
-    if (!cam) return;
+    // Animation loop
+    let totalTime = 0;
+    let lastTime = performance.now();
 
-    const radius = 15;
-    const x = Math.cos(t * 0.3) * radius;
-    const z = Math.sin(t * 0.3) * radius;
-    const y = Math.sin(t * 0.2) * 4 + 1;
+    const frame = () => {
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      totalTime += dt;
 
-    cam.position = { x, y, z };
-    cam.lookAt({ x: 0, y: 0, z: 0 });
-  };
+      // Orbit camera
+      const radius = 15;
+      const x = Math.cos(totalTime * 0.3) * radius;
+      const z = Math.sin(totalTime * 0.3) * radius;
+      const y = Math.sin(totalTime * 0.2) * 4 + 1;
+      camera.position = { x, y, z };
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+
+      // Render
+      pipeline.render(scene, camera, viewport, lighting);
+
+      rafRef.current = requestAnimationFrame(frame);
+    };
+
+    rafRef.current = requestAnimationFrame(frame);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      pipeline.dispose();
+    };
+  }, []);
 
   return createElement('div', {
     style: { display: 'flex', height: '100%', padding: '16px', boxSizing: 'border-box', gap: '20px' },
@@ -122,14 +136,11 @@ export function Space3DDemo() {
         style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
       }, '3D Space Demo'),
       createElement('div', { style: { flex: '1', minHeight: '300px' } },
-        createElement(Space3D, {
+        createElement('canvas', {
+          ref: canvasRef,
           width: WIDTH,
           height: HEIGHT,
-          objects,
-          cameras: camerasArray,
-          viewports: viewportsArray,
-          onFrame,
-          renderer: 'cpu',
+          style: { display: 'block', backgroundColor: '#0f172a' },
         }),
       ),
       createElement('p', {
@@ -149,8 +160,8 @@ export function Space3DDemo() {
       createElement('h3', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '12px' } }, 'About This Demo'),
       createElement('p', null,
         'This showcase renders five coloured boxes at fixed positions in 3D space using the ',
-        createElement('strong', null, 'Space3D'),
-        ' component. A CPU-based software rasteriser projects, clips, and shades every triangle each frame — no WebGL required.',
+        createElement('strong', null, '3dSpace'),
+        ' CPU rasteriser. Every triangle is projected, clipped, shaded, and painted to a 2D canvas each frame.',
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Scene Objects'),
       createElement('ul', { style: { paddingLeft: '18px', margin: '8px 0' } },
@@ -163,16 +174,11 @@ export function Space3DDemo() {
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Camera Orbit'),
       createElement('p', null,
-        'The camera follows a circular path of radius 15 units centred on the origin. Its height oscillates sinusoidally between -3 and 5 units, and it always looks at (0, 0, 0). The orbit speed is tuned so one full revolution completes in roughly 20 seconds.',
+        'Radius 15, sinusoidal height between -3 and 5, always looking at the origin. One revolution in ~20 seconds.',
       ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Rendering Pipeline'),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Rendering'),
       createElement('p', null,
-        'The CPU pipeline performs perspective projection, back-face culling, viewport clipping, and flat shading entirely in JavaScript. Each triangle is scan-line rasterised into a 2D canvas via ',
-        createElement('code', null, 'putImageData'),
-        '. A z-buffer ensures correct depth ordering.',
-      ),
-      createElement('p', { style: { marginTop: '12px', fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)' } },
-        'This demo validates the full rendering pipeline end-to-end: scene graph, transforms, camera projection, clipping, shading, and rasterisation.',
+        'CPU pipeline: perspective projection, painter\'s algorithm z-sort, flat shading, canvas 2D path fill.',
       ),
     ),
   );

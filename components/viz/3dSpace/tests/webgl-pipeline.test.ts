@@ -354,6 +354,30 @@ describe('toFloat32', () => {
     const result = toFloat32(new Float64Array(0));
     expect(result.length).toBe(0);
   });
+
+  it('preserves values accurately', () => {
+    const src = new Float64Array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]);
+    const result = toFloat32(src);
+    expect(result.length).toBe(8);
+    for (let i = 0; i < src.length; i++) {
+      expect(result[i]).toBeCloseTo(src[i]!, 5);
+    }
+  });
+
+  it('handles large values', () => {
+    const src = new Float64Array([1e10, -1e10, 3.14159265358979]);
+    const result = toFloat32(src);
+    expect(result[0]).toBeCloseTo(1e10, -5);
+    expect(result[1]).toBeCloseTo(-1e10, -5);
+    expect(result[2]).toBeCloseTo(3.14159, 4);
+  });
+
+  it('handles single element', () => {
+    const src = new Float64Array([42.5]);
+    const result = toFloat32(src);
+    expect(result.length).toBe(1);
+    expect(result[0]).toBeCloseTo(42.5);
+  });
 });
 
 describe('FlatShading shader sources', () => {
@@ -482,6 +506,160 @@ describe('setUniform', () => {
     gl.getUniformLocation.mockReturnValue(null);
     const program = 'mockProgram' as unknown as WebGLProgram;
     setUniform(gl as unknown as WebGLRenderingContext, program, 'uMissing', [1, 0, 0, 1]);
+    expect(gl.uniform4fv).not.toHaveBeenCalled();
+  });
+});
+
+describe('WebGLPipeline (additional)', () => {
+  describe('render with Uint16 fallback (no OES_element_index_uint)', () => {
+    it('falls back to Uint16Array indices when extension is not available', () => {
+      const mockGl = createMockGl();
+      mockGl.getExtension.mockReturnValue(null);
+      const canvas = {
+        getContext: vi.fn().mockReturnValue(mockGl),
+      } as unknown as HTMLCanvasElement;
+
+      const pipeline = new WebGLPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const obj = new SceneObject('box');
+      obj.mesh = Mesh.createBox(1, 1, 1);
+      obj.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+      scene.register(obj);
+
+      const cam = new Camera();
+      const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, cam, vp, lighting);
+
+      expect(mockGl.drawElements).toHaveBeenCalledWith(
+        mockGl.TRIANGLES,
+        expect.any(Number),
+        mockGl.UNSIGNED_SHORT,
+        0,
+      );
+    });
+  });
+
+  describe('render with multiple objects', () => {
+    it('renders multiple objects in sequence', () => {
+      const mockGl = createMockGl();
+      const canvas = {
+        getContext: vi.fn().mockReturnValue(mockGl),
+      } as unknown as HTMLCanvasElement;
+
+      const pipeline = new WebGLPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const obj1 = new SceneObject('box1');
+      obj1.mesh = Mesh.createBox(1, 1, 1);
+      obj1.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+      scene.register(obj1);
+
+      const obj2 = new SceneObject('box2');
+      obj2.mesh = Mesh.createBox(2, 2, 2);
+      obj2.material = createMaterial({ r: 0, g: 1, b: 0, a: 1 });
+      obj2.position = { x: 5, y: 0, z: 0 };
+      scene.register(obj2);
+
+      const cam = new Camera();
+      const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, cam, vp, lighting);
+
+      // Should draw two objects: 2 calls to drawElements
+      expect(mockGl.drawElements).toHaveBeenCalledTimes(2);
+      // Should create and delete 6 buffers (3 per object)
+      expect(mockGl.deleteBuffer).toHaveBeenCalledTimes(6);
+    });
+  });
+
+  describe('render handles attrib location -1', () => {
+    it('skips enableVertexAttribArray when attrib location is -1', () => {
+      const mockGl = createMockGl();
+      mockGl.getAttribLocation.mockReturnValue(-1);
+      const canvas = {
+        getContext: vi.fn().mockReturnValue(mockGl),
+      } as unknown as HTMLCanvasElement;
+
+      const pipeline = new WebGLPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const obj = new SceneObject('box');
+      obj.mesh = Mesh.createBox(1, 1, 1);
+      obj.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+      scene.register(obj);
+
+      const cam = new Camera();
+      const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, cam, vp, lighting);
+
+      // Should not enable vertex attrib arrays when location is -1
+      expect(mockGl.enableVertexAttribArray).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('dispose after render clears cache', () => {
+    it('deletes all cached programs on dispose', () => {
+      const mockGl = createMockGl();
+      const canvas = {
+        getContext: vi.fn().mockReturnValue(mockGl),
+      } as unknown as HTMLCanvasElement;
+
+      const pipeline = new WebGLPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const cam = new Camera();
+      const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+      const lighting = new FlatShading();
+
+      // Render to populate cache
+      pipeline.render(scene, cam, vp, lighting);
+
+      pipeline.dispose();
+      expect(mockGl.deleteProgram).toHaveBeenCalledWith('mockProgram');
+
+      // After dispose, render should throw
+      expect(() => pipeline.render(scene, cam, vp, lighting)).toThrow('WebGLPipeline not initialized');
+    });
+  });
+});
+
+describe('setUniform (additional)', () => {
+  it('ignores unsupported value types', () => {
+    const gl = createMockGl();
+    const program = 'mockProgram' as unknown as WebGLProgram;
+    // Passing a string should not call any uniform setter
+    setUniform(gl as unknown as WebGLRenderingContext, program, 'uVal', 'not_a_number');
+    expect(gl.uniform1f).not.toHaveBeenCalled();
+    expect(gl.uniform4fv).not.toHaveBeenCalled();
+    expect(gl.uniformMatrix4fv).not.toHaveBeenCalled();
+  });
+
+  it('handles Float32Array of non-16 length (no-op for non-mat4)', () => {
+    const gl = createMockGl();
+    const program = 'mockProgram' as unknown as WebGLProgram;
+    const val = new Float32Array([1, 2, 3, 4]);
+    setUniform(gl as unknown as WebGLRenderingContext, program, 'uVal', val);
+    // Float32Array of length 4 is NOT treated as mat4
+    expect(gl.uniformMatrix4fv).not.toHaveBeenCalled();
+  });
+
+  it('handles empty array (no-op)', () => {
+    const gl = createMockGl();
+    const program = 'mockProgram' as unknown as WebGLProgram;
+    setUniform(gl as unknown as WebGLRenderingContext, program, 'uVal', []);
+    expect(gl.uniform1f).not.toHaveBeenCalled();
+    expect(gl.uniform2fv).not.toHaveBeenCalled();
+    expect(gl.uniform3fv).not.toHaveBeenCalled();
     expect(gl.uniform4fv).not.toHaveBeenCalled();
   });
 });

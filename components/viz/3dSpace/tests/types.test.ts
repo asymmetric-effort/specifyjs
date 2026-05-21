@@ -470,3 +470,418 @@ describe('Material', () => {
     expect(mat.wireframe).toBe(true);
   });
 });
+
+describe('DefaultObjectPicker (additional)', () => {
+  it('pick() returns null when called with no arguments', () => {
+    const picker = new DefaultObjectPicker();
+    // The pick signature allows calling with no args since the implementation ignores them
+    const result = picker.pick();
+    expect(result).toBeNull();
+  });
+
+  it('pick() returns null for multiple objects', () => {
+    const picker = new DefaultObjectPicker();
+    const objects = [new SceneObject('a'), new SceneObject('b'), new SceneObject('c')];
+    const result = picker.pick({ x: 1, y: 2, z: 3 }, { x: 0, y: 0, z: -1 }, objects);
+    expect(result).toBeNull();
+  });
+});
+
+describe('Color type validation', () => {
+  it('Color with valid RGBA values', () => {
+    const color: Color = { r: 0.5, g: 0.3, b: 0.8, a: 1.0 };
+    expect(color.r).toBe(0.5);
+    expect(color.g).toBe(0.3);
+    expect(color.b).toBe(0.8);
+    expect(color.a).toBe(1.0);
+  });
+
+  it('Color with zero values', () => {
+    const color: Color = { r: 0, g: 0, b: 0, a: 0 };
+    expect(color.r).toBe(0);
+    expect(color.a).toBe(0);
+  });
+
+  it('Color with max values', () => {
+    const color: Color = { r: 1, g: 1, b: 1, a: 1 };
+    expect(color.r).toBe(1);
+    expect(color.g).toBe(1);
+  });
+});
+
+describe('Vertex type', () => {
+  it('Vertex with position and normal only', () => {
+    const v = { position: { x: 1, y: 2, z: 3 }, normal: { x: 0, y: 1, z: 0 } };
+    expect(v.position.x).toBe(1);
+    expect(v.normal.y).toBe(1);
+  });
+
+  it('Vertex with optional uv and color', () => {
+    const v = {
+      position: { x: 0, y: 0, z: 0 },
+      normal: { x: 0, y: 0, z: 1 },
+      uv: { x: 0.5, y: 0.5 },
+      color: { r: 1, g: 0, b: 0, a: 1 } as Color,
+    };
+    expect(v.uv).toBeDefined();
+    expect(v.color).toBeDefined();
+    expect(v.uv!.x).toBe(0.5);
+    expect(v.color!.r).toBe(1);
+  });
+});
+
+describe('FlatShading (detailed shader sources)', () => {
+  it('vertexShaderSource contains gl_Position', () => {
+    const flat = new FlatShading();
+    const src = flat.vertexShaderSource();
+    expect(src).toContain('gl_Position');
+  });
+
+  it('vertexShaderSource contains uModelViewProjection uniform', () => {
+    const flat = new FlatShading();
+    const src = flat.vertexShaderSource();
+    expect(src).toContain('uModelViewProjection');
+  });
+
+  it('fragmentShaderSource contains gl_FragColor', () => {
+    const flat = new FlatShading();
+    const src = flat.fragmentShaderSource();
+    expect(src).toContain('gl_FragColor');
+  });
+
+  it('fragmentShaderSource contains precision qualifier', () => {
+    const flat = new FlatShading();
+    const src = flat.fragmentShaderSource();
+    expect(src).toContain('precision mediump float');
+  });
+
+  it('shade with zero normal returns materialColor unchanged', () => {
+    const flat = new FlatShading();
+    const params: ShadeParams = {
+      normal: { x: 0, y: 0, z: 0 },
+      lightDir: { x: 0, y: -1, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 1, b: 1, a: 1 },
+      materialColor: { r: 0.2, g: 0.4, b: 0.6, a: 0.8 },
+      ambientStrength: 0.1,
+    };
+    const result = flat.shade(params);
+    expect(result).toEqual({ r: 0.2, g: 0.4, b: 0.6, a: 0.8 });
+  });
+
+  it('shade with various light directions always returns materialColor', () => {
+    const flat = new FlatShading();
+    const materialColor: Color = { r: 0.5, g: 0.5, b: 0.5, a: 1.0 };
+    const directions = [
+      { x: 1, y: 0, z: 0 },
+      { x: 0, y: 1, z: 0 },
+      { x: 0, y: 0, z: 1 },
+      { x: -1, y: -1, z: -1 },
+    ];
+    for (const lightDir of directions) {
+      const result = flat.shade({
+        normal: { x: 0, y: 1, z: 0 },
+        lightDir,
+        viewDir: { x: 0, y: 0, z: -1 },
+        lightColor: { r: 1, g: 1, b: 1, a: 1 },
+        materialColor,
+        ambientStrength: 0.3,
+      });
+      expect(result).toEqual(materialColor);
+    }
+  });
+
+  it('uniforms returns object with uColor key containing RGBA array', () => {
+    const flat = new FlatShading();
+    const material = createMaterial({ r: 1, g: 0.5, b: 0.25, a: 0.75 });
+    const uniforms = flat.uniforms([], material);
+    expect(uniforms).toHaveProperty('uColor');
+    const uColor = uniforms.uColor as number[];
+    expect(uColor).toHaveLength(4);
+    expect(uColor[0]).toBe(1);
+    expect(uColor[1]).toBe(0.5);
+    expect(uColor[2]).toBe(0.25);
+    expect(uColor[3]).toBe(0.75);
+  });
+});
+
+describe('Camera (additional)', () => {
+  it('perspective matrix has correct aspect ratio influence', () => {
+    const cam1 = new Camera({ aspect: 2.0, fov: Math.PI / 4 });
+    const cam2 = new Camera({ aspect: 1.0, fov: Math.PI / 4 });
+    const proj1 = cam1.getProjectionMatrix();
+    const proj2 = cam2.getProjectionMatrix();
+    // data[0] = f / aspect, so wider aspect => smaller data[0]
+    expect(proj1.data[0]).toBeLessThan(proj2.data[0]!);
+    // data[5] = f, should be the same for same fov
+    expect(proj1.data[5]).toBeCloseTo(proj2.data[5]!);
+  });
+
+  it('orthographic matrix has correct bounds', () => {
+    const cam = new Camera({
+      projectionMode: 'orthographic',
+      left: -5,
+      right: 5,
+      top: 3,
+      bottom: -3,
+      near: 0.1,
+      far: 100,
+    });
+    const proj = cam.getProjectionMatrix();
+    // data[0] = -2 / (left - right) = -2 / (-10) = 0.2
+    expect(proj.data[0]).toBeCloseTo(0.2);
+    // data[5] = -2 / (bottom - top) = -2 / (-6) = 1/3
+    expect(proj.data[5]).toBeCloseTo(1 / 3);
+    expect(proj.data[15]).toBeCloseTo(1);
+  });
+
+  it('move accumulates position changes', () => {
+    const cam = new Camera({ position: { x: 1, y: 2, z: 3 } });
+    cam.move({ x: 10, y: 20, z: 30 });
+    expect(cam.position).toEqual({ x: 11, y: 22, z: 33 });
+    cam.move({ x: -11, y: -22, z: -33 });
+    expect(cam.position).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  it('rotate with non-identity quaternion changes orientation', () => {
+    const cam = new Camera();
+    // 90 degree rotation around Y axis: q = (0, sin(45), 0, cos(45))
+    const angle = Math.PI / 2;
+    const halfAngle = angle / 2;
+    cam.rotate({ x: 0, y: Math.sin(halfAngle), z: 0, w: Math.cos(halfAngle) });
+    expect(cam.orientation.w).toBeCloseTo(Math.cos(halfAngle));
+    expect(cam.orientation.y).toBeCloseTo(Math.sin(halfAngle));
+  });
+
+  it('lookAt from various positions produces unit quaternion', () => {
+    const positions = [
+      { x: 10, y: 0, z: 0 },
+      { x: 0, y: 10, z: 10 },
+      { x: -5, y: 3, z: 7 },
+    ];
+    for (const pos of positions) {
+      const cam = new Camera({ position: pos });
+      cam.lookAt({ x: 0, y: 0, z: 0 });
+      const q = cam.orientation;
+      const lenSq = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+      expect(lenSq).toBeCloseTo(1, 4);
+    }
+  });
+
+  it('lookAt handles camera along positive X axis', () => {
+    const cam = new Camera({ position: { x: 10, y: 0, z: 0 } });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    // View matrix should produce valid transform
+    const view = cam.getViewMatrix();
+    expect(view.data.length).toBe(16);
+    expect(view.data[15]).toBeCloseTo(1);
+  });
+
+  it('getViewMatrix reflects position translation', () => {
+    const cam = new Camera({ position: { x: 5, y: 0, z: 0 } });
+    const view = cam.getViewMatrix();
+    // Translation column should reflect -position
+    expect(view.data[12]).toBeCloseTo(-5);
+  });
+});
+
+describe('Mesh (additional)', () => {
+  it('createBox with zero dimensions produces valid mesh', () => {
+    const box = Mesh.createBox(0, 0, 0);
+    expect(box.vertexCount).toBe(24);
+    expect(box.indexCount).toBe(36);
+    // All vertices should be at origin (allow -0)
+    for (let i = 0; i < box.vertices.length; i++) {
+      expect(box.vertices[i]).toBeCloseTo(0);
+    }
+  });
+
+  it('createPlane with default segments produces 4 vertices', () => {
+    const plane = Mesh.createPlane(10, 10);
+    expect(plane.vertexCount).toBe(4);
+    expect(plane.indexCount).toBe(6);
+  });
+
+  it('vertex and normal array lengths match for box', () => {
+    const box = Mesh.createBox(2, 3, 4);
+    expect(box.vertices.length).toBe(box.normals.length);
+  });
+
+  it('vertex and normal array lengths match for plane', () => {
+    const plane = Mesh.createPlane(5, 5, 4, 4);
+    expect(plane.vertices.length).toBe(plane.normals.length);
+  });
+
+  it('indices are within valid range for box', () => {
+    const box = Mesh.createBox(1, 1, 1);
+    for (let i = 0; i < box.indices.length; i++) {
+      expect(box.indices[i]).toBeLessThan(box.vertexCount);
+      expect(box.indices[i]).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('indices are within valid range for plane', () => {
+    const plane = Mesh.createPlane(5, 5, 3, 3);
+    for (let i = 0; i < plane.indices.length; i++) {
+      expect(plane.indices[i]).toBeLessThan(plane.vertexCount);
+      expect(plane.indices[i]).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('createBox normals are unit length', () => {
+    const box = Mesh.createBox(2, 2, 2);
+    for (let i = 0; i < box.normals.length; i += 3) {
+      const nx = box.normals[i]!;
+      const ny = box.normals[i + 1]!;
+      const nz = box.normals[i + 2]!;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      expect(len).toBeCloseTo(1, 5);
+    }
+  });
+
+  it('createPlane normals are unit length', () => {
+    const plane = Mesh.createPlane(5, 5, 2, 2);
+    for (let i = 0; i < plane.normals.length; i += 3) {
+      const nx = plane.normals[i]!;
+      const ny = plane.normals[i + 1]!;
+      const nz = plane.normals[i + 2]!;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      expect(len).toBeCloseTo(1, 5);
+    }
+  });
+});
+
+describe('SceneObject (additional)', () => {
+  it('addChild to self sets parent to self', () => {
+    const obj = new SceneObject('self');
+    obj.addChild(obj);
+    expect(obj.parent).toBe(obj);
+    expect(obj.children).toContain(obj);
+  });
+
+  it('removeChild that does not exist is a no-op', () => {
+    const parent = new SceneObject('parent');
+    const nonChild = new SceneObject('stranger');
+    expect(() => parent.removeChild(nonChild)).not.toThrow();
+    expect(parent.children.length).toBe(0);
+  });
+
+  it('deep hierarchy world matrix (3+ levels)', () => {
+    const root = new SceneObject('root');
+    root.position = { x: 1, y: 0, z: 0 };
+    const mid = new SceneObject('mid');
+    mid.position = { x: 2, y: 0, z: 0 };
+    const leaf = new SceneObject('leaf');
+    leaf.position = { x: 3, y: 0, z: 0 };
+
+    root.addChild(mid);
+    mid.addChild(leaf);
+
+    const mat = leaf.getWorldMatrix();
+    // Combined translation: 1 + 2 + 3 = 6
+    expect(mat.data[12]).toBeCloseTo(6);
+    expect(mat.data[13]).toBeCloseTo(0);
+    expect(mat.data[14]).toBeCloseTo(0);
+  });
+
+  it('visible=false does not affect getWorldMatrix', () => {
+    const obj = new SceneObject('hidden');
+    obj.visible = false;
+    obj.position = { x: 5, y: 10, z: 15 };
+    const mat = obj.getWorldMatrix();
+    expect(mat.data[12]).toBeCloseTo(5);
+    expect(mat.data[13]).toBeCloseTo(10);
+    expect(mat.data[14]).toBeCloseTo(15);
+  });
+
+  it('getWorldMatrix with scale', () => {
+    const obj = new SceneObject('scaled');
+    obj.scale = { x: 2, y: 3, z: 4 };
+    const mat = obj.getWorldMatrix();
+    expect(mat.data[0]).toBeCloseTo(2);
+    expect(mat.data[5]).toBeCloseTo(3);
+    expect(mat.data[10]).toBeCloseTo(4);
+  });
+
+  it('getWorldMatrix with parent scale and child translation', () => {
+    const parent = new SceneObject('parent');
+    parent.scale = { x: 2, y: 2, z: 2 };
+    const child = new SceneObject('child');
+    child.position = { x: 5, y: 0, z: 0 };
+    parent.addChild(child);
+
+    const mat = child.getWorldMatrix();
+    // Child position (5,0,0) is scaled by parent scale (2): world x = 10
+    expect(mat.data[12]).toBeCloseTo(10);
+  });
+});
+
+describe('SceneGraph (additional)', () => {
+  it('unregister non-existent id is a no-op', () => {
+    const sg = new SceneGraph();
+    expect(() => sg.unregister('does-not-exist')).not.toThrow();
+    expect(sg.root.children.length).toBe(0);
+  });
+
+  it('register duplicate id replaces parent', () => {
+    const sg = new SceneGraph();
+    const obj = new SceneObject('dup');
+    sg.register(obj);
+    // Re-registering moves it (addChild removes from old parent first)
+    sg.register(obj);
+    expect(sg.root.children.length).toBe(1);
+    expect(sg.root.children[0]).toBe(obj);
+  });
+
+  it('getVisibleObjects filters invisible objects', () => {
+    const sg = new SceneGraph();
+    const a = new SceneObject('a');
+    const b = new SceneObject('b');
+    b.visible = false;
+    const c = new SceneObject('c');
+    sg.register(a);
+    sg.register(b);
+    sg.register(c);
+
+    const visible = sg.getVisibleObjects();
+    expect(visible.length).toBe(2);
+    expect(visible.map(o => o.id)).toContain('a');
+    expect(visible.map(o => o.id)).toContain('c');
+    expect(visible.map(o => o.id)).not.toContain('b');
+  });
+
+  it('traverse visits children in depth-first order', () => {
+    const sg = new SceneGraph();
+    const a = new SceneObject('a');
+    const a1 = new SceneObject('a1');
+    const a2 = new SceneObject('a2');
+    const b = new SceneObject('b');
+    const b1 = new SceneObject('b1');
+
+    a.addChild(a1);
+    a.addChild(a2);
+    b.addChild(b1);
+    sg.register(a);
+    sg.register(b);
+
+    const visited: string[] = [];
+    sg.traverse((obj) => visited.push(obj.id));
+    // Depth-first: a -> a1 -> a2 -> b -> b1
+    expect(visited).toEqual(['a', 'a1', 'a2', 'b', 'b1']);
+  });
+
+  it('getVisibleObjects does not include root', () => {
+    const sg = new SceneGraph();
+    const visible = sg.getVisibleObjects();
+    expect(visible.length).toBe(0);
+    // Root is invisible
+    expect(sg.root.visible).toBe(false);
+  });
+
+  it('traverse on empty scene visits nothing', () => {
+    const sg = new SceneGraph();
+    const visited: string[] = [];
+    sg.traverse((obj) => visited.push(obj.id));
+    expect(visited.length).toBe(0);
+  });
+});

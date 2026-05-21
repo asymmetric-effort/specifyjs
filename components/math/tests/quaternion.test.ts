@@ -260,6 +260,25 @@ describe('Quaternion', () => {
       near(quatLength(r), 1, 1e-6);
     });
 
+    it('should negate b when dot product is negative (opposite quaternions)', () => {
+      // q and -q represent the same rotation, but slerp should take the short path.
+      // Create two quaternions that are nearly opposite (dot < 0).
+      const a = quatFromAxisAngle(vec3(0, 1, 0), 0.1);
+      // Negate a to get the antipodal quaternion representing the same rotation
+      const negA: Quaternion = { x: -a.x, y: -a.y, z: -a.z, w: -a.w };
+      const b = quatFromAxisAngle(vec3(0, 1, 0), 0.3);
+
+      // quatDot(negA, b) should be negative since negA is negated
+      // This triggers the dot < 0 branch (lines 110-114)
+      const r = quatSlerp(negA, b, 0.5);
+      near(quatLength(r), 1, 1e-6);
+
+      // The result should be a valid interpolation between the two rotations
+      // (same rotation as slerp(a, b, 0.5) since negA == a rotationally)
+      const rNormal = quatSlerp(a, b, 0.5);
+      quatNear(r, rNormal);
+    });
+
     it('should always produce a unit quaternion', () => {
       const a = quatFromAxisAngle(vec3(1, 0, 0), 0.5);
       const b = quatFromAxisAngle(vec3(0, 1, 0), 1.5);
@@ -313,6 +332,22 @@ describe('Quaternion', () => {
       const e = quatToEuler(q);
       near(e.y, Math.PI / 4);
     });
+
+    it('should handle gimbal lock when sinp >= 1 (pitch = +PI/2)', () => {
+      // Create a quaternion with exact 90-degree pitch to trigger gimbal lock (line 172)
+      // sinp = 2*(q.w*q.y - q.z*q.x) should be >= 1
+      // For pitch = PI/2: q = (0, sin(PI/4), 0, cos(PI/4)) = (0, sqrt(2)/2, 0, sqrt(2)/2)
+      const q: Quaternion = { x: 0, y: Math.SQRT2 / 2, z: 0, w: Math.SQRT2 / 2 };
+      const e = quatToEuler(q);
+      near(e.y, Math.PI / 2); // pitch should clamp to PI/2
+    });
+
+    it('should handle gimbal lock when sinp <= -1 (pitch = -PI/2)', () => {
+      // sinp = 2*(q.w*q.y - q.z*q.x) should be <= -1
+      const q: Quaternion = { x: 0, y: -Math.SQRT2 / 2, z: 0, w: Math.SQRT2 / 2 };
+      const e = quatToEuler(q);
+      near(e.y, -Math.PI / 2); // pitch should clamp to -PI/2
+    });
   });
 
   describe('quatLookAt', () => {
@@ -338,6 +373,46 @@ describe('Quaternion', () => {
       near(r.x, forward.x);
       near(r.y, forward.y);
       near(r.z, forward.z);
+    });
+
+    it('should handle lookAt where m00 > m11 && m00 > m22 (line 214-221)', () => {
+      // forward=(-1,-1,-1), up=(-1,-1,0) produces trace<0 with m00 as largest diagonal
+      const q = quatLookAt(vec3(-1, -1, -1), vec3(-1, -1, 0));
+      near(quatLength(q), 1, 1e-6);
+      // The rotated +Z should point in the normalized forward direction
+      const fwd = vec3(-1 / Math.sqrt(3), -1 / Math.sqrt(3), -1 / Math.sqrt(3));
+      const r = quatRotateVec3(q, vec3(0, 0, 1));
+      near(r.x, fwd.x, 1e-6);
+      near(r.y, fwd.y, 1e-6);
+      near(r.z, fwd.z, 1e-6);
+    });
+
+    it('should handle lookAt where m11 > m22 (line 222-229)', () => {
+      // forward=(-1,-1,-1), up=(-1,0,-1) produces trace<0 with m11 as largest diagonal
+      const q = quatLookAt(vec3(-1, -1, -1), vec3(-1, 0, -1));
+      near(quatLength(q), 1, 1e-6);
+      const fwd = vec3(-1 / Math.sqrt(3), -1 / Math.sqrt(3), -1 / Math.sqrt(3));
+      const r = quatRotateVec3(q, vec3(0, 0, 1));
+      near(r.x, fwd.x, 1e-6);
+      near(r.y, fwd.y, 1e-6);
+      near(r.z, fwd.z, 1e-6);
+    });
+
+    it('should handle lookAt where m22 is largest (else branch, line 230-237)', () => {
+      // forward=(-1,-1,0), up=(0,0,-1) produces trace<0 with m22 as largest diagonal
+      const q = quatLookAt(vec3(-1, -1, 0), vec3(0, 0, -1));
+      near(quatLength(q), 1, 1e-6);
+      const fwd = vec3(-1 / Math.sqrt(2), -1 / Math.sqrt(2), 0);
+      const r = quatRotateVec3(q, vec3(0, 0, 1));
+      near(r.x, fwd.x, 1e-6);
+      near(r.y, fwd.y, 1e-6);
+      near(r.z, fwd.z, 1e-6);
+    });
+
+    it('should handle lookAt with trace > 0 path', () => {
+      // A small rotation (trace > 0): looking slightly off +Z
+      const q = quatLookAt(vec3(0.1, 0.1, 1), vec3(0, 1, 0));
+      near(quatLength(q), 1, 1e-6);
     });
   });
 

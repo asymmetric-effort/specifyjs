@@ -2,257 +2,332 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * Solar System Simulation — 9 planets orbiting a star using
- * Newtonian gravity with a leapfrog integrator.
+ * Solar System Simulation — 3D rendering using the 3dSpace CpuPipeline.
  *
- * Physics runs in 3D with realistic orbital inclinations.
- * Display uses logarithmic distance scaling so all planets
- * fit on screen while gravity uses true distances.
- * Orbital plane viewed at 45° from the Y-Z axes.
+ * Two viewports on a single canvas:
+ *   Left:  "View from Earth" — perspective camera near Earth looking at the Sun
+ *   Right: "Oort Cloud view" — top-down orthographic showing the full system
+ *
+ * Planets orbit the Sun in the XZ plane with simplified circular orbits.
+ * Each body is a colored box (Mesh.createBox) scaled by relative size.
  */
 
 import { createElement } from 'specifyjs';
-import { ForceGraph, type ForceSimNode, type ForceEdge, type MousePosition } from '../../../components/viz/force-graph/src/index';
+import { useHead, useEffect, useRef } from 'specifyjs/hooks';
+import {
+  SceneObject,
+  SceneGraph,
+  Mesh,
+  Camera,
+  Viewport,
+  CpuPipeline,
+  FlatShading,
+  createMaterial,
+} from '../../../components/viz/3dSpace/src/index';
 
-// ── Planetary data ───────────────────────────────────────────────────
+// ── Planet data ────────────────────────────────────────────────────────
 
-interface Planet {
+interface PlanetDef {
   id: string;
   label: string;
-  color: string;
-  /** Semi-major axis in AU */
-  au: number;
-  /** Orbital eccentricity */
-  ecc: number;
-  /** Orbital inclination in degrees (relative to ecliptic) */
-  incl: number;
-  /** Longitude of ascending node in degrees */
-  node: number;
+  r: number;
+  g: number;
+  b: number;
+  distance: number;   // distance from sun in scene units
+  size: number;        // box half-extent scale
+  orbitSpeed: number;  // relative to Earth = 1
 }
 
-const GM_SUN = 4 * Math.PI * Math.PI; // AU³/yr² (Kepler's third law: GM = 4π² when a in AU, T in years)
-const DT = 0.0008; // timestep in years (~0.3 days)
-const SUB_STEPS = 3;
-
-// NASA data: AU distances, eccentricities, inclinations, ascending nodes
-const PLANETS: Planet[] = [
-  { id: 'mercury',  label: 'Mercury',  color: '#94a3b8', au: 0.387,  ecc: 0.206, incl: 7.00,  node: 48.3  },
-  { id: 'venus',    label: 'Venus',    color: '#f59e0b', au: 0.723,  ecc: 0.007, incl: 3.39,  node: 76.7  },
-  { id: 'earth',    label: 'Earth',    color: '#3b82f6', au: 1.000,  ecc: 0.017, incl: 0.00,  node: 0.0   },
-  { id: 'mars',     label: 'Mars',     color: '#ef4444', au: 1.524,  ecc: 0.093, incl: 1.85,  node: 49.6  },
-  { id: 'jupiter',  label: 'Jupiter',  color: '#f97316', au: 5.203,  ecc: 0.049, incl: 1.30,  node: 100.5 },
-  { id: 'saturn',   label: 'Saturn',   color: '#eab308', au: 9.537,  ecc: 0.057, incl: 2.49,  node: 113.7 },
-  { id: 'uranus',   label: 'Uranus',   color: '#06b6d4', au: 19.19,  ecc: 0.046, incl: 0.77,  node: 74.0  },
-  { id: 'neptune',  label: 'Neptune',  color: '#6366f1', au: 30.07,  ecc: 0.010, incl: 1.77,  node: 131.8 },
-  { id: 'pluto',    label: 'Pluto',    color: '#a1a1aa', au: 39.48,  ecc: 0.249, incl: 17.16, node: 110.3 },
+const PLANETS: PlanetDef[] = [
+  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, distance: 4,  size: 0.3, orbitSpeed: 4.0  },
+  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, distance: 7,  size: 0.6, orbitSpeed: 1.6  },
+  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, distance: 10, size: 0.6, orbitSpeed: 1.0  },
+  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, distance: 15, size: 0.4, orbitSpeed: 0.53 },
+  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, distance: 25, size: 1.8, orbitSpeed: 0.4  },
+  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, distance: 35, size: 1.5, orbitSpeed: 0.32 },
+  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, distance: 45, size: 1.0, orbitSpeed: 0.18 },
+  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distance: 55, size: 1.0, orbitSpeed: 0.1  },
 ];
 
-// ── Logarithmic display scaling ──────────────────────────────────────
+const SUN_SIZE = 3;
 
-/** Map AU distance to pixel radius using log scaling.
- *  log(AU) maps [0.387..39.48] → [~-0.41..~1.60]
- *  We scale this to fill ~30..280px */
-const LOG_MIN = Math.log10(0.3);
-const LOG_MAX = Math.log10(50);
-const PX_MIN = 30;
-const PX_MAX = 280;
+// ── Canvas & viewport dimensions ───────────────────────────────────────
 
-function auToPixelRadius(au: number): number {
-  const logAu = Math.log10(Math.max(au, 0.01));
-  const t = (logAu - LOG_MIN) / (LOG_MAX - LOG_MIN);
-  return PX_MIN + t * (PX_MAX - PX_MIN);
-}
+const CANVAS_WIDTH = 960;
+const CANVAS_HEIGHT = 400;
+const VP_WIDTH = CANVAS_WIDTH / 2;
+const VP_HEIGHT = CANVAS_HEIGHT;
+const DIVIDER = 2;
 
-// ── 3D projection (45° viewing angle) ────────────────────────────────
-
-const VIEW_ANGLE = 45 * Math.PI / 180; // tilt from face-on
-const COS_VIEW = Math.cos(VIEW_ANGLE);
-const SIN_VIEW = Math.sin(VIEW_ANGLE);
-
-/** Project 3D position (AU) to 2D pixel position */
-function project(x3d: number, y3d: number, z3d: number, cx: number, cy: number): { px: number; py: number } {
-  const r = Math.sqrt(x3d * x3d + y3d * y3d + z3d * z3d);
-  const pixR = auToPixelRadius(r);
-  // Direction in 3D, normalized
-  if (r < 0.0001) return { px: cx, py: cy };
-  const nx = x3d / r, ny = y3d / r, nz = z3d / r;
-  // Rotate around X axis by VIEW_ANGLE to tilt the orbital plane
-  const ny2 = ny * COS_VIEW - nz * SIN_VIEW;
-  const nz2 = ny * SIN_VIEW + nz * COS_VIEW;
-  return { px: cx + nx * pixR, py: cy - ny2 * pixR };
-}
-
-// ── 3D physics state ─────────────────────────────────────────────────
-
-interface Body3D {
-  x: number; y: number; z: number; // position in AU
-  vx: number; vy: number; vz: number; // velocity in AU/yr
-}
-
-function initBodies(): Map<string, Body3D> {
-  const bodies = new Map<string, Body3D>();
-  bodies.set('sun', { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 });
-
-  for (let i = 0; i < PLANETS.length; i++) {
-    const p = PLANETS[i]!;
-    const a = p.au;
-    const e = p.ecc;
-    const rAph = a * (1 + e); // aphelion distance
-
-    // Start angle — distribute planets around the orbit
-    const startAngle = (i / PLANETS.length) * 2 * Math.PI + 0.5;
-
-    // Orbital inclination rotation
-    const inclRad = p.incl * Math.PI / 180;
-    const nodeRad = p.node * Math.PI / 180;
-
-    // Position at aphelion in the orbital plane, then rotate by inclination
-    const xOrb = rAph * Math.cos(startAngle);
-    const yOrb = rAph * Math.sin(startAngle);
-
-    // Rotate by longitude of ascending node (around Z)
-    const x1 = xOrb * Math.cos(nodeRad) - yOrb * Math.sin(nodeRad);
-    const y1 = xOrb * Math.sin(nodeRad) + yOrb * Math.cos(nodeRad);
-
-    // Rotate by inclination (around the node line = X after node rotation)
-    const x = x1;
-    const y = y1 * Math.cos(inclRad);
-    const z = y1 * Math.sin(inclRad);
-
-    // Aphelion velocity: v = sqrt(GM*(1-e)/(a*(1+e)))
-    const speed = Math.sqrt(GM_SUN * (1 - e) / (a * (1 + e)));
-
-    // Tangential velocity perpendicular to radius in the orbital plane
-    const vxOrb = -rAph * Math.sin(startAngle);
-    const vyOrb = rAph * Math.cos(startAngle);
-    const vLen = Math.sqrt(vxOrb * vxOrb + vyOrb * vyOrb);
-    const vnx = vxOrb / vLen, vny = vyOrb / vLen;
-
-    // Rotate velocity direction same as position
-    const vx1 = vnx * Math.cos(nodeRad) - vny * Math.sin(nodeRad);
-    const vy1 = vnx * Math.sin(nodeRad) + vny * Math.cos(nodeRad);
-    const vxf = vx1 * speed;
-    const vyf = vy1 * Math.cos(inclRad) * speed;
-    const vzf = vy1 * Math.sin(inclRad) * speed;
-
-    bodies.set(p.id, { x, y, z, vx: vxf, vy: vyf, vz: vzf });
-  }
-  return bodies;
-}
-
-// ── Force function ───────────────────────────────────────────────────
-
-function createSolarForce(): (
-  nodes: ForceSimNode[], edges: ForceEdge[], w: number, h: number, mouse: MousePosition | null
-) => ForceSimNode[] {
-  const bodies = initBodies();
-
-  return (nodes, _edges, w, h, _mouse) => {
-    const cx = w / 2, cy = h / 2;
-    const result = nodes.map(n => ({ ...n }));
-
-    // Leapfrog integration in 3D
-    for (const p of PLANETS) {
-      const b = bodies.get(p.id);
-      if (!b) continue;
-
-      for (let s = 0; s < SUB_STEPS; s++) {
-        // Acceleration toward sun
-        const r2 = b.x * b.x + b.y * b.y + b.z * b.z;
-        const r = Math.sqrt(r2);
-        if (r < 0.001) continue;
-        const a1 = -GM_SUN / r2;
-        const ax1 = (b.x / r) * a1;
-        const ay1 = (b.y / r) * a1;
-        const az1 = (b.z / r) * a1;
-
-        // Half-kick
-        const vxH = b.vx + ax1 * DT * 0.5;
-        const vyH = b.vy + ay1 * DT * 0.5;
-        const vzH = b.vz + az1 * DT * 0.5;
-
-        // Drift
-        b.x += vxH * DT;
-        b.y += vyH * DT;
-        b.z += vzH * DT;
-
-        // New acceleration
-        const r2b = b.x * b.x + b.y * b.y + b.z * b.z;
-        const rb = Math.sqrt(r2b);
-        const a2 = -GM_SUN / r2b;
-        const ax2 = (b.x / rb) * a2;
-        const ay2 = (b.y / rb) * a2;
-        const az2 = (b.z / rb) * a2;
-
-        // Second half-kick
-        b.vx = vxH + ax2 * DT * 0.5;
-        b.vy = vyH + ay2 * DT * 0.5;
-        b.vz = vzH + az2 * DT * 0.5;
-      }
-
-      // Project 3D → 2D for display
-      const projected = project(b.x, b.y, b.z, cx, cy);
-      const nd = result.find(n => n.id === p.id);
-      if (nd) { nd.x = projected.px; nd.y = projected.py; }
-    }
-
-    // Sun stays at center
-    const sunNd = result.find(n => n.id === 'sun');
-    if (sunNd) { sunNd.x = cx; sunNd.y = cy; }
-
-    return result;
-  };
-}
-
-// ── Build initial nodes from 3D state ────────────────────────────────
-
-function buildNodes(cx: number, cy: number): { id: string; fixed?: boolean; x: number; y: number; color: string; label?: string }[] {
-  const bodies = initBodies();
-  const nodes: { id: string; fixed?: boolean; x: number; y: number; color: string; label?: string }[] = [
-    { id: 'sun', fixed: true, x: cx, y: cy, color: '#fbbf24', label: 'Sun' },
-  ];
-  for (const p of PLANETS) {
-    const b = bodies.get(p.id)!;
-    const proj = project(b.x, b.y, b.z, cx, cy);
-    nodes.push({ id: p.id, x: proj.px, y: proj.py, color: p.color, label: p.label });
-  }
-  return nodes;
-}
-
-const solarForce = createSolarForce();
-
-// ── Component ────────────────────────────────────────────────────────
+// ── Component ──────────────────────────────────────────────────────────
 
 export function PlanetsScreen() {
-  const cx = 400, cy = 350;
-  const nodes = buildNodes(cx, cy);
+  useHead({
+    title: 'Solar System — SpecifyJS',
+    description: 'Dual-viewport 3D solar system: Earth perspective and Oort Cloud top-down view.',
+  });
 
-  const trails = PLANETS.map(p => ({
-    nodeId: p.id,
-    color: p.color,
-    maxPoints: 1200,
-    width: 0.5,
-    opacity: 0.25,
-  }));
+  const initializedRef = useRef(false);
+  const rafRef = useRef<number>(0);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  const containerCallback = (node: HTMLDivElement | null) => {
+    if (!node || initializedRef.current) return;
+    initializedRef.current = true;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    canvas.style.display = 'block';
+    canvas.style.backgroundColor = '#0a0a1a';
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = `${CANVAS_WIDTH}px`;
+    node.appendChild(canvas);
+
+    // ── Build scene ──
+    const scene = new SceneGraph();
+
+    // Sun at origin
+    const sunMesh = Mesh.createBox(SUN_SIZE, SUN_SIZE, SUN_SIZE);
+    const sunObj = new SceneObject('sun');
+    sunObj.position = { x: 0, y: 0, z: 0 };
+    sunObj.mesh = sunMesh;
+    sunObj.material = createMaterial({ r: 0.98, g: 0.75, b: 0.15, a: 1 });
+    scene.register(sunObj);
+
+    // Planet scene objects
+    const planetObjects: SceneObject[] = [];
+    for (const p of PLANETS) {
+      const mesh = Mesh.createBox(p.size, p.size, p.size);
+      const obj = new SceneObject(p.id);
+      obj.position = { x: p.distance, y: 0, z: 0 };
+      obj.mesh = mesh;
+      obj.material = createMaterial({ r: p.r, g: p.g, b: p.b, a: 1 });
+      scene.register(obj);
+      planetObjects.push(obj);
+    }
+
+    // ── Camera 1: View from Earth (perspective) ──
+    const earthCam = new Camera({
+      position: { x: 10, y: 2, z: 5 },
+      fov: Math.PI / 3,
+      aspect: (VP_WIDTH - DIVIDER) / VP_HEIGHT,
+      near: 0.1,
+      far: 500,
+    });
+    earthCam.lookAt({ x: 0, y: 0, z: 0 });
+
+    const earthViewport = new Viewport({
+      x: 0,
+      y: 0,
+      width: VP_WIDTH - DIVIDER,
+      height: VP_HEIGHT,
+      camera: earthCam,
+      clearColor: { r: 0.02, g: 0.02, b: 0.06, a: 1 },
+    });
+
+    // ── Camera 2: Oort Cloud top-down (orthographic) ──
+    const oortCam = new Camera({
+      projectionMode: 'orthographic',
+      position: { x: 0, y: 200, z: 0.01 },
+      left: -70,
+      right: 70,
+      top: 70,
+      bottom: -70,
+      near: 0.1,
+      far: 500,
+    });
+    oortCam.lookAt({ x: 0, y: 0, z: 0 });
+
+    const oortViewport = new Viewport({
+      x: VP_WIDTH + DIVIDER,
+      y: 0,
+      width: VP_WIDTH - DIVIDER,
+      height: VP_HEIGHT,
+      camera: oortCam,
+      clearColor: { r: 0.01, g: 0.01, b: 0.04, a: 1 },
+    });
+
+    // Pipeline & lighting
+    const pipeline = new CpuPipeline();
+    pipeline.initialize(canvas);
+    const lighting = new FlatShading();
+
+    // Animation state
+    let totalTime = 0;
+    let lastTime = performance.now();
+
+    const frame = () => {
+      const now = performance.now();
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+      totalTime += dt;
+
+      // Update planet positions (circular orbits in XZ plane)
+      for (let i = 0; i < PLANETS.length; i++) {
+        const p = PLANETS[i]!;
+        const obj = planetObjects[i]!;
+        const angle = totalTime * p.orbitSpeed * 0.5;
+        obj.position = {
+          x: Math.cos(angle) * p.distance,
+          y: 0,
+          z: Math.sin(angle) * p.distance,
+        };
+      }
+
+      // Earth camera: follow Earth, look at Sun
+      const earthDef = PLANETS[2]!;
+      const earthObj = planetObjects[2]!;
+      earthCam.position = {
+        x: earthObj.position.x,
+        y: 2,
+        z: earthObj.position.z + 5,
+      };
+      earthCam.lookAt({ x: 0, y: 0, z: 0 });
+
+      // ── Render left viewport (Earth view) ──
+      pipeline.render(scene, earthCam, earthViewport, lighting);
+      pipeline.renderEdges(scene, earthCam, earthViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.3 });
+
+      // ── Draw divider ──
+      const ctx = (pipeline as any).ctx as CanvasRenderingContext2D;
+      if (ctx) {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(VP_WIDTH - DIVIDER, 0, DIVIDER * 2, CANVAS_HEIGHT);
+      }
+
+      // ── Render right viewport (Oort Cloud view) ──
+      pipeline.render(scene, oortCam, oortViewport, lighting);
+      pipeline.renderEdges(scene, oortCam, oortViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.2 });
+
+      // Draw orbit rings on top-down view
+      if (ctx) {
+        ctx.save();
+        const ocx = oortViewport.x + oortViewport.width / 2;
+        const ocy = oortViewport.y + oortViewport.height / 2;
+        const scale = oortViewport.width / 140; // maps -70..70 to viewport width
+        ctx.beginPath();
+        ctx.rect(oortViewport.x, oortViewport.y, oortViewport.width, oortViewport.height);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 0.5;
+        for (const p of PLANETS) {
+          ctx.beginPath();
+          ctx.arc(ocx, ocy, p.distance * scale, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Draw Earth camera indicator on top-down view
+        const camPx = ocx + earthCam.position.x * scale;
+        const camPy = ocy + earthCam.position.z * scale;
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(camPx, camPy, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '9px sans-serif';
+        ctx.fillText('CAM', camPx + 5, camPy + 3);
+
+        ctx.restore();
+      }
+
+      // Viewport labels
+      if (ctx) {
+        ctx.save();
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('View from Earth', 8, 16);
+        ctx.fillText('Oort Cloud view', VP_WIDTH + DIVIDER + 8, 16);
+        ctx.restore();
+      }
+
+      rafRef.current = requestAnimationFrame(frame);
+    };
+
+    rafRef.current = requestAnimationFrame(frame);
+
+    cleanupRef.current = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      pipeline.dispose();
+      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    };
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) cleanupRef.current();
+    };
+  }, []);
 
   return createElement('div', {
-    style: { display: 'flex', flexDirection: 'column', height: '100%', padding: '16px', boxSizing: 'border-box' },
+    style: { display: 'flex', height: '100%', padding: '16px', boxSizing: 'border-box', gap: '20px' },
   },
-    createElement('h2', {
-      style: { fontSize: '18px', fontWeight: '600', marginBottom: '12px', color: 'var(--color-text, #0f172a)' },
-    }, 'Solar System'),
-    createElement('div', { style: { flex: '1', minHeight: '400px' } },
-      createElement(ForceGraph, {
-        nodes, edges: [],
-        customForce: solarForce,
-        trails,
-        width: 800, height: 700,
-        nodeRadius: 4, nodeStrokeWidth: 0, solidNodes: false,
-        showLabels: true, edgeWidth: 0,
-      }),
+    // Left: dual viewports
+    createElement('div', { style: { flex: '1', display: 'flex', flexDirection: 'column', minWidth: '600px' } },
+      createElement('h2', {
+        style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
+      }, 'Solar System'),
+      createElement('div', { style: { flex: '1', minHeight: '300px' } },
+        createElement('div', {
+          ref: containerCallback,
+          style: { width: '100%', maxWidth: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px`, backgroundColor: '#0a0a1a' },
+        }),
+      ),
+      createElement('p', {
+        style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
+      }, 'Left: perspective view from Earth toward the Sun. Right: top-down orthographic view from the Oort Cloud. Yellow dot marks the Earth camera.'),
     ),
-    createElement('p', {
-      style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px', lineHeight: '1.5' },
-    }, 'Newtonian gravity in 3D with leapfrog integration. Logarithmic distance scaling. Orbital plane tilted 45\u00b0. Inclinations from NASA data (Pluto: 17.16\u00b0).'),
+    // Right: sidebar with planet data
+    createElement('div', {
+      style: {
+        width: '240px', flexShrink: '0', overflowY: 'auto',
+        fontSize: '13px', lineHeight: '1.6',
+        color: 'var(--color-text, #1f2937)',
+        borderLeft: '1px solid var(--color-border, #e2e8f0)',
+        paddingLeft: '16px',
+      },
+    },
+      createElement('h3', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '12px' } }, 'Planet Data'),
+      createElement('table', { style: { fontSize: '11px', borderCollapse: 'collapse', width: '100%' } },
+        createElement('thead', null,
+          createElement('tr', null,
+            createElement('th', { style: { textAlign: 'left', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Planet'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Dist'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Size'),
+          ),
+        ),
+        createElement('tbody', null,
+          createElement('tr', null,
+            createElement('td', { style: { padding: '2px 6px' } },
+              createElement('span', { style: { color: '#fbbf24', fontWeight: '600' } }, 'Sun'),
+            ),
+            createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, '0'),
+            createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(SUN_SIZE)),
+          ),
+          ...PLANETS.map((p) =>
+            createElement('tr', { key: p.id },
+              createElement('td', { style: { padding: '2px 6px' } },
+                createElement('span', {
+                  style: { color: `rgb(${Math.round(p.r * 255)},${Math.round(p.g * 255)},${Math.round(p.b * 255)})`, fontWeight: '600' },
+                }, p.label),
+              ),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(p.distance)),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(p.size)),
+            ),
+          ),
+        ),
+      ),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Viewports'),
+      createElement('p', { style: { fontSize: '12px' } },
+        'Earth View: Perspective camera positioned near Earth, looking at the Sun. FOV 60 degrees.',
+      ),
+      createElement('p', { style: { fontSize: '12px', marginTop: '4px' } },
+        'Oort Cloud: Orthographic camera at y=200, looking straight down. Bounds: +/-70 units.',
+      ),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Rendering'),
+      createElement('p', { style: { fontSize: '12px' } },
+        'CPU pipeline with flat shading. Planets are colored boxes (Mesh.createBox) orbiting in the XZ plane.',
+      ),
+    ),
   );
 }

@@ -5,7 +5,7 @@
  * Solar System Simulation — 3D rendering using the 3dSpace CpuPipeline.
  *
  * Two viewports on a single canvas:
- *   Left:  "View from {Planet}" — perspective camera on the selected planet's surface
+ *   Left:  "View from {Planet}" — geostationary orbit camera above the selected planet
  *   Right: "Solar System" — orthographic overview at 45deg from orbital plane
  *
  * Real astronomical data with logarithmic/scaled representation.
@@ -153,7 +153,7 @@ export function PlanetsScreen() {
       sceneObjects.push(obj);
     }
 
-    // ── Camera 1: Surface camera (perspective) ──
+    // ── Camera 1: Geostationary orbit camera (perspective) ──
     const surfaceCam = new Camera({
       position: { x: 10, y: 2, z: 5 },
       fov: Math.PI / 3,
@@ -256,32 +256,31 @@ export function PlanetsScreen() {
         obj.rotation = quatMul(tiltQuat, spinQuat);
       }
 
-      // Update surface camera for the selected planet
+      // Update geostationary camera for the selected planet
       const selBody = BODIES[selectedPlanetIndex]!;
       const selObj = sceneObjects[selectedPlanetIndex]!;
       const selTilt = axialTiltQuats[selectedPlanetIndex]!;
       const selRadius = bodyRadius(selBody.radiusKm);
 
-      // Camera on surface at equator, rotating with the planet
+      // Geostationary orbit above equator, rotating with the planet
       const rotAngle = TWO_PI * totalTime / selBody.rotPeriodDays;
       const spinQuat = quatFromAxisAngle(0, 1, 0, rotAngle);
       const fullRot = quatMul(selTilt, spinQuat);
 
-      // Surface position: equator, rotating with the planet
-      const surfaceDir = quatRotateVec(fullRot, { x: 1, y: 0, z: 0 });
-      const camOffset = selRadius * 1.05; // slightly above surface
+      // Geostationary orbit: ~3x planet radius above equator, facing outward
+      const geoAlt = selRadius * 3;
+      const equatorialDir = quatRotateVec(fullRot, { x: 1, y: 0, z: 0 });
       surfaceCam.position = {
-        x: selObj.position.x + surfaceDir.x * camOffset,
-        y: selObj.position.y + surfaceDir.y * camOffset,
-        z: selObj.position.z + surfaceDir.z * camOffset,
+        x: selObj.position.x + equatorialDir.x * geoAlt,
+        y: selObj.position.y + equatorialDir.y * geoAlt,
+        z: selObj.position.z + equatorialDir.z * geoAlt,
       };
 
-      // Camera looks outward and slightly upward
-      const upDir = quatRotateVec(fullRot, { x: 0, y: 1, z: 0 });
+      // Camera looks outward from the equatorial plane (away from planet)
       const lookTarget = {
-        x: surfaceCam.position.x + surfaceDir.x * 10 + upDir.x * 2,
-        y: surfaceCam.position.y + surfaceDir.y * 10 + upDir.y * 2,
-        z: surfaceCam.position.z + surfaceDir.z * 10 + upDir.z * 2,
+        x: surfaceCam.position.x + equatorialDir.x * 100,
+        y: surfaceCam.position.y + equatorialDir.y * 100,
+        z: surfaceCam.position.z + equatorialDir.z * 100,
       };
       surfaceCam.lookAt(lookTarget);
 
@@ -366,7 +365,7 @@ export function PlanetsScreen() {
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'Left: surface camera view from selected planet. Right: orbital overview at 45\u00b0. Press 0\u20139 to switch planets.'),
+      }, 'Left: geostationary orbit view from selected planet. Right: orbital overview at 45\u00b0. Press 0\u20139 to switch planets.'),
     ),
     // Right: sidebar with planet data and key legend
     createElement('div', {

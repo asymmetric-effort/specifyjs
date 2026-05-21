@@ -7,7 +7,7 @@
  */
 
 import { createElement } from 'specifyjs';
-import { useHead } from 'specifyjs/hooks';
+import { useHead, useRef, useMemo } from 'specifyjs/hooks';
 import {
   Space3D,
   SceneObject,
@@ -61,38 +61,53 @@ export function Space3DDemo() {
     description: 'Camera flyby demo rendering five colored boxes in 3D space.',
   });
 
-  const objects = buildObjects();
+  // Stable references — created once, not every render
+  const objectsRef = useRef<SceneObject[] | null>(null);
+  if (!objectsRef.current) objectsRef.current = buildObjects();
+  const objects = objectsRef.current;
 
-  const camera = new Camera({
-    position: { x: 15, y: 1, z: 0 },
-    fov: Math.PI / 4,
-    aspect: WIDTH / HEIGHT,
-    near: 0.1,
-    far: 1000,
-  });
-  camera.lookAt({ x: 0, y: 0, z: 0 });
+  const cameraRef = useRef<Camera | null>(null);
+  if (!cameraRef.current) {
+    const cam = new Camera({
+      position: { x: 15, y: 1, z: 0 },
+      fov: Math.PI / 4,
+      aspect: WIDTH / HEIGHT,
+      near: 0.1,
+      far: 1000,
+    });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    cameraRef.current = cam;
+  }
+  const camera = cameraRef.current;
 
-  const viewport = new Viewport({
-    x: 0,
-    y: 0,
-    width: WIDTH,
-    height: HEIGHT,
-    camera,
-    clearColor: { r: 0.06, g: 0.09, b: 0.16, a: 1 },
-  });
+  const viewportRef = useRef<Viewport | null>(null);
+  if (!viewportRef.current) {
+    viewportRef.current = new Viewport({
+      x: 0,
+      y: 0,
+      width: WIDTH,
+      height: HEIGHT,
+      camera,
+      clearColor: { r: 0.06, g: 0.09, b: 0.16, a: 1 },
+    });
+  }
+  const viewport = viewportRef.current;
 
-  // Accumulate elapsed time across frames for the orbit animation.
-  let totalTime = 0;
+  const totalTimeRef = useRef(0);
+
+  const camerasArray = useMemo(() => [camera], []);
+  const viewportsArray = useMemo(() => [viewport], []);
 
   const onFrame = (deltaTime: number, _scene: SceneGraph, cameras: Camera[]) => {
-    totalTime += deltaTime;
+    totalTimeRef.current += deltaTime;
+    const t = totalTimeRef.current;
     const cam = cameras[0];
     if (!cam) return;
 
     const radius = 15;
-    const x = Math.cos(totalTime * 0.3) * radius;
-    const z = Math.sin(totalTime * 0.3) * radius;
-    const y = Math.sin(totalTime * 0.2) * 4 + 1;
+    const x = Math.cos(t * 0.3) * radius;
+    const z = Math.sin(t * 0.3) * radius;
+    const y = Math.sin(t * 0.2) * 4 + 1;
 
     cam.position = { x, y, z };
     cam.lookAt({ x: 0, y: 0, z: 0 });
@@ -111,8 +126,8 @@ export function Space3DDemo() {
           width: WIDTH,
           height: HEIGHT,
           objects,
-          cameras: [camera],
-          viewports: [viewport],
+          cameras: camerasArray,
+          viewports: viewportsArray,
           onFrame,
           renderer: 'cpu',
         }),

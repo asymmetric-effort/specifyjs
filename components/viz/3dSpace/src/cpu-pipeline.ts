@@ -46,8 +46,8 @@ export class CpuPipeline implements RenderPipeline {
     if (!ctx) return;
 
     // Compute view * projection once per frame
-    const viewMat = camera.getViewMatrix().data as Mat4;
-    const projMat = camera.getProjectionMatrix().data as Mat4;
+    const viewMat = camera.getViewMatrix();
+    const projMat = camera.getProjectionMatrix();
     const viewProj = mat4Multiply(projMat, viewMat);
 
     // Clear viewport region
@@ -70,7 +70,7 @@ export class CpuPipeline implements RenderPipeline {
       if (!mesh || !material) continue;
 
       // model * view * projection
-      const modelMat = obj.getWorldMatrix().data as Mat4;
+      const modelMat = obj.getWorldMatrix();
       const mvp = mat4Multiply(viewProj, modelMat);
 
       const vertices = mesh.vertices;

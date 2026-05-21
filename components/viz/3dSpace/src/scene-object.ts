@@ -76,7 +76,7 @@ export class SceneObject {
       multiplyMat4InPlace(result, local);
     }
 
-    return { data: result };
+    return result;
   }
 }
 

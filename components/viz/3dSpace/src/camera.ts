@@ -102,7 +102,7 @@ export class Camera {
     data[14] = -(r20 * px + r21 * py + r22 * pz);
     data[15] = 1;
 
-    return { data };
+    return data;
   }
 
   /** Compute the projection matrix based on the current projection mode. */
@@ -199,7 +199,7 @@ export class Camera {
     data[11] = -1;
     data[14] = 2 * this.near * this.far * rangeInv;
 
-    return { data };
+    return data;
   }
 
   private orthographicMatrix(): Mat4 {
@@ -216,6 +216,6 @@ export class Camera {
     data[14] = (this.far + this.near) * nf;
     data[15] = 1;
 
-    return { data };
+    return data;
   }
 }

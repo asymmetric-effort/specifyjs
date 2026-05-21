@@ -160,10 +160,8 @@ export class WebGLPipeline implements RenderPipeline {
     gl.useProgram(program);
 
     // 4. Get view and projection matrices from camera
-    const viewMat4 = camera.getViewMatrix();
-    const projMat4 = camera.getProjectionMatrix();
-    const viewData = viewMat4.data;
-    const projData = projMat4.data;
+    const viewData = camera.getViewMatrix();
+    const projData = camera.getProjectionMatrix();
 
     // Set view and projection matrix uniforms if the shader uses them
     setUniform(gl, program, 'uViewMatrix', toFloat32(viewData));
@@ -213,8 +211,7 @@ export class WebGLPipeline implements RenderPipeline {
     const material = obj.material;
 
     // Compute model matrix
-    const modelMat4 = obj.getWorldMatrix();
-    const modelData = modelMat4.data;
+    const modelData = obj.getWorldMatrix();
 
     // Compute model-view-projection matrix: MVP = proj * view * model
     const mv = mat4Multiply(viewData, modelData);

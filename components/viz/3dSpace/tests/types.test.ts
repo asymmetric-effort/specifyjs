@@ -140,7 +140,7 @@ describe('SceneObject', () => {
   it('getWorldMatrix returns identity for default transform', () => {
     const obj = new SceneObject('test');
     const mat = obj.getWorldMatrix();
-    expect(mat.data.length).toBe(16);
+    expect(mat.length).toBe(16);
     // Identity matrix (column-major)
     const identity = new Float64Array(16);
     identity[0] = 1;
@@ -148,7 +148,7 @@ describe('SceneObject', () => {
     identity[10] = 1;
     identity[15] = 1;
     for (let i = 0; i < 16; i++) {
-      expect(mat.data[i]).toBeCloseTo(identity[i]!, 10);
+      expect(mat[i]).toBeCloseTo(identity[i]!, 10);
     }
   });
 
@@ -156,9 +156,9 @@ describe('SceneObject', () => {
     const obj = new SceneObject('test');
     obj.position = { x: 3, y: 5, z: 7 };
     const mat = obj.getWorldMatrix();
-    expect(mat.data[12]).toBeCloseTo(3);
-    expect(mat.data[13]).toBeCloseTo(5);
-    expect(mat.data[14]).toBeCloseTo(7);
+    expect(mat[12]).toBeCloseTo(3);
+    expect(mat[13]).toBeCloseTo(5);
+    expect(mat[14]).toBeCloseTo(7);
   });
 
   it('getWorldMatrix composes parent transforms', () => {
@@ -170,7 +170,7 @@ describe('SceneObject', () => {
 
     const mat = child.getWorldMatrix();
     // Combined translation should be 15 along x
-    expect(mat.data[12]).toBeCloseTo(15);
+    expect(mat[12]).toBeCloseTo(15);
   });
 });
 
@@ -186,36 +186,36 @@ describe('Camera', () => {
   it('getViewMatrix returns a Mat4 with 16 elements', () => {
     const cam = new Camera();
     const view = cam.getViewMatrix();
-    expect(view.data.length).toBe(16);
+    expect(view.length).toBe(16);
   });
 
   it('getViewMatrix at origin with identity orientation is identity', () => {
     const cam = new Camera();
     const view = cam.getViewMatrix();
     // Should be identity since position is origin and orientation is identity quaternion
-    expect(view.data[0]).toBeCloseTo(1);
-    expect(view.data[5]).toBeCloseTo(1);
-    expect(view.data[10]).toBeCloseTo(1);
-    expect(view.data[15]).toBeCloseTo(1);
-    expect(view.data[12]).toBeCloseTo(0);
-    expect(view.data[13]).toBeCloseTo(0);
-    expect(view.data[14]).toBeCloseTo(0);
+    expect(view[0]).toBeCloseTo(1);
+    expect(view[5]).toBeCloseTo(1);
+    expect(view[10]).toBeCloseTo(1);
+    expect(view[15]).toBeCloseTo(1);
+    expect(view[12]).toBeCloseTo(0);
+    expect(view[13]).toBeCloseTo(0);
+    expect(view[14]).toBeCloseTo(0);
   });
 
   it('getProjectionMatrix returns a Mat4 for perspective mode', () => {
     const cam = new Camera({ projectionMode: 'perspective' });
     const proj = cam.getProjectionMatrix();
-    expect(proj.data.length).toBe(16);
+    expect(proj.length).toBe(16);
     // Perspective matrix should have non-zero values at specific positions
-    expect(proj.data[0]).not.toBe(0); // f / aspect
-    expect(proj.data[5]).not.toBe(0); // f
+    expect(proj[0]).not.toBe(0); // f / aspect
+    expect(proj[5]).not.toBe(0); // f
   });
 
   it('getProjectionMatrix returns a Mat4 for orthographic mode', () => {
     const cam = new Camera({ projectionMode: 'orthographic' });
     const proj = cam.getProjectionMatrix();
-    expect(proj.data.length).toBe(16);
-    expect(proj.data[15]).toBeCloseTo(1);
+    expect(proj.length).toBe(16);
+    expect(proj[15]).toBeCloseTo(1);
   });
 
   it('move updates position', () => {
@@ -612,9 +612,9 @@ describe('Camera (additional)', () => {
     const proj1 = cam1.getProjectionMatrix();
     const proj2 = cam2.getProjectionMatrix();
     // data[0] = f / aspect, so wider aspect => smaller data[0]
-    expect(proj1.data[0]).toBeLessThan(proj2.data[0]!);
+    expect(proj1[0]).toBeLessThan(proj2[0]!);
     // data[5] = f, should be the same for same fov
-    expect(proj1.data[5]).toBeCloseTo(proj2.data[5]!);
+    expect(proj1[5]).toBeCloseTo(proj2[5]!);
   });
 
   it('orthographic matrix has correct bounds', () => {
@@ -629,10 +629,10 @@ describe('Camera (additional)', () => {
     });
     const proj = cam.getProjectionMatrix();
     // data[0] = -2 / (left - right) = -2 / (-10) = 0.2
-    expect(proj.data[0]).toBeCloseTo(0.2);
+    expect(proj[0]).toBeCloseTo(0.2);
     // data[5] = -2 / (bottom - top) = -2 / (-6) = 1/3
-    expect(proj.data[5]).toBeCloseTo(1 / 3);
-    expect(proj.data[15]).toBeCloseTo(1);
+    expect(proj[5]).toBeCloseTo(1 / 3);
+    expect(proj[15]).toBeCloseTo(1);
   });
 
   it('move accumulates position changes', () => {
@@ -673,15 +673,15 @@ describe('Camera (additional)', () => {
     cam.lookAt({ x: 0, y: 0, z: 0 });
     // View matrix should produce valid transform
     const view = cam.getViewMatrix();
-    expect(view.data.length).toBe(16);
-    expect(view.data[15]).toBeCloseTo(1);
+    expect(view.length).toBe(16);
+    expect(view[15]).toBeCloseTo(1);
   });
 
   it('getViewMatrix reflects position translation', () => {
     const cam = new Camera({ position: { x: 5, y: 0, z: 0 } });
     const view = cam.getViewMatrix();
     // Translation column should reflect -position
-    expect(view.data[12]).toBeCloseTo(-5);
+    expect(view[12]).toBeCloseTo(-5);
   });
 });
 
@@ -779,9 +779,9 @@ describe('SceneObject (additional)', () => {
 
     const mat = leaf.getWorldMatrix();
     // Combined translation: 1 + 2 + 3 = 6
-    expect(mat.data[12]).toBeCloseTo(6);
-    expect(mat.data[13]).toBeCloseTo(0);
-    expect(mat.data[14]).toBeCloseTo(0);
+    expect(mat[12]).toBeCloseTo(6);
+    expect(mat[13]).toBeCloseTo(0);
+    expect(mat[14]).toBeCloseTo(0);
   });
 
   it('visible=false does not affect getWorldMatrix', () => {
@@ -789,18 +789,18 @@ describe('SceneObject (additional)', () => {
     obj.visible = false;
     obj.position = { x: 5, y: 10, z: 15 };
     const mat = obj.getWorldMatrix();
-    expect(mat.data[12]).toBeCloseTo(5);
-    expect(mat.data[13]).toBeCloseTo(10);
-    expect(mat.data[14]).toBeCloseTo(15);
+    expect(mat[12]).toBeCloseTo(5);
+    expect(mat[13]).toBeCloseTo(10);
+    expect(mat[14]).toBeCloseTo(15);
   });
 
   it('getWorldMatrix with scale', () => {
     const obj = new SceneObject('scaled');
     obj.scale = { x: 2, y: 3, z: 4 };
     const mat = obj.getWorldMatrix();
-    expect(mat.data[0]).toBeCloseTo(2);
-    expect(mat.data[5]).toBeCloseTo(3);
-    expect(mat.data[10]).toBeCloseTo(4);
+    expect(mat[0]).toBeCloseTo(2);
+    expect(mat[5]).toBeCloseTo(3);
+    expect(mat[10]).toBeCloseTo(4);
   });
 
   it('getWorldMatrix with parent scale and child translation', () => {
@@ -812,7 +812,7 @@ describe('SceneObject (additional)', () => {
 
     const mat = child.getWorldMatrix();
     // Child position (5,0,0) is scaled by parent scale (2): world x = 10
-    expect(mat.data[12]).toBeCloseTo(10);
+    expect(mat[12]).toBeCloseTo(10);
   });
 });
 

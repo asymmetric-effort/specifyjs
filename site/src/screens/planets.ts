@@ -5,11 +5,11 @@
  * Solar System Simulation — 3D rendering using the 3dSpace CpuPipeline.
  *
  * Two viewports on a single canvas:
- *   Left:  "View from {Planet}" — geostationary orbit camera above the selected planet
+ *   Left:  "Free Camera" — inertia-based free-flying camera in space
  *   Right: "Solar System" — orthographic overview at 45deg from orbital plane
  *
  * Real astronomical data with logarithmic/scaled representation.
- * Keyboard controls: 0=Sun, 1=Mercury, 2=Venus, 3=Earth, ... 9=Pluto
+ * Keyboard controls: Arrow keys for thrust, WASD for pitch/yaw.
  */
 
 import { createElement } from 'specifyjs';
@@ -33,6 +33,9 @@ const MIN_VISIBLE_SIZE = 0.3;  // minimum sphere radius in world units
 const TIME_SCALE = 10;         // 1 real second = 10 simulated days
 const TWO_PI = 2 * Math.PI;
 const DEG_TO_RAD = Math.PI / 180;
+
+const THRUST_MAGNITUDE = 5;   // world units/sec²
+const ROTATION_SPEED = 1;     // radians/sec
 
 // ── Planet data ───────────────────────────────────────────────────────
 
@@ -61,10 +64,6 @@ const BODIES: PlanetDef[] = [
   { id: 'neptune', label: 'Neptune', distAU: 30.07, radiusKm: 24622,  periodDays: 60182,   axialTiltDeg: 28.32,  rotPeriodDays: 0.671,  r: 0.39, g: 0.40, b: 0.94 },
   { id: 'pluto',   label: 'Pluto',   distAU: 39.48, radiusKm: 1188,   periodDays: 90560,   axialTiltDeg: 122.5,  rotPeriodDays: 6.387,  r: 0.55, g: 0.40, b: 0.30 },
 ];
-
-// Key mapping: 0=Sun, 1=Mercury, ... 9=Pluto
-const KEY_LABELS = ['0: Sun', '1: Mercury', '2: Venus', '3: Earth', '4: Mars',
-  '5: Jupiter', '6: Saturn', '7: Uranus', '8: Neptune', '9: Pluto'];
 
 /** Compute the visual sphere radius for a body. */
 function bodyRadius(radiusKm: number): number {
@@ -103,6 +102,13 @@ function quatRotateVec(q: { x: number; y: number; z: number; w: number }, v: { x
   return { x: result.x, y: result.y, z: result.z };
 }
 
+/** Normalize a quaternion to unit length. */
+function quatNormalize(q: { x: number; y: number; z: number; w: number }): { x: number; y: number; z: number; w: number } {
+  const len = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+  if (len === 0) return { x: 0, y: 0, z: 0, w: 1 };
+  return { x: q.x / len, y: q.y / len, z: q.z / len, w: q.w / len };
+}
+
 // ── Canvas & viewport dimensions ──────────────────────────────────────
 
 const CANVAS_WIDTH = 960;
@@ -116,7 +122,7 @@ const DIVIDER = 2;
 export function PlanetsScreen() {
   useHead({
     title: 'Solar System — SpecifyJS',
-    description: 'Real solar system data with dual viewports: planet surface camera and orbital overview.',
+    description: 'Real solar system data with dual viewports: free-flying camera and orbital overview.',
   });
 
   const initializedRef = useRef(false);
@@ -153,22 +159,22 @@ export function PlanetsScreen() {
       sceneObjects.push(obj);
     }
 
-    // ── Camera 1: Geostationary orbit camera (perspective) ──
-    const surfaceCam = new Camera({
-      position: { x: 10, y: 2, z: 5 },
+    // ── Camera 1: Free-flying camera (perspective) ──
+    const freeCam = new Camera({
+      position: { x: 33, y: 5, z: 0 },
       fov: Math.PI / 3,
       aspect: (VP_WIDTH - DIVIDER) / VP_HEIGHT,
       near: 0.01,
       far: 2000,
     });
-    surfaceCam.lookAt({ x: 0, y: 0, z: 0 });
+    freeCam.lookAt({ x: 0, y: 0, z: 0 });
 
-    const surfaceViewport = new Viewport({
+    const freeViewport = new Viewport({
       x: 0,
       y: 0,
       width: VP_WIDTH - DIVIDER,
       height: VP_HEIGHT,
-      camera: surfaceCam,
+      camera: freeCam,
       clearColor: { r: 0.02, g: 0.02, b: 0.06, a: 1 },
     });
 
@@ -209,16 +215,43 @@ export function PlanetsScreen() {
     // Animation state
     let totalTime = 0;
     let lastTime = performance.now();
-    let selectedPlanetIndex = 3; // Start with Earth (index 3 in BODIES: Sun=0, Mercury=1, Venus=2, Earth=3)
 
-    // Keyboard controls
+    // Free camera state
+    let camPos = { x: 33, y: 5, z: 0 };
+    let camVel = { x: 0, y: 0, z: 0 };
+
+    // Compute initial orientation quaternion: camera at (33,5,0) looking at origin (0,0,0)
+    // Forward direction: normalize(origin - position) = normalize(-33, -5, 0)
+    const initFwdLen = Math.sqrt(33 * 33 + 5 * 5);
+    const initFwd = { x: -33 / initFwdLen, y: -5 / initFwdLen, z: 0 };
+    // Camera default forward is -Z. We need a quaternion that rotates -Z to initFwd.
+    // Using the rotation between two vectors: from (0,0,-1) to initFwd
+    const fromVec = { x: 0, y: 0, z: -1 };
+    const dotInit = fromVec.x * initFwd.x + fromVec.y * initFwd.y + fromVec.z * initFwd.z;
+    const crossInit = {
+      x: fromVec.y * initFwd.z - fromVec.z * initFwd.y,
+      y: fromVec.z * initFwd.x - fromVec.x * initFwd.z,
+      z: fromVec.x * initFwd.y - fromVec.y * initFwd.x,
+    };
+    // q = (cross, 1 + dot), then normalize
+    let camOrientation = quatNormalize({
+      x: crossInit.x,
+      y: crossInit.y,
+      z: crossInit.z,
+      w: 1 + dotInit,
+    });
+
+    // Key state tracking
+    const keysDown = new Set<string>();
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      const idx = parseInt(e.key);
-      if (idx >= 0 && idx <= 9) {
-        selectedPlanetIndex = idx;
-      }
+      keysDown.add(e.key);
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      keysDown.delete(e.key);
     };
     document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     // Precompute axial tilt quaternions (tilt around Z axis from Y-up)
     const axialTiltQuats = BODIES.map((body) => {
@@ -256,37 +289,72 @@ export function PlanetsScreen() {
         obj.rotation = quatMul(tiltQuat, spinQuat);
       }
 
-      // Update geostationary camera for the selected planet
-      const selBody = BODIES[selectedPlanetIndex]!;
-      const selObj = sceneObjects[selectedPlanetIndex]!;
-      const selTilt = axialTiltQuats[selectedPlanetIndex]!;
-      const selRadius = bodyRadius(selBody.radiusKm);
+      // ── Update free camera orientation (pitch/yaw) ──
+      if (keysDown.has('w') || keysDown.has('W')) {
+        // Pitch up: rotate around camera-local X axis (positive angle = look up)
+        const pitchQuat = quatFromAxisAngle(1, 0, 0, ROTATION_SPEED * dt);
+        camOrientation = quatNormalize(quatMul(camOrientation, pitchQuat));
+      }
+      if (keysDown.has('s') || keysDown.has('S')) {
+        // Pitch down: rotate around camera-local X axis (negative angle = look down)
+        const pitchQuat = quatFromAxisAngle(1, 0, 0, -ROTATION_SPEED * dt);
+        camOrientation = quatNormalize(quatMul(camOrientation, pitchQuat));
+      }
+      if (keysDown.has('a') || keysDown.has('A')) {
+        // Yaw left: rotate around camera-local Y axis (positive angle = look left)
+        const yawQuat = quatFromAxisAngle(0, 1, 0, ROTATION_SPEED * dt);
+        camOrientation = quatNormalize(quatMul(camOrientation, yawQuat));
+      }
+      if (keysDown.has('d') || keysDown.has('D')) {
+        // Yaw right: rotate around camera-local Y axis (negative angle = look right)
+        const yawQuat = quatFromAxisAngle(0, 1, 0, -ROTATION_SPEED * dt);
+        camOrientation = quatNormalize(quatMul(camOrientation, yawQuat));
+      }
 
-      // Geostationary orbit above equator, rotating with the planet
-      const rotAngle = TWO_PI * totalTime / selBody.rotPeriodDays;
-      const spinQuat = quatFromAxisAngle(0, 1, 0, rotAngle);
-      const fullRot = quatMul(selTilt, spinQuat);
+      // ── Compute camera-local directions in world space ──
+      // Camera default: forward = -Z, right = +X, up = +Y
+      const camForward = quatRotateVec(camOrientation, { x: 0, y: 0, z: -1 });
+      const camRight = quatRotateVec(camOrientation, { x: 1, y: 0, z: 0 });
 
-      // Geostationary orbit: ~3x planet radius above equator, facing outward
-      const geoAlt = selRadius * 3;
-      const equatorialDir = quatRotateVec(fullRot, { x: 1, y: 0, z: 0 });
-      surfaceCam.position = {
-        x: selObj.position.x + equatorialDir.x * geoAlt,
-        y: selObj.position.y + equatorialDir.y * geoAlt,
-        z: selObj.position.z + equatorialDir.z * geoAlt,
-      };
+      // ── Apply thrust to velocity ──
+      if (keysDown.has('ArrowUp')) {
+        camVel.x += camForward.x * THRUST_MAGNITUDE * dt;
+        camVel.y += camForward.y * THRUST_MAGNITUDE * dt;
+        camVel.z += camForward.z * THRUST_MAGNITUDE * dt;
+      }
+      if (keysDown.has('ArrowDown')) {
+        camVel.x -= camForward.x * THRUST_MAGNITUDE * dt;
+        camVel.y -= camForward.y * THRUST_MAGNITUDE * dt;
+        camVel.z -= camForward.z * THRUST_MAGNITUDE * dt;
+      }
+      if (keysDown.has('ArrowLeft')) {
+        camVel.x -= camRight.x * THRUST_MAGNITUDE * dt;
+        camVel.y -= camRight.y * THRUST_MAGNITUDE * dt;
+        camVel.z -= camRight.z * THRUST_MAGNITUDE * dt;
+      }
+      if (keysDown.has('ArrowRight')) {
+        camVel.x += camRight.x * THRUST_MAGNITUDE * dt;
+        camVel.y += camRight.y * THRUST_MAGNITUDE * dt;
+        camVel.z += camRight.z * THRUST_MAGNITUDE * dt;
+      }
 
-      // Camera looks outward from the equatorial plane (away from planet)
+      // ── Update camera position from velocity ──
+      camPos.x += camVel.x * dt;
+      camPos.y += camVel.y * dt;
+      camPos.z += camVel.z * dt;
+
+      // ── Apply camera state to Camera object ──
+      freeCam.position = { x: camPos.x, y: camPos.y, z: camPos.z };
       const lookTarget = {
-        x: surfaceCam.position.x + equatorialDir.x * 100,
-        y: surfaceCam.position.y + equatorialDir.y * 100,
-        z: surfaceCam.position.z + equatorialDir.z * 100,
+        x: camPos.x + camForward.x,
+        y: camPos.y + camForward.y,
+        z: camPos.z + camForward.z,
       };
-      surfaceCam.lookAt(lookTarget);
+      freeCam.lookAt(lookTarget);
 
-      // ── Render left viewport (surface view) ──
-      pipeline.render(scene, surfaceCam, surfaceViewport, lighting);
-      pipeline.renderEdges(scene, surfaceCam, surfaceViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.3 });
+      // ── Render left viewport (free camera view) ──
+      pipeline.render(scene, freeCam, freeViewport, lighting);
+      pipeline.renderEdges(scene, freeCam, freeViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.3 });
 
       // ── Draw divider ──
       const ctx = (pipeline as any).ctx as CanvasRenderingContext2D;
@@ -299,7 +367,7 @@ export function PlanetsScreen() {
       pipeline.render(scene, overviewCam, overviewViewport, lighting);
       pipeline.renderEdges(scene, overviewCam, overviewViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.2 });
 
-      // Draw orbit rings on overview
+      // Draw orbit rings and camera indicator on overview
       if (ctx) {
         ctx.save();
         const ocx = overviewViewport.x + overviewViewport.width / 2;
@@ -308,6 +376,8 @@ export function PlanetsScreen() {
         ctx.beginPath();
         ctx.rect(overviewViewport.x, overviewViewport.y, overviewViewport.width, overviewViewport.height);
         ctx.clip();
+
+        // Orbit rings
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 0.5;
         for (let i = 1; i < BODIES.length; i++) {
@@ -316,6 +386,22 @@ export function PlanetsScreen() {
           ctx.arc(ocx, ocy, dist * scale, 0, TWO_PI);
           ctx.stroke();
         }
+
+        // Camera position indicator dot
+        // Overview camera is at 45deg angle: project camera position onto the overview plane
+        // The overview looks from (0, Y, Z) toward origin. In screen space:
+        //   screen X = world X, screen Y = -world Z * cos(angle) - world Y * sin(angle) (approx)
+        // But since the overview camera uses orthographic and looks at origin from (0, Y, Z),
+        // we project using: screen offset = (worldX * scale, -(worldZ * cos45 + worldY * sin45) * scale)
+        const cos45 = Math.cos(overviewAngle);
+        const sin45 = Math.sin(overviewAngle);
+        const camScreenX = ocx + camPos.x * scale;
+        const camScreenY = ocy - (camPos.z * cos45 + camPos.y * sin45) * scale;
+        ctx.fillStyle = '#00ff88';
+        ctx.beginPath();
+        ctx.arc(camScreenX, camScreenY, 3, 0, TWO_PI);
+        ctx.fill();
+
         ctx.restore();
       }
 
@@ -324,7 +410,7 @@ export function PlanetsScreen() {
         ctx.save();
         ctx.font = '11px sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText(`View from ${selBody.label}`, 8, 16);
+        ctx.fillText('Free Camera', 8, 16);
         ctx.fillText('Solar System', VP_WIDTH + DIVIDER + 8, 16);
         ctx.restore();
       }
@@ -336,6 +422,7 @@ export function PlanetsScreen() {
 
     cleanupRef.current = () => {
       document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       pipeline.dispose();
       if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
@@ -365,9 +452,9 @@ export function PlanetsScreen() {
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'Left: geostationary orbit view from selected planet. Right: orbital overview at 45\u00b0. Press 0\u20139 to switch planets.'),
+      }, 'Left: free-flying camera with inertia. Right: orbital overview at 45\u00b0. Arrow keys to thrust, WASD to look.'),
     ),
-    // Right: sidebar with planet data and key legend
+    // Right: sidebar with planet data and controls legend
     createElement('div', {
       style: {
         width: '260px', flexShrink: '0', overflowY: 'auto',
@@ -402,18 +489,24 @@ export function PlanetsScreen() {
           ),
         ),
       ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Keyboard Controls'),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Camera Controls'),
       createElement('div', { style: { fontSize: '11px', fontFamily: 'monospace', lineHeight: '1.8' } },
-        ...KEY_LABELS.map((label) =>
-          createElement('div', { key: label }, label),
-        ),
+        createElement('div', null, 'Arrow keys: thrust'),
+        createElement('div', null, '  Up/Down = forward/back'),
+        createElement('div', null, '  Left/Right = strafe'),
+        createElement('div', null, 'WASD: pitch and yaw'),
+        createElement('div', null, '  W/S = pitch up/down'),
+        createElement('div', null, '  A/D = yaw left/right'),
       ),
+      createElement('p', {
+        style: { fontSize: '11px', marginTop: '8px', fontStyle: 'italic', color: 'var(--color-text-muted, #94a3b8)' },
+      }, 'No friction in space \u2014 thrust adds velocity that persists.'),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Viewports'),
       createElement('p', { style: { fontSize: '12px' } },
-        'Surface View: Perspective camera on the selected planet\'s equator, rotating with the planet. Shows what you\'d see standing on its surface.',
+        'Free Camera: Perspective camera with inertia-based flight. Start between Mars and Jupiter orbits, looking toward the Sun.',
       ),
       createElement('p', { style: { fontSize: '12px', marginTop: '4px' } },
-        'Solar System: Orthographic overview at 45\u00b0 from the orbital plane showing all orbits.',
+        'Solar System: Orthographic overview at 45\u00b0 from the orbital plane showing all orbits. Green dot shows camera position.',
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Scale'),
       createElement('p', { style: { fontSize: '12px' } },

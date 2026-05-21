@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * 3D Space Demo — Camera flyby around five colored boxes rendered
- * using the CpuPipeline directly (bypasses Space3D component to
- * eliminate hook lifecycle issues).
+ * 3D Space Demo — Two viewports showing the same scene from different
+ * cameras: an orbiting perspective camera and a fixed top-down camera.
  */
 
 import { createElement } from 'specifyjs';
@@ -43,29 +42,33 @@ const BOXES: BoxDef[] = [
 
 // ── Component ───────────────────────────────────────────────────────
 
-const WIDTH = 720;
-const HEIGHT = 480;
+const CANVAS_WIDTH = 960;
+const CANVAS_HEIGHT = 400;
+const VP_WIDTH = CANVAS_WIDTH / 2;   // Each viewport is half the canvas
+const VP_HEIGHT = CANVAS_HEIGHT;
+const DIVIDER = 2;                    // Pixel gap between viewports
 
 export function Space3DDemo() {
   useHead({
     title: '3D Space — SpecifyJS',
-    description: 'Camera flyby demo rendering five colored boxes in 3D space.',
+    description: 'Dual-viewport demo: orbiting camera and top-down camera viewing five 3D boxes.',
   });
 
   const initializedRef = useRef(false);
   const rafRef = useRef<number>(0);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // Use ref callback — fires synchronously when the DOM node is created
   const containerCallback = (node: HTMLDivElement | null) => {
     if (!node || initializedRef.current) return;
     initializedRef.current = true;
 
     const canvas = document.createElement('canvas');
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
     canvas.style.display = 'block';
     canvas.style.backgroundColor = '#0f172a';
+    canvas.style.width = '100%';
+    canvas.style.maxWidth = `${CANVAS_WIDTH}px`;
     node.appendChild(canvas);
 
     // Build scene
@@ -79,23 +82,45 @@ export function Space3DDemo() {
       scene.register(obj);
     }
 
-    // Camera + viewport
-    const camera = new Camera({
+    // ── Camera 1: Orbiting perspective ──
+    const orbitCam = new Camera({
       position: { x: 15, y: 1, z: 0 },
       fov: Math.PI / 4,
-      aspect: WIDTH / HEIGHT,
+      aspect: VP_WIDTH / VP_HEIGHT,
       near: 0.1,
       far: 100,
     });
-    camera.lookAt({ x: 0, y: 0, z: 0 });
+    orbitCam.lookAt({ x: 0, y: 0, z: 0 });
 
-    const viewport = new Viewport({
+    const orbitViewport = new Viewport({
       x: 0,
       y: 0,
-      width: WIDTH,
-      height: HEIGHT,
-      camera,
+      width: VP_WIDTH - DIVIDER,
+      height: VP_HEIGHT,
+      camera: orbitCam,
       clearColor: { r: 0.06, g: 0.09, b: 0.16, a: 1 },
+    });
+
+    // ── Camera 2: Fixed top-down orthographic ──
+    const topCam = new Camera({
+      projectionMode: 'orthographic',
+      position: { x: 0, y: 25, z: 0.01 },  // Slightly off z-axis to avoid degenerate lookAt
+      left: -15,
+      right: 15,
+      top: 15,
+      bottom: -15,
+      near: 0.1,
+      far: 100,
+    });
+    topCam.lookAt({ x: 0, y: 0, z: 0 });
+
+    const topViewport = new Viewport({
+      x: VP_WIDTH + DIVIDER,
+      y: 0,
+      width: VP_WIDTH - DIVIDER,
+      height: VP_HEIGHT,
+      camera: topCam,
+      clearColor: { r: 0.04, g: 0.06, b: 0.12, a: 1 },
     });
 
     // Pipeline
@@ -108,26 +133,65 @@ export function Space3DDemo() {
     let totalTime = 0;
     let lastTime = performance.now();
 
+    // Draw a small camera indicator on the top-down view showing orbit cam position
+    const drawCamIndicator = (ctx: CanvasRenderingContext2D) => {
+      const pos = orbitCam.position;
+      // Project orbit camera position onto top-down viewport
+      const vpX = topViewport.x + ((pos.x + 15) / 30) * topViewport.width;
+      const vpY = topViewport.y + ((pos.z + 15) / 30) * topViewport.height;
+      ctx.save();
+      ctx.fillStyle = '#ffff00';
+      ctx.beginPath();
+      ctx.arc(vpX, vpY, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = '10px sans-serif';
+      ctx.fillText('CAM', vpX + 6, vpY + 3);
+      ctx.restore();
+    };
+
     const frame = () => {
       const now = performance.now();
       const dt = (now - lastTime) / 1000;
       lastTime = now;
       totalTime += dt;
 
-      // Orbit camera
+      // Orbit camera 1
       const radius = 15;
       const x = Math.cos(totalTime * 0.3) * radius;
       const z = Math.sin(totalTime * 0.3) * radius;
       const y = Math.sin(totalTime * 0.2) * 4 + 1;
-      camera.position = { x, y, z };
-      camera.lookAt({ x: 0, y: 0, z: 0 });
+      orbitCam.position = { x, y, z };
+      orbitCam.lookAt({ x: 0, y: 0, z: 0 });
 
-      // Render scene
-      pipeline.render(scene, camera, viewport, lighting);
-      // Draw grid on XZ plane for spatial reference
-      pipeline.renderGrid(camera, viewport, { size: 30, divisions: 30, opacity: 0.12 });
-      // Draw black edges on cubes for perspective
-      pipeline.renderEdges(scene, camera, viewport, { color: '#000000', lineWidth: 1, opacity: 0.5 });
+      // Render viewport 1 (orbit perspective)
+      pipeline.render(scene, orbitCam, orbitViewport, lighting);
+      pipeline.renderGrid(orbitCam, orbitViewport, { size: 30, divisions: 30, opacity: 0.12 });
+      pipeline.renderEdges(scene, orbitCam, orbitViewport, { color: '#000000', lineWidth: 1, opacity: 0.5 });
+
+      // Draw viewport divider
+      const ctx = (pipeline as any).ctx as CanvasRenderingContext2D;
+      if (ctx) {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(VP_WIDTH - DIVIDER, 0, DIVIDER * 2, CANVAS_HEIGHT);
+      }
+
+      // Render viewport 2 (top-down)
+      pipeline.render(scene, topCam, topViewport, lighting);
+      pipeline.renderGrid(topCam, topViewport, { size: 30, divisions: 30, opacity: 0.15 });
+      pipeline.renderEdges(scene, topCam, topViewport, { color: '#000000', lineWidth: 1, opacity: 0.4 });
+
+      // Draw camera position indicator on top-down view
+      if (ctx) drawCamIndicator(ctx);
+
+      // Viewport labels
+      if (ctx) {
+        ctx.save();
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('Perspective (orbiting)', 8, 16);
+        ctx.fillText('Top-down (fixed)', VP_WIDTH + DIVIDER + 8, 16);
+        ctx.restore();
+      }
 
       rafRef.current = requestAnimationFrame(frame);
     };
@@ -151,54 +215,54 @@ export function Space3DDemo() {
   return createElement('div', {
     style: { display: 'flex', height: '100%', padding: '16px', boxSizing: 'border-box', gap: '20px' },
   },
-    // Left: 3D viewport
-    createElement('div', { style: { flex: '1', display: 'flex', flexDirection: 'column', minWidth: '400px' } },
+    // Left: dual viewports
+    createElement('div', { style: { flex: '1', display: 'flex', flexDirection: 'column', minWidth: '600px' } },
       createElement('h2', {
         style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
       }, '3D Space Demo'),
       createElement('div', { style: { flex: '1', minHeight: '300px' } },
         createElement('div', {
           ref: containerCallback,
-          style: { width: `${WIDTH}px`, height: `${HEIGHT}px`, backgroundColor: '#0f172a' },
+          style: { width: '100%', maxWidth: `${CANVAS_WIDTH}px`, height: `${CANVAS_HEIGHT}px`, backgroundColor: '#0f172a' },
         }),
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'The camera orbits the scene automatically. One full revolution takes ~20 seconds.'),
+      }, 'Left: orbiting perspective camera. Right: fixed top-down view with camera position indicator (yellow dot).'),
     ),
     // Right: sidebar
     createElement('div', {
       style: {
-        width: '280px', flexShrink: '0', overflowY: 'auto',
+        width: '240px', flexShrink: '0', overflowY: 'auto',
         fontSize: '13px', lineHeight: '1.6',
         color: 'var(--color-text, #1f2937)',
         borderLeft: '1px solid var(--color-border, #e2e8f0)',
-        paddingLeft: '20px',
+        paddingLeft: '16px',
       },
     },
-      createElement('h3', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '12px' } }, 'About This Demo'),
+      createElement('h3', { style: { fontSize: '15px', fontWeight: '600', marginBottom: '12px' } }, 'Dual Viewport Demo'),
       createElement('p', null,
-        'This showcase renders five coloured boxes at fixed positions in 3D space using the ',
-        createElement('strong', null, '3dSpace'),
-        ' CPU rasteriser. Every triangle is projected, clipped, shaded, and painted to a 2D canvas each frame.',
+        'Two independent cameras render the same scene simultaneously to a single canvas. Each viewport has its own camera, projection, and clear color.',
       ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Scene Objects'),
-      createElement('ul', { style: { paddingLeft: '18px', margin: '8px 0' } },
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Viewport 1 — Perspective'),
+      createElement('p', null,
+        'Orbiting camera at radius 15, sinusoidal height, looking at origin. Perspective projection (45\u00b0 FOV).',
+      ),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Viewport 2 — Top-Down'),
+      createElement('p', null,
+        'Fixed camera at y=25 looking straight down. Orthographic projection (\u00b115 units). Yellow dot shows the orbiting camera\'s position.',
+      ),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Scene Objects'),
+      createElement('ul', { style: { paddingLeft: '18px', margin: '4px 0', fontSize: '12px' } },
         ...BOXES.map((b) =>
           createElement('li', null,
             createElement('span', { style: { color: `rgb(${Math.round(b.r * 255)},${Math.round(b.g * 255)},${Math.round(b.b * 255)})`, fontWeight: '600' } }, b.label),
-            ` box at (${b.x}, ${b.y}, ${b.z})`,
+            ` (${b.x}, ${b.y}, ${b.z})`,
           ),
         ),
       ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Camera Orbit'),
-      createElement('p', null,
-        'Radius 15, sinusoidal height between -3 and 5, always looking at the origin. One revolution in ~20 seconds.',
-      ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '4px' } }, 'Rendering'),
-      createElement('p', null,
-        'CPU pipeline: perspective projection, painter\'s algorithm z-sort, flat shading, canvas 2D path fill.',
-      ),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Rendering'),
+      createElement('p', null, 'CPU pipeline with flat shading, grid overlay, and wireframe edges.'),
     ),
   );
 }

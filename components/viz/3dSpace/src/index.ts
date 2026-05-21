@@ -16,3 +16,7 @@ export type { LightingModel } from './lighting-model';
 export { FlatShading } from './lighting-model';
 export { SceneGraph } from './scene-graph';
 export type { RenderPipeline } from './render-pipeline';
+export { WebGLPipeline, toFloat32, compileShader, linkProgram, setUniform } from './webgl-pipeline';
+export { CpuPipeline } from './cpu-pipeline';
+export { Space3D } from './Space3D';
+export type { Space3DProps } from './Space3D';

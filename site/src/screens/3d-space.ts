@@ -52,12 +52,20 @@ export function Space3DDemo() {
     description: 'Camera flyby demo rendering five colored boxes in 3D space.',
   });
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Create canvas via DOM to avoid ref timing issues
+    const canvas = document.createElement('canvas');
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    canvas.style.display = 'block';
+    canvas.style.backgroundColor = '#0f172a';
+    container.appendChild(canvas);
 
     // Build scene
     const scene = new SceneGraph();
@@ -124,6 +132,7 @@ export function Space3DDemo() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       pipeline.dispose();
+      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
     };
   }, []);
 
@@ -136,11 +145,9 @@ export function Space3DDemo() {
         style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
       }, '3D Space Demo'),
       createElement('div', { style: { flex: '1', minHeight: '300px' } },
-        createElement('canvas', {
-          ref: canvasRef,
-          width: WIDTH,
-          height: HEIGHT,
-          style: { display: 'block', backgroundColor: '#0f172a' },
+        createElement('div', {
+          ref: containerRef,
+          style: { width: `${WIDTH}px`, height: `${HEIGHT}px`, backgroundColor: '#0f172a' },
         }),
       ),
       createElement('p', {

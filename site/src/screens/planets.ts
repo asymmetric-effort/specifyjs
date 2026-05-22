@@ -8,7 +8,7 @@
  *   Left:  "View from {Planet}" — rotates between planets every 30 seconds
  *   Right: "Oort Cloud view" — orthographic at 45° from orbital plane
  *
- * Planets orbit the Sun in the XZ plane with simplified circular orbits.
+ * Planets follow elliptical orbits (Kepler's equation) in the XZ plane.
  * Each body is a colored sphere (Mesh.createSphere) scaled by relative size.
  */
 
@@ -40,30 +40,61 @@ interface PlanetDef {
   r: number;
   g: number;
   b: number;
-  distAU: number;      // real distance from sun in AU
-  radiusKm: number;    // real radius in km
-  orbitSpeed: number;  // relative to Earth = 1 (derived from real periods)
+  semiMajorAU: number;   // semi-major axis in AU
+  eccentricity: number;  // orbital eccentricity
+  meanRadiusKm: number;  // mean radius in km
+  periodDays: number;    // orbital period in days
 }
 
 const PLANETS: PlanetDef[] = [
-  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, distAU: 0.387,  radiusKm: 2440,  orbitSpeed: 4.15  },
-  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, distAU: 0.723,  radiusKm: 6052,  orbitSpeed: 1.63  },
-  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, distAU: 1.0,    radiusKm: 6371,  orbitSpeed: 1.0   },
-  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, distAU: 1.524,  radiusKm: 3390,  orbitSpeed: 0.531 },
-  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, distAU: 5.203,  radiusKm: 69911, orbitSpeed: 0.084 },
-  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, distAU: 9.537,  radiusKm: 58232, orbitSpeed: 0.034 },
-  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, distAU: 19.19,  radiusKm: 25362, orbitSpeed: 0.012 },
-  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distAU: 30.07,  radiusKm: 24622, orbitSpeed: 0.006 },
+  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, semiMajorAU: 0.387098,  eccentricity: 0.205630, meanRadiusKm: 2439.7,  periodDays: 87.97   },
+  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, semiMajorAU: 0.723332,  eccentricity: 0.006772, meanRadiusKm: 6051.8,  periodDays: 224.7   },
+  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, semiMajorAU: 1.000000,  eccentricity: 0.016709, meanRadiusKm: 6371.0,  periodDays: 365.25  },
+  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, semiMajorAU: 1.523681,  eccentricity: 0.093400, meanRadiusKm: 3389.5,  periodDays: 687.0   },
+  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, semiMajorAU: 5.203800,  eccentricity: 0.048900, meanRadiusKm: 69886,   periodDays: 4332.6  },
+  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, semiMajorAU: 9.582600,  eccentricity: 0.056500, meanRadiusKm: 58232,   periodDays: 10759   },
+  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, semiMajorAU: 19.19126,  eccentricity: 0.047170, meanRadiusKm: 25362,   periodDays: 30688   },
+  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, semiMajorAU: 30.07000,  eccentricity: 0.008678, meanRadiusKm: 24622,   periodDays: 60182   },
 ];
 
-const SUN_SIZE = 2; // Fixed visual size — must be smaller than Mercury's orbit (11.6 units)
+const SUN_MEAN_RADIUS_KM = 695700;
+const SUN_SIZE = 2; // Fixed visual size — must be smaller than Mercury perihelion
 
 function planetSize(radiusKm: number): number {
   return Math.max(radiusKm * SIZE_EXAGGERATION, MIN_PLANET_SIZE);
 }
 
-function planetDist(distAU: number): number {
-  return distAU * AU_SCALE;
+function auToWorld(au: number): number {
+  return au * AU_SCALE;
+}
+
+/**
+ * Solve Kepler's equation M = E - e*sin(E) for eccentric anomaly E
+ * using Newton-Raphson iteration.
+ */
+function solveKepler(M: number, e: number): number {
+  let E = M; // initial guess
+  for (let i = 0; i < 20; i++) {
+    const dE = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    E -= dE;
+    if (Math.abs(dE) < 1e-10) break;
+  }
+  return E;
+}
+
+/**
+ * Compute planet position in the XZ orbital plane from Kepler's equation.
+ * Returns world-space coordinates.
+ */
+function orbitalPosition(p: PlanetDef, timeDays: number): { x: number; z: number } {
+  const n = (2 * Math.PI) / p.periodDays; // mean motion
+  const M = n * timeDays;                  // mean anomaly
+  const E = solveKepler(M, p.eccentricity); // eccentric anomaly
+  const a = auToWorld(p.semiMajorAU);
+  const e = p.eccentricity;
+  const x = a * (Math.cos(E) - e);
+  const z = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  return { x, z };
 }
 
 // ── Canvas & viewport dimensions ───────────────────────────────────────
@@ -113,10 +144,11 @@ export function PlanetsScreen() {
     // Planet scene objects
     const planetObjects: SceneObject[] = [];
     for (const p of PLANETS) {
-      const radius = planetSize(p.radiusKm);
+      const radius = planetSize(p.meanRadiusKm);
       const mesh = Mesh.createSphere(radius, 12, 18);
       const obj = new SceneObject(p.id);
-      obj.position = { x: planetDist(p.distAU), y: 0, z: 0 };
+      const initPos = orbitalPosition(p, 0);
+      obj.position = { x: initPos.x, y: 0, z: initPos.z };
       obj.mesh = mesh;
       obj.material = createMaterial({ r: p.r, g: p.g, b: p.b, a: 1 });
       scene.register(obj);
@@ -146,7 +178,7 @@ export function PlanetsScreen() {
     let planetSwitchTimer = 0;
 
     // ── Camera 2: Oort Cloud view at 45° from orbital plane ──
-    const maxDist = planetDist(30.07); // Neptune in world units
+    const maxDist = auToWorld(30.07); // Neptune in world units
     const oortBounds = maxDist * 1.2;  // 20% margin
     const oortDist = oortBounds * 2;
     const oortAngle = Math.PI / 4;
@@ -190,16 +222,14 @@ export function PlanetsScreen() {
       lastTime = now;
       totalTime += dt;
 
-      // Update planet positions (circular orbits in XZ plane)
+      // Update planet positions (elliptical orbits via Kepler's equation)
+      // totalTime is in real seconds; TIME_SCALE converts to simulated days
+      const simDays = totalTime * 10; // 1 real second = 10 simulated days
       for (let i = 0; i < PLANETS.length; i++) {
         const p = PLANETS[i]!;
         const obj = planetObjects[i]!;
-        const angle = totalTime * p.orbitSpeed * 0.5;
-        obj.position = {
-          x: Math.cos(angle) * planetDist(p.distAU),
-          y: 0,
-          z: Math.sin(angle) * planetDist(p.distAU),
-        };
+        const pos = orbitalPosition(p, simDays);
+        obj.position = { x: pos.x, y: 0, z: pos.z };
       }
 
       // Rotate planet camera every 30 seconds
@@ -212,7 +242,7 @@ export function PlanetsScreen() {
       // Position camera at current planet — 10 units above planet radius, looking at sun
       const curPlanet = PLANETS[currentPlanetIdx]!;
       const curObj = planetObjects[currentPlanetIdx]!;
-      const curRadius = planetSize(curPlanet.radiusKm);
+      const curRadius = planetSize(curPlanet.meanRadiusKm);
       // Camera at 3x planet radius or minimum 5 units above surface
       const camAlt = Math.max(curRadius * 3, curRadius + 5);
       planetCam.position = {
@@ -251,8 +281,12 @@ export function PlanetsScreen() {
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 0.5;
         for (const p of PLANETS) {
+          // Draw elliptical orbit ring
+          const a = auToWorld(p.semiMajorAU) * scale;
+          const b = a * Math.sqrt(1 - p.eccentricity * p.eccentricity);
+          const cx = ocx - p.eccentricity * a; // offset focus from center
           ctx.beginPath();
-          ctx.arc(ocx, ocy, planetDist(p.distAU) * scale, 0, Math.PI * 2);
+          ctx.ellipse(cx, ocy, a, b, 0, 0, Math.PI * 2);
           ctx.stroke();
         }
 
@@ -340,8 +374,8 @@ export function PlanetsScreen() {
                   style: { color: `rgb(${Math.round(p.r * 255)},${Math.round(p.g * 255)},${Math.round(p.b * 255)})`, fontWeight: '600' },
                 }, p.label),
               ),
-              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.distAU} AU`),
-              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.radiusKm} km`),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.semiMajorAU} AU`),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.meanRadiusKm} km`),
             ),
           ),
         ),

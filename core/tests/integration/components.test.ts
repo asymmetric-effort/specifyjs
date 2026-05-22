@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  fn,
+  spyOn,
+  mock,
+} from '@asymmetric-effort/nogginlessdom';
 import {
   createElement,
   Component,
@@ -25,7 +33,7 @@ beforeEach(() => {
 
 describe('class component lifecycle', () => {
   it('calls componentDidMount on first render', () => {
-    const didMount = vi.fn();
+    const didMount = fn();
 
     class MyComp extends Component {
       componentDidMount() {
@@ -43,7 +51,7 @@ describe('class component lifecycle', () => {
   });
 
   it('calls componentDidUpdate on re-render', () => {
-    const didUpdate = vi.fn();
+    const didUpdate = fn();
 
     class MyComp extends Component<{ value: number }> {
       componentDidUpdate() {
@@ -64,7 +72,7 @@ describe('class component lifecycle', () => {
   });
 
   it('calls componentWillUnmount on unmount', () => {
-    const willUnmount = vi.fn();
+    const willUnmount = fn();
 
     class MyComp extends Component {
       componentWillUnmount() {
@@ -100,7 +108,7 @@ describe('PureComponent', () => {
 
 describe('memo component', () => {
   it('skips re-render when props are equal', () => {
-    const renderCount = vi.fn();
+    const renderCount = fn();
 
     function Inner(props: { value: number }) {
       renderCount();
@@ -125,7 +133,7 @@ describe('memo component', () => {
   });
 
   it('uses custom compare function', () => {
-    const renderCount = vi.fn();
+    const renderCount = fn();
 
     function Inner(props: { a: number; b: number }) {
       renderCount();

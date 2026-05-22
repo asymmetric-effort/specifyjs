@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../../src/index';
 import { SPEC_ELEMENT_TYPE, SPEC_FRAGMENT_TYPE } from '../../../src/shared/types';
 

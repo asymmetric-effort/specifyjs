@@ -2,7 +2,7 @@
 // Tests — Distributed Tracing
 // ============================================================================
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
 import {
   generateTraceId,
   generateSpanId,
@@ -231,11 +231,11 @@ describe('useTracing', () => {
     const cleanupFns: Array<() => void> = [];
 
     // Mock the hooks module — the factory must be self-contained
-    vi.mock('../../../src/hooks/index', () => {
+    mock.module('../../../src/hooks/index', () => {
       const _cleanups: Array<() => void> = [];
       return {
-        useEffect: (fn: () => void | (() => void)) => {
-          const cleanup = fn();
+        useEffect: (effectFn: () => void | (() => void)) => {
+          const cleanup = effectFn();
           if (typeof cleanup === 'function') {
             _cleanups.push(cleanup);
           }

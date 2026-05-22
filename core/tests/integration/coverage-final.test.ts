@@ -4,7 +4,16 @@
  * reconciler.ts edge cases, work-loop.ts getHostSibling,
  * synthetic-event.ts InputEvent/TouchEvent paths.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+  afterEach,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 import { useState, useEffect, useCallback, useRef } from '../../src/hooks/index';
@@ -27,11 +36,11 @@ afterEach(() => {
 describe('useRest async paths', () => {
   function makeClient(overrides?: Partial<RestClient>): RestClient {
     return {
-      get: vi.fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
-      post: vi.fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
-      put: vi.fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
-      patch: vi.fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
-      delete: vi.fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
+      get: fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
+      post: fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
+      put: fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
+      patch: fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
+      delete: fn().mockResolvedValue({ data: null, status: 200, headers: {}, ok: true }),
       ...overrides,
     };
   }
@@ -39,9 +48,7 @@ describe('useRest async paths', () => {
   it('sets data on successful response', async () => {
     let activeRoot: ReturnType<typeof createRoot> | null = null;
     const mockClient = makeClient({
-      get: vi
-        .fn()
-        .mockResolvedValue({ data: { name: 'Alice' }, status: 200, headers: {}, ok: true }),
+      get: fn().mockResolvedValue({ data: { name: 'Alice' }, status: 200, headers: {}, ok: true }),
     });
     let capturedData: unknown = null;
 
@@ -67,7 +74,7 @@ describe('useRest async paths', () => {
   it('sets error on failed response', async () => {
     let activeRoot: ReturnType<typeof createRoot> | null = null;
     const mockClient = makeClient({
-      get: vi.fn().mockRejectedValue(new Error('Network error')),
+      get: fn().mockRejectedValue(new Error('Network error')),
     });
     let capturedError: RestError | null = null;
 
@@ -96,7 +103,7 @@ describe('useRest async paths', () => {
       headers: {},
     });
     const mockClient = makeClient({
-      get: vi.fn().mockRejectedValue(restErr),
+      get: fn().mockRejectedValue(restErr),
     });
     let capturedError: RestError | null = null;
 
@@ -118,7 +125,7 @@ describe('useRest async paths', () => {
     let activeRoot: ReturnType<typeof createRoot> | null = null;
     let callCount = 0;
     const mockClient = makeClient({
-      get: vi.fn().mockImplementation(() => {
+      get: fn().mockImplementation(() => {
         callCount++;
         return Promise.resolve({ data: { count: callCount }, status: 200, headers: {}, ok: true });
       }),

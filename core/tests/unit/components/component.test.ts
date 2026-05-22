@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { Component, PureComponent } from '../../../src/index';
 import { shallowEqual } from '../../../src/components/component';
 

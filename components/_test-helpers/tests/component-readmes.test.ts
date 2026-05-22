@@ -1,7 +1,6 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-// @vitest-environment node
 
 /**
  * Filesystem test: verifies every component directory has a README.md file.
@@ -10,7 +9,7 @@
  * and checks that each one contains a README.md.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import fs from 'fs';
 import path from 'path';
 

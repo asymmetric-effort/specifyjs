@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
 import { flushSync } from '../../../src/dom/flush-sync';
 
 describe('flushSync', () => {
   it('executes the callback synchronously', () => {
-    const fn = vi.fn(() => 42);
-    const result = flushSync(fn);
-    expect(fn).toHaveBeenCalledTimes(1);
+    const mockFn = fn(() => 42);
+    const result = flushSync(mockFn);
+    expect(mockFn).toHaveBeenCalledTimes(1);
     expect(result).toBe(42);
   });
 

@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { ComplexGraph2D } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -57,7 +57,7 @@ describe('ComplexGraph2D — happy path', () => {
 
 describe('ComplexGraph2D — interaction', () => {
   it('fires onPointClick with complex coordinates', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = ComplexGraph2D({ onPointClick: handler });
     expect(el.props.onClick).toBeDefined();
     // The onclick handler expects a MouseEvent with target.getBoundingClientRect
@@ -66,7 +66,7 @@ describe('ComplexGraph2D — interaction', () => {
   });
 
   it('fires onPointHover with complex coordinates', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = ComplexGraph2D({ onPointHover: handler });
     expect(el.props.onMouseMove).toBeDefined();
     expect(typeof el.props.onMouseMove).toBe('function');
@@ -86,14 +86,14 @@ describe('ComplexGraph2D — interaction', () => {
   });
 
   it('has double-click handler when onPointDoubleClick provided', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = ComplexGraph2D({ onPointDoubleClick: handler });
     expect(el.props.onDblClick).toBeDefined();
     expect(typeof el.props.onDblClick).toBe('function');
   });
 
   it('has context menu handler when onPointContextMenu provided', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = ComplexGraph2D({ onPointContextMenu: handler });
     expect(el.props.onContextMenu).toBeDefined();
     expect(typeof el.props.onContextMenu).toBe('function');

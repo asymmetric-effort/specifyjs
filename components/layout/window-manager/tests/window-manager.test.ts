@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
 import { WindowManagerProvider, useWindowManager } from '../src/index';
@@ -193,7 +193,7 @@ describe('WindowManagerProvider', () => {
   });
 
   it('calls onWindowOpen callback', async () => {
-    const onOpen = vi.fn();
+    const onOpen = fn();
     const { getCtx, flush } = setup({ onWindowOpen: onOpen });
     getCtx().openWindow({ id: 'w1', title: 'W1' });
     await flush();
@@ -201,7 +201,7 @@ describe('WindowManagerProvider', () => {
   });
 
   it('calls onFocusChange when opening', async () => {
-    const onFocus = vi.fn();
+    const onFocus = fn();
     const { getCtx, flush } = setup({ onFocusChange: onFocus });
     getCtx().openWindow({ id: 'w1', title: 'W1' });
     await flush();
@@ -252,7 +252,7 @@ describe('WindowManagerProvider', () => {
   });
 
   it('calls onWindowClose callback', async () => {
-    const onClose = vi.fn();
+    const onClose = fn();
     const { getCtx, flush } = setup({ onWindowClose: onClose });
     getCtx().openWindow({ id: 'w1', title: 'W1' });
     await flush();
@@ -633,7 +633,7 @@ describe('WindowManagerProvider', () => {
   });
 
   it('calls onFocusChange(null) on minimizeAll', async () => {
-    const onFocus = vi.fn();
+    const onFocus = fn();
     const { getCtx, flush } = setup({ onFocusChange: onFocus });
     getCtx().openWindow({ id: 'w1', title: 'W1' });
     await flush();

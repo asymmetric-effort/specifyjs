@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { DesktopBackground } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -271,7 +271,7 @@ describe('DesktopBackground', () => {
 
   describe('click handling', () => {
     it('fires onClick when background itself is clicked', () => {
-      const onClick = vi.fn();
+      const onClick = fn();
       render(createElement(DesktopBackground, { onClick }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
       el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -279,7 +279,7 @@ describe('DesktopBackground', () => {
     });
 
     it('does not fire onClick when a child is clicked', () => {
-      const onClick = vi.fn();
+      const onClick = fn();
       render(createElement(DesktopBackground, { onClick },
         createElement('div', { className: 'child' }, 'Click me'),
       ));
@@ -297,7 +297,7 @@ describe('DesktopBackground', () => {
     });
 
     it('fires onDoubleClick when background is double-clicked', () => {
-      const onDoubleClick = vi.fn();
+      const onDoubleClick = fn();
       render(createElement(DesktopBackground, { onDoubleClick }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
       el.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
@@ -305,7 +305,7 @@ describe('DesktopBackground', () => {
     });
 
     it('does not fire onDoubleClick when a child is double-clicked', () => {
-      const onDoubleClick = vi.fn();
+      const onDoubleClick = fn();
       render(createElement(DesktopBackground, { onDoubleClick },
         createElement('div', { className: 'child' }, 'Double click me'),
       ));
@@ -330,8 +330,8 @@ describe('DesktopBackground', () => {
   describe('context menu integration', () => {
     it('wraps in ContextMenu when contextMenuItems are provided', () => {
       const items = [
-        { label: 'Change Wallpaper', onClick: vi.fn() },
-        { label: 'Display Settings', onClick: vi.fn() },
+        { label: 'Change Wallpaper', onClick: fn() },
+        { label: 'Display Settings', onClick: fn() },
       ];
       render(createElement(DesktopBackground, { contextMenuItems: items }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
@@ -352,9 +352,9 @@ describe('DesktopBackground', () => {
 
     it('renders context menu items with dividers', () => {
       const items = [
-        { label: 'Item 1', onClick: vi.fn() },
+        { label: 'Item 1', onClick: fn() },
         { divider: true },
-        { label: 'Item 2', onClick: vi.fn() },
+        { label: 'Item 2', onClick: fn() },
       ];
       render(createElement(DesktopBackground, { contextMenuItems: items }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
@@ -366,8 +366,8 @@ describe('DesktopBackground', () => {
         {
           label: 'Parent',
           children: [
-            { label: 'Child 1', onClick: vi.fn() },
-            { label: 'Child 2', onClick: vi.fn() },
+            { label: 'Child 1', onClick: fn() },
+            { label: 'Child 2', onClick: fn() },
           ],
         },
       ];
@@ -378,8 +378,8 @@ describe('DesktopBackground', () => {
 
     it('renders context menu items with disabled state', () => {
       const items = [
-        { label: 'Enabled', onClick: vi.fn() },
-        { label: 'Disabled', onClick: vi.fn(), disabled: true },
+        { label: 'Enabled', onClick: fn() },
+        { label: 'Disabled', onClick: fn(), disabled: true },
       ];
       render(createElement(DesktopBackground, { contextMenuItems: items }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
@@ -388,7 +388,7 @@ describe('DesktopBackground', () => {
 
     it('renders context menu items with icons', () => {
       const items = [
-        { label: 'Settings', icon: 'gear', onClick: vi.fn() },
+        { label: 'Settings', icon: 'gear', onClick: fn() },
       ];
       render(createElement(DesktopBackground, { contextMenuItems: items }));
       const el = container.querySelector('.desktop-background') as HTMLElement;
@@ -408,9 +408,9 @@ describe('DesktopBackground', () => {
     });
 
     it('renders with all props set', () => {
-      const onClick = vi.fn();
-      const onDoubleClick = vi.fn();
-      const items = [{ label: 'Test', onClick: vi.fn() }];
+      const onClick = fn();
+      const onDoubleClick = fn();
+      const items = [{ label: 'Test', onClick: fn() }];
       render(createElement(DesktopBackground, {
         backgroundColor: '#000000',
         backgroundGradient: 'linear-gradient(to right, #000, #fff)',

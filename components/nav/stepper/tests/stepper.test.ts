@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Stepper } from '../src/index';
 import type { StepperProps, StepItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -139,7 +139,7 @@ describe('Stepper', () => {
 
   describe('interaction', () => {
     it('calls onChange when a clickable step is clicked', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Stepper, { steps: sampleSteps, currentStep: 0, clickable: true, onChange }),
       );
@@ -152,7 +152,7 @@ describe('Stepper', () => {
     });
 
     it('does not fire onChange when not clickable', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Stepper, { steps: sampleSteps, currentStep: 0, clickable: false, onChange }),
       );

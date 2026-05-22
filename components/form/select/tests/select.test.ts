@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Select } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -25,18 +25,18 @@ const OPTIONS = [
 describe('Select', () => {
   describe('happy paths', () => {
     it('renders with defaults', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn() }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn() }));
       const trigger = el.querySelector('[role="combobox"]');
       expect(trigger).toBeTruthy();
     });
 
     it('renders controlled value', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: 'b', onChange: vi.fn() }));
+      const el = render(createElement(Select, { options: OPTIONS, value: 'b', onChange: fn() }));
       expect(el.textContent).toContain('Beta');
     });
 
     it('fires onChange on option selection', async () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: handler }));
       const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
       trigger.click();
@@ -47,21 +47,21 @@ describe('Select', () => {
     });
 
     it('displays label', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn(), label: 'Country' }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn(), label: 'Country' }));
       const label = el.querySelector('label');
       expect(label).toBeTruthy();
       expect(label!.textContent).toContain('Country');
     });
 
     it('displays error message', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn(), error: 'Pick one' }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn(), error: 'Pick one' }));
       const error = el.querySelector('.form-field__error');
       expect(error).toBeTruthy();
       expect(error!.textContent).toBe('Pick one');
     });
 
     it('displays help text', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn(), helpText: 'Choose wisely' }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn(), helpText: 'Choose wisely' }));
       const help = el.querySelector('.form-field__help');
       expect(help).toBeTruthy();
       expect(help!.textContent).toBe('Choose wisely');
@@ -70,31 +70,31 @@ describe('Select', () => {
 
   describe('sad paths', () => {
     it('applies disabled state', () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: handler, disabled: true }));
       const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
       expect(trigger.getAttribute('tabindex')).toBe('-1');
     });
 
     it('renders with empty value showing placeholder', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn(), placeholder: 'Pick...' }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn(), placeholder: 'Pick...' }));
       expect(el.textContent).toContain('Pick...');
     });
 
     it('renders without options gracefully', () => {
-      const el = render(createElement(Select, { options: [], value: '', onChange: vi.fn() }));
+      const el = render(createElement(Select, { options: [], value: '', onChange: fn() }));
       expect(el.querySelector('[role="combobox"]')).toBeTruthy();
     });
 
     it('handles missing onChange gracefully on render', () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: 'a', onChange: vi.fn() }));
+      const el = render(createElement(Select, { options: OPTIONS, value: 'a', onChange: fn() }));
       expect(el.textContent).toContain('Alpha');
     });
   });
 
   describe('interaction', () => {
     it('opens dropdown on click', async () => {
-      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: vi.fn() }));
+      const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: fn() }));
       const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
       trigger.click();
       await flush();
@@ -103,7 +103,7 @@ describe('Select', () => {
     });
 
     it('selects option on click', async () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Select, { options: OPTIONS, value: '', onChange: handler }));
       const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
       trigger.click();
@@ -114,7 +114,7 @@ describe('Select', () => {
     });
 
     it('supports multiple selection mode', async () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Select, { options: OPTIONS, value: ['a'], onChange: handler, multiple: true }));
       const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
       trigger.click();

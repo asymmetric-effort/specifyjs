@@ -1,23 +1,32 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+  afterEach,
+} from '@asymmetric-effort/nogginlessdom';
 import type { Plugin } from 'vite';
 
 // Mock fs and path before importing the module under test
-vi.mock('fs', () => {
+mock.module('fs', () => {
   const writtenFiles: Record<string, string> = {};
   return {
     default: {
-      existsSync: vi.fn(() => false),
-      readdirSync: vi.fn(() => []),
-      writeFileSync: vi.fn((filePath: string, content: string) => {
+      existsSync: fn(() => false),
+      readdirSync: fn(() => []),
+      writeFileSync: fn((filePath: string, content: string) => {
         writtenFiles[filePath] = content;
       }),
     },
-    existsSync: vi.fn(() => false),
-    readdirSync: vi.fn(() => []),
-    writeFileSync: vi.fn((filePath: string, content: string) => {
+    existsSync: fn(() => false),
+    readdirSync: fn(() => []),
+    writeFileSync: fn((filePath: string, content: string) => {
       writtenFiles[filePath] = content;
     }),
     __writtenFiles: writtenFiles,
@@ -29,7 +38,7 @@ import { specifyJsSeoPlugin } from '../../../src/build/seo-plugin';
 import type { SeoPluginConfig } from '../../../src/build/seo-plugin';
 
 function getWrittenFile(filename: string): string | undefined {
-  const calls = vi.mocked(fs.writeFileSync).mock.calls;
+  const calls = (fs.writeFileSync as any).mock.calls;
   for (const call of calls) {
     if (String(call[0]).endsWith(filename)) {
       return String(call[1]);
@@ -56,13 +65,13 @@ describe('specifyJsSeoPlugin', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-15T12:00:00Z').getTime());
-    vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-03-15T12:00:00.000Z');
+    mock.clearAllMocks();
+    spyOn(Date, 'now').mockReturnValue(new Date('2026-03-15T12:00:00Z').getTime());
+    spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-03-15T12:00:00.000Z');
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    mock.restoreAllMocks();
   });
 
   it('returns a Vite plugin with name specifyjs-seo', () => {
@@ -93,8 +102,8 @@ describe('specifyJsSeoPlugin', () => {
     });
 
     it('includes doc routes from docsDir', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
+      (fs.existsSync as any).mockReturnValue(true);
+      (fs.readdirSync as any).mockImplementation((dir: unknown) => {
         const dirStr = String(dir);
         if (dirStr.endsWith('/docs')) {
           return [
@@ -184,8 +193,8 @@ describe('specifyJsSeoPlugin', () => {
     });
 
     it('includes guide and api doc links in llms.txt', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
+      (fs.existsSync as any).mockReturnValue(true);
+      (fs.readdirSync as any).mockImplementation((dir: unknown) => {
         const dirStr = String(dir);
         if (dirStr.endsWith('/docs')) {
           return [
@@ -245,7 +254,7 @@ describe('specifyJsSeoPlugin', () => {
     });
 
     it('handles missing docsDir gracefully', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
+      (fs.existsSync as any).mockReturnValue(false);
       const config: SeoPluginConfig = {
         siteUrl: 'https://example.com',
         docsDir: '/nonexistent/docs',
@@ -293,7 +302,7 @@ describe('specifyJsSeoPlugin', () => {
   });
 
   it('logs summary of generated files', () => {
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
     const plugin = specifyJsSeoPlugin(baseConfig);
     invokeCloseBundle(plugin);
 

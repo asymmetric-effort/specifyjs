@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Toggle } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -17,19 +17,19 @@ function render(vnode: unknown): HTMLElement {
 describe('Toggle', () => {
   describe('happy paths', () => {
     it('renders with defaults', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn() }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn() }));
       const toggle = el.querySelector('[role="switch"]');
       expect(toggle).toBeTruthy();
     });
 
     it('renders checked state', () => {
-      const el = render(createElement(Toggle, { checked: true, onChange: vi.fn() }));
+      const el = render(createElement(Toggle, { checked: true, onChange: fn() }));
       const toggle = el.querySelector('[role="switch"]');
       expect(toggle!.getAttribute('aria-checked')).toBe('true');
     });
 
     it('fires onChange on click', () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Toggle, { checked: false, onChange: handler }));
       const toggle = el.querySelector('[role="switch"]') as HTMLElement;
       toggle.click();
@@ -37,14 +37,14 @@ describe('Toggle', () => {
     });
 
     it('displays label', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn(), label: 'Dark Mode' }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn(), label: 'Dark Mode' }));
       expect(el.textContent).toContain('Dark Mode');
     });
   });
 
   describe('sad paths', () => {
     it('applies disabled state', () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Toggle, { checked: false, onChange: handler, disabled: true }));
       const toggle = el.querySelector('[role="switch"]') as HTMLElement;
       toggle.click();
@@ -52,18 +52,18 @@ describe('Toggle', () => {
     });
 
     it('renders unchecked by default', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn() }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn() }));
       const toggle = el.querySelector('[role="switch"]');
       expect(toggle!.getAttribute('aria-checked')).toBe('false');
     });
 
     it('renders without label gracefully', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn() }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn() }));
       expect(el.querySelector('[role="switch"]')).toBeTruthy();
     });
 
     it('sets aria-disabled when disabled', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn(), disabled: true }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn(), disabled: true }));
       const toggle = el.querySelector('[role="switch"]');
       expect(toggle!.getAttribute('aria-disabled')).toBe('true');
     });
@@ -71,7 +71,7 @@ describe('Toggle', () => {
 
   describe('interaction', () => {
     it('toggles off when clicked while checked', () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Toggle, { checked: true, onChange: handler }));
       const toggle = el.querySelector('[role="switch"]') as HTMLElement;
       toggle.click();
@@ -79,7 +79,7 @@ describe('Toggle', () => {
     });
 
     it('responds to Space key', () => {
-      const handler = vi.fn();
+      const handler = fn();
       const el = render(createElement(Toggle, { checked: false, onChange: handler }));
       const toggle = el.querySelector('[role="switch"]') as HTMLElement;
       toggle.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
@@ -87,7 +87,7 @@ describe('Toggle', () => {
     });
 
     it('supports different sizes', () => {
-      const el = render(createElement(Toggle, { checked: false, onChange: vi.fn(), size: 'lg' }));
+      const el = render(createElement(Toggle, { checked: false, onChange: fn(), size: 'lg' }));
       const toggle = el.querySelector('[role="switch"]');
       expect(toggle).toBeTruthy();
     });

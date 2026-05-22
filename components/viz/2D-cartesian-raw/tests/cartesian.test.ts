@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { CartesianGraph2D } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -97,7 +97,7 @@ describe('CartesianGraph2D — happy path', () => {
 
 describe('CartesianGraph2D — interaction', () => {
   it('fires onPointClick when point clicked', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = CartesianGraph2D({
       points: [{ x: 1, y: 2 }],
       onPointClick: handler,
@@ -116,7 +116,7 @@ describe('CartesianGraph2D — interaction', () => {
   });
 
   it('fires onPointHover on mouseenter', () => {
-    const handler = vi.fn();
+    const handler = fn();
     const el = CartesianGraph2D({
       points: [{ x: 3, y: 4 }],
       onPointHover: handler,

@@ -2,7 +2,7 @@
 // Tests — Metrics
 // ============================================================================
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import {
   createMeterProvider,
   formatOtlpMetrics,

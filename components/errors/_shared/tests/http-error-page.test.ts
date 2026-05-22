@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { HttpErrorPage } from "../src/index";
 import {
   installMockDispatcher,
@@ -91,7 +91,7 @@ describe("HttpErrorPage — happy path", () => {
   });
 
   it("calls custom onAction when provided", () => {
-    const onAction = vi.fn();
+    const onAction = fn();
     const el = HttpErrorPage({
       statusCode: 404,
       title: "Not Found",
@@ -274,7 +274,7 @@ describe("HttpErrorPage — accessibility", () => {
 describe("HttpErrorPage — default action", () => {
   it('default action sets window.location.href to "/"', () => {
     const originalWindow = globalThis.window;
-    const mockWindow = { location: { href: "" }, history: { back: vi.fn() } };
+    const mockWindow = { location: { href: "" }, history: { back: fn() } };
     (globalThis as any).window = mockWindow;
 
     try {
@@ -291,7 +291,7 @@ describe("HttpErrorPage — default action", () => {
 
   it("go back calls window.history.back()", () => {
     const originalWindow = globalThis.window;
-    const mockBack = vi.fn();
+    const mockBack = fn();
     const mockWindow = { location: { href: "" }, history: { back: mockBack } };
     (globalThis as any).window = mockWindow;
 

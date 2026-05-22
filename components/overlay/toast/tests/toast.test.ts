@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { createToaster } from '../src/index';
 import type { Toaster, ToastItem } from '../src/index';
 
@@ -103,14 +103,14 @@ describe('Toast / createToaster', () => {
   // ── Interaction ─────────────────────────────────────────────
   describe('interaction', () => {
     it('subscribe listener is called on toast', () => {
-      const listener = vi.fn();
+      const listener = fn();
       toaster.subscribe(listener);
       toaster.toast('Notify');
       expect(listener).toHaveBeenCalledTimes(1);
     });
 
     it('subscribe listener is called on dismiss', () => {
-      const listener = vi.fn();
+      const listener = fn();
       toaster.subscribe(listener);
       const id = toaster.toast('Temp');
       listener.mockClear();
@@ -119,7 +119,7 @@ describe('Toast / createToaster', () => {
     });
 
     it('unsubscribe stops notifications', () => {
-      const listener = vi.fn();
+      const listener = fn();
       const unsub = toaster.subscribe(listener);
       unsub();
       toaster.toast('Ignored');
@@ -127,7 +127,7 @@ describe('Toast / createToaster', () => {
     });
 
     it('toast with action stores the action', () => {
-      const action = { label: 'Undo', onClick: vi.fn() };
+      const action = { label: 'Undo', onClick: fn() };
       toaster.toast('With action', { action });
       const t = toaster.getToasts()[0]!;
       expect(t.action).toBeDefined();

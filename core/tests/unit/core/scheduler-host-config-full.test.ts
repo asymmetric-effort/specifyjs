@@ -2,7 +2,7 @@
  * Full coverage tests for scheduler-host-config.ts.
  * Tests the MessageChannel-based scheduling, yielding, and edge cases.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
 import {
   getCurrentTime,
   shouldYieldToHost,
@@ -31,26 +31,26 @@ describe('shouldYieldToHost + resetDeadline', () => {
 
 describe('scheduleCallback', () => {
   it('executes callback via flushAllWork', () => {
-    const fn = vi.fn(() => null);
-    scheduleCallback(fn);
+    const mockFn = fn(() => null);
+    scheduleCallback(mockFn);
     flushAllWork();
-    expect(fn).toHaveBeenCalledOnce();
+    expect(mockFn).toHaveBeenCalledOnce();
   });
 
   it('handles callback that returns continuation', () => {
     let count = 0;
-    const fn = (): any => {
+    const contFn = (): any => {
       count++;
-      return count < 5 ? fn : null;
+      return count < 5 ? contFn : null;
     };
-    scheduleCallback(fn);
+    scheduleCallback(contFn);
     flushAllWork();
     expect(count).toBe(5);
   });
 
   it('replaces previously scheduled callback', () => {
-    const fn1 = vi.fn(() => null);
-    const fn2 = vi.fn(() => null);
+    const fn1 = fn(() => null);
+    const fn2 = fn(() => null);
     scheduleCallback(fn1);
     scheduleCallback(fn2);
     flushAllWork();
@@ -75,11 +75,11 @@ describe('cancelCallback', () => {
   });
 
   it('prevents execution when active callback is cancelled', () => {
-    const fn = vi.fn(() => null);
-    const node = scheduleCallback(fn);
+    const mockFn = fn(() => null);
+    const node = scheduleCallback(mockFn);
     cancelCallback(node);
     flushAllWork();
-    expect(fn).not.toHaveBeenCalled();
+    expect(mockFn).not.toHaveBeenCalled();
   });
 });
 
@@ -92,11 +92,11 @@ describe('flushAllWork', () => {
   it('processes all continuations', () => {
     const results: number[] = [];
     let i = 0;
-    const fn = (): any => {
+    const contFn = (): any => {
       results.push(i++);
-      return i < 3 ? fn : null;
+      return i < 3 ? contFn : null;
     };
-    scheduleCallback(fn);
+    scheduleCallback(contFn);
     flushAllWork();
     expect(results).toEqual([0, 1, 2]);
   });
@@ -123,52 +123,52 @@ describe('hasPendingWork', () => {
 
 describe('async MessageChannel delivery', () => {
   it('callback fires asynchronously via MessageChannel', async () => {
-    const fn = vi.fn(() => null);
-    scheduleCallback(fn);
-    expect(fn).not.toHaveBeenCalled();
+    const mockFn = fn(() => null);
+    scheduleCallback(mockFn);
+    expect(mockFn).not.toHaveBeenCalled();
     // MessageChannel fires via macrotask in jsdom — wait for it
     await new Promise((r) => setTimeout(r, 100));
     // The MessageChannel handler (performWorkUntilDeadline) should have run
-    expect(fn).toHaveBeenCalled();
+    expect(mockFn).toHaveBeenCalled();
   });
 
   it('MessageChannel handles continuation callback', async () => {
     let count = 0;
-    const fn = (): any => {
+    const contFn = (): any => {
       count++;
-      return count < 3 ? fn : null;
+      return count < 3 ? contFn : null;
     };
-    scheduleCallback(fn);
+    scheduleCallback(contFn);
     // Wait for all continuations to process through MessageChannel
     await new Promise((r) => setTimeout(r, 200));
     expect(count).toBe(3);
   });
 
   it('MessageChannel stops when no more work', async () => {
-    const fn = vi.fn(() => null);
-    scheduleCallback(fn);
+    const mockFn = fn(() => null);
+    scheduleCallback(mockFn);
     await new Promise((r) => setTimeout(r, 100));
-    expect(fn).toHaveBeenCalledOnce();
+    expect(mockFn).toHaveBeenCalledOnce();
     expect(hasPendingWork()).toBe(false);
   });
 
   it('flushAllWork is a no-op after all work completes', () => {
-    const fn = vi.fn(() => null);
-    scheduleCallback(fn);
+    const mockFn = fn(() => null);
+    scheduleCallback(mockFn);
     flushAllWork();
-    expect(fn).toHaveBeenCalled();
+    expect(mockFn).toHaveBeenCalled();
     // Calling again is a no-op
     flushAllWork();
-    expect(fn).toHaveBeenCalledOnce();
+    expect(mockFn).toHaveBeenCalledOnce();
   });
 
   it('MessageChannel handles null scheduledCallback', async () => {
     // Schedule then immediately cancel — when MessageChannel fires,
     // scheduledCallback is null, hitting the else branch (line 77-78)
-    const fn = vi.fn(() => null);
-    const node = scheduleCallback(fn);
+    const mockFn = fn(() => null);
+    const node = scheduleCallback(mockFn);
     cancelCallback(node);
     await new Promise((r) => setTimeout(r, 100));
-    expect(fn).not.toHaveBeenCalled();
+    expect(mockFn).not.toHaveBeenCalled();
   });
 });

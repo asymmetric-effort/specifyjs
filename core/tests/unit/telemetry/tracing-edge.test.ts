@@ -2,16 +2,26 @@
  * Tests for tracing.ts remaining uncovered paths:
  * crypto fallback, auto-flush timer with unref.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  afterEach,
+  useFakeTimers,
+  useRealTimers,
+} from '@asymmetric-effort/nogginlessdom';
 import { createTracer, generateTraceId, generateSpanId } from '../../../src/telemetry/tracing';
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  mock.restoreAllMocks();
 });
 
 describe('tracing — auto-flush timer', () => {
   it('sets up interval timer with flushInterval', () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const timer = useFakeTimers({ shouldAdvanceTime: true });
 
     const tracer = createTracer({
       serviceName: 'test',
@@ -23,14 +33,13 @@ describe('tracing — auto-flush timer', () => {
     tracer.withSpan(span, () => {});
 
     // The timer should exist — advance past it
-    vi.advanceTimersByTime(1100);
+    timer.advanceTimersByTime(1100);
 
     // Pending spans should be flushed (buffer cleared)
     // Since no endpoint, flush just clears the buffer
     expect(tracer.pendingSpans.length).toBeGreaterThanOrEqual(0);
 
-    vi.clearAllTimers();
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   it('creates tracer without flushInterval (no timer)', () => {

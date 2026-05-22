@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Pagination } from '../src/index';
 import type { PaginationProps } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -25,7 +25,7 @@ describe('Pagination', () => {
   describe('happy path', () => {
     it('renders pagination navigation', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 1, onChange: vi.fn() }),
+        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 1, onChange: fn() }),
       );
       const nav = container.querySelector('[role="navigation"]');
       expect(nav).toBeTruthy();
@@ -35,7 +35,7 @@ describe('Pagination', () => {
 
     it('renders correct number of page buttons', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 1, onChange: vi.fn() }),
+        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 1, onChange: fn() }),
       );
       // 5 pages + first/last + prev/next = many buttons
       const buttons = container.querySelectorAll('button');
@@ -45,7 +45,7 @@ describe('Pagination', () => {
 
     it('marks current page as active', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 3, onChange: vi.fn() }),
+        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 3, onChange: fn() }),
       );
       const current = container.querySelector('[aria-current="page"]');
       expect(current).toBeTruthy();
@@ -55,7 +55,7 @@ describe('Pagination', () => {
 
     it('shows First and Last buttons by default', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 5, onChange: vi.fn() }),
+        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 5, onChange: fn() }),
       );
       const firstBtn = container.querySelector('[aria-label="Go to first page"]');
       const lastBtn = container.querySelector('[aria-label="Go to last page"]');
@@ -66,7 +66,7 @@ describe('Pagination', () => {
 
     it('shows Prev and Next buttons by default', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 5, onChange: vi.fn() }),
+        createElement(Pagination, { total: 100, pageSize: 10, currentPage: 5, onChange: fn() }),
       );
       const prevBtn = container.querySelector('[aria-label="Go to previous page"]');
       const nextBtn = container.querySelector('[aria-label="Go to next page"]');
@@ -77,7 +77,7 @@ describe('Pagination', () => {
 
     it('shows ellipsis for large page counts', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 200, pageSize: 10, currentPage: 10, onChange: vi.fn() }),
+        createElement(Pagination, { total: 200, pageSize: 10, currentPage: 10, onChange: fn() }),
       );
       expect(container.textContent).toContain('...');
       cleanup(container);
@@ -89,7 +89,7 @@ describe('Pagination', () => {
   describe('sad path', () => {
     it('handles zero total items', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 0, pageSize: 10, currentPage: 1, onChange: vi.fn() }),
+        createElement(Pagination, { total: 0, pageSize: 10, currentPage: 1, onChange: fn() }),
       );
       const nav = container.querySelector('[role="navigation"]');
       expect(nav).toBeTruthy();
@@ -97,7 +97,7 @@ describe('Pagination', () => {
     });
 
     it('renders disabled state', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 1, disabled: true, onChange }),
       );
@@ -111,7 +111,7 @@ describe('Pagination', () => {
 
     it('clamps currentPage to valid range', () => {
       const container = renderToContainer(
-        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 999, onChange: vi.fn() }),
+        createElement(Pagination, { total: 50, pageSize: 10, currentPage: 999, onChange: fn() }),
       );
       // Should not crash; should show last page as active
       const current = container.querySelector('[aria-current="page"]');
@@ -123,7 +123,7 @@ describe('Pagination', () => {
     it('handles missing showFirstLast', () => {
       const container = renderToContainer(
         createElement(Pagination, {
-          total: 50, pageSize: 10, currentPage: 1, onChange: vi.fn(),
+          total: 50, pageSize: 10, currentPage: 1, onChange: fn(),
           showFirstLast: false,
         }),
       );
@@ -137,7 +137,7 @@ describe('Pagination', () => {
 
   describe('interaction', () => {
     it('calls onChange when a page button is clicked', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 1, onChange }),
       );
@@ -148,7 +148,7 @@ describe('Pagination', () => {
     });
 
     it('calls onChange with next page on Next click', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 3, onChange }),
       );
@@ -159,7 +159,7 @@ describe('Pagination', () => {
     });
 
     it('calls onChange with previous page on Prev click', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 3, onChange }),
       );
@@ -170,7 +170,7 @@ describe('Pagination', () => {
     });
 
     it('calls onChange with 1 on First click', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 5, onChange }),
       );
@@ -181,7 +181,7 @@ describe('Pagination', () => {
     });
 
     it('does not call onChange on current page click', () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Pagination, { total: 50, pageSize: 10, currentPage: 3, onChange }),
       );

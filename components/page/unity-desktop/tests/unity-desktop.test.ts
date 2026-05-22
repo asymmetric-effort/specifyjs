@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { UnityDesktop, UnityApp } from '../src/index';
 import type { UnityDesktopProps, UnityAppProps } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -139,7 +139,7 @@ describe('UnityDesktop', () => {
   });
 
   it('calls onAppOpen when a dock item is clicked', () => {
-    const onAppOpen = vi.fn();
+    const onAppOpen = fn();
     const el = render(createElement(UnityDesktop, { apps: testApps, onAppOpen }));
     const dock = el.querySelector('.unity-desktop__dock');
     const button = dock?.querySelector('button[data-dock-item-id="dashboard"]') as HTMLElement;
@@ -190,7 +190,7 @@ describe('UnityDesktop', () => {
   });
 
   it('handles onLogout in user menu', () => {
-    const onLogout = vi.fn();
+    const onLogout = fn();
     const el = render(createElement(UnityDesktop, {
       apps: testApps,
       user: testUser,
@@ -297,7 +297,7 @@ describe.skip('UnityApp', () => {
 
   it('calls onClose when window close button is clicked', async () => {
 
-    const onClose = vi.fn();
+    const onClose = fn();
     const el = render(
       createElement(UnityDesktop, { apps: testApps },
         createElement(UnityApp, {
@@ -526,7 +526,7 @@ describe.skip('UnityApp', () => {
 
   it('integrates dock click to open/focus window', async () => {
 
-    const onAppOpen = vi.fn();
+    const onAppOpen = fn();
     const el = render(
       createElement(UnityDesktop, { apps: testApps, onAppOpen }),
     );

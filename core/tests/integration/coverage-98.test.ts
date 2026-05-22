@@ -1,7 +1,15 @@
 /**
  * Final push to 98% coverage: targets the specific remaining uncovered lines.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 import { useState, useEffect } from '../../src/hooks/index';
@@ -144,7 +152,7 @@ describe('work-loop — insertion ordering edge cases', () => {
 describe('updateDOMProperties — event edge cases', () => {
   it('removes event listener when value is null/undefined', () => {
     const el = document.createElement('div');
-    const handler = vi.fn();
+    const handler = fn();
     updateDOMProperties(el, {}, { onClick: handler });
     el.click();
     expect(handler).toHaveBeenCalledTimes(1);

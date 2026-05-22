@@ -3,7 +3,16 @@
 // and 390-438 (useProto hook)
 // ============================================================================
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+  afterEach,
+} from '@asymmetric-effort/nogginlessdom';
 import {
   createGrpcWebClient,
   defineMessage,
@@ -58,15 +67,15 @@ function makeGrpcResponse(msg: Uint8Array, trailerAfter = false): Uint8Array {
 // ---------------------------------------------------------------------------
 
 describe('createGrpcWebClient', () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+  let fetchMock: ReturnType<typeof fn>;
 
   beforeEach(() => {
-    fetchMock = vi.fn();
-    vi.stubGlobal('fetch', fetchMock);
+    fetchMock = fn();
+    mock.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
+    mock.unstubAllGlobals();
   });
 
   it('sends a POST request with correct URL (trailing slash stripped)', async () => {
@@ -309,19 +318,19 @@ describe('useProto', () => {
     const dispatcher = {
       useState,
       useEffect,
-      useContext: vi.fn(),
-      useReducer: vi.fn(),
+      useContext: fn(),
+      useReducer: fn(),
       useCallback,
-      useMemo: vi.fn(),
+      useMemo: fn(),
       useRef,
-      useImperativeHandle: vi.fn(),
-      useLayoutEffect: vi.fn(),
-      useDebugValue: vi.fn(),
-      useId: vi.fn(),
-      useDeferredValue: vi.fn(),
-      useTransition: vi.fn(),
-      useSyncExternalStore: vi.fn(),
-      useInsertionEffect: vi.fn(),
+      useImperativeHandle: fn(),
+      useLayoutEffect: fn(),
+      useDebugValue: fn(),
+      useId: fn(),
+      useDeferredValue: fn(),
+      useTransition: fn(),
+      useSyncExternalStore: fn(),
+      useInsertionEffect: fn(),
     };
 
     return { dispatcher, runEffects, reset, states, effects };
@@ -336,7 +345,7 @@ describe('useProto', () => {
     __setDispatcher(dispatcher);
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockReturnValue(new Promise(() => {})), // never resolves
+      unary: fn().mockReturnValue(new Promise(() => {})), // never resolves
     };
 
     const result = useProto(mockClient, 'Svc', 'Method', PingMsg, PongMsg, { seq: 1 });
@@ -353,17 +362,16 @@ describe('useProto', () => {
 
     const pong: Pong = { ack: 1, message: 'hi' };
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockResolvedValue(pong),
+      unary: fn().mockResolvedValue(pong),
     };
 
     useProto(mockClient, 'MySvc', 'MyMethod', PingMsg, PongMsg, { seq: 5 });
     runEffects();
 
     // Allow microtasks to settle
-    await vi.waitFor(() => {
-      expect(mockClient.unary).toHaveBeenCalledWith('MySvc', 'MyMethod', PingMsg, PongMsg, {
-        seq: 5,
-      });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockClient.unary).toHaveBeenCalledWith('MySvc', 'MyMethod', PingMsg, PongMsg, {
+      seq: 5,
     });
   });
 
@@ -377,7 +385,7 @@ describe('useProto', () => {
     });
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockReturnValue(pendingUnary),
+      unary: fn().mockReturnValue(pendingUnary),
     };
 
     const result = useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
@@ -395,7 +403,7 @@ describe('useProto', () => {
     __setDispatcher(dispatcher);
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn(),
+      unary: fn(),
     };
 
     useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 }, { enabled: false });
@@ -411,17 +419,16 @@ describe('useProto', () => {
 
     const pong: Pong = { ack: 99, message: 'done' };
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockResolvedValue(pong),
+      unary: fn().mockResolvedValue(pong),
     };
 
     useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
     runEffects();
 
-    await vi.waitFor(() => {
-      // data (index 0) should be set, loading (index 1) should be false
-      expect(states[0]).toEqual(pong);
-      expect(states[1]).toBe(false);
-    });
+    await new Promise((r) => setTimeout(r, 50));
+    // data (index 0) should be set, loading (index 1) should be false
+    expect(states[0]).toEqual(pong);
+    expect(states[1]).toBe(false);
   });
 
   it('sets error and loading=false on failed request', async () => {
@@ -429,17 +436,16 @@ describe('useProto', () => {
     __setDispatcher(dispatcher);
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockRejectedValue(new Error('RPC failed')),
+      unary: fn().mockRejectedValue(new Error('RPC failed')),
     };
 
     useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
     runEffects();
 
-    await vi.waitFor(() => {
-      // error (index 2) should be set
-      expect((states[2] as Error)?.message).toBe('RPC failed');
-      expect(states[1]).toBe(false);
-    });
+    await new Promise((r) => setTimeout(r, 50));
+    // error (index 2) should be set
+    expect((states[2] as Error)?.message).toBe('RPC failed');
+    expect(states[1]).toBe(false);
   });
 
   it('wraps non-Error rejections in an Error', async () => {
@@ -447,16 +453,15 @@ describe('useProto', () => {
     __setDispatcher(dispatcher);
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockRejectedValue('plain string error'),
+      unary: fn().mockRejectedValue('plain string error'),
     };
 
     useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
     runEffects();
 
-    await vi.waitFor(() => {
-      expect(states[2]).toBeInstanceOf(Error);
-      expect((states[2] as Error).message).toBe('plain string error');
-    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(states[2]).toBeInstanceOf(Error);
+    expect((states[2] as Error).message).toBe('plain string error');
   });
 
   it('does not update state after unmount (mountedRef = false)', async () => {
@@ -469,7 +474,7 @@ describe('useProto', () => {
     });
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockReturnValue(pendingUnary),
+      unary: fn().mockReturnValue(pendingUnary),
     };
 
     useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
@@ -503,7 +508,7 @@ describe('useProto', () => {
 
     const pong: Pong = { ack: 1, message: '' };
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockResolvedValue(pong),
+      unary: fn().mockResolvedValue(pong),
     };
 
     const result = useProto(mockClient, 'Svc', 'M', PingMsg, PongMsg, { seq: 1 });
@@ -511,9 +516,8 @@ describe('useProto', () => {
     // Call refetch directly (useEffect auto-calls it, but we verify manual call too)
     result.refetch();
 
-    await vi.waitFor(() => {
-      expect(mockClient.unary).toHaveBeenCalled();
-    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(mockClient.unary).toHaveBeenCalled();
   });
 
   it('uses opts.enabled=true by default (undefined opts)', () => {
@@ -521,7 +525,7 @@ describe('useProto', () => {
     __setDispatcher(dispatcher);
 
     const mockClient: GrpcWebClient = {
-      unary: vi.fn().mockReturnValue(new Promise(() => {})),
+      unary: fn().mockReturnValue(new Promise(() => {})),
     };
 
     // No opts passed at all

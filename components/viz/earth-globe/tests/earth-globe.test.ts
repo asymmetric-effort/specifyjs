@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, fn } from '@asymmetric-effort/nogginlessdom';
 import {
   EarthGlobe,
   orthographicProject,
@@ -614,7 +614,7 @@ describe("EarthGlobe — interactions", () => {
   });
 
   it("country paths have click handler", () => {
-    const clickFn = vi.fn();
+    const clickFn = fn();
     const el = EarthGlobe({ onCountryClick: clickFn });
     const countryPaths = findAllChildren(
       el,
@@ -625,7 +625,7 @@ describe("EarthGlobe — interactions", () => {
   });
 
   it("country click handler calls onCountryClick with id", () => {
-    const clickFn = vi.fn();
+    const clickFn = fn();
     const el = EarthGlobe({ onCountryClick: clickFn });
     const usPath = findChild(
       el,
@@ -639,7 +639,7 @@ describe("EarthGlobe — interactions", () => {
   });
 
   it("country paths have mouseenter handler", () => {
-    const hoverFn = vi.fn();
+    const hoverFn = fn();
     const el = EarthGlobe({ onCountryHover: hoverFn });
     const countryPaths = findAllChildren(
       el,
@@ -660,7 +660,7 @@ describe("EarthGlobe — interactions", () => {
   });
 
   it("mouseenter handler calls onCountryHover", () => {
-    const hoverFn = vi.fn();
+    const hoverFn = fn();
     const el = EarthGlobe({ onCountryHover: hoverFn });
     const countryPaths = findAllChildren(
       el,
@@ -673,7 +673,7 @@ describe("EarthGlobe — interactions", () => {
   });
 
   it("mouseleave handler calls onCountryHover with null", () => {
-    const hoverFn = vi.fn();
+    const hoverFn = fn();
     const el = EarthGlobe({ onCountryHover: hoverFn });
     const countryPaths = findAllChildren(
       el,
@@ -794,8 +794,8 @@ describe("EarthGlobe — edge cases", () => {
       showGraticule: true,
       graticuleColor: "rgba(0,0,0,0.5)",
       interactive: false,
-      onCountryClick: vi.fn(),
-      onCountryHover: vi.fn(),
+      onCountryClick: fn(),
+      onCountryHover: fn(),
       hoverColor: "#ffff00",
       title: "Test Globe",
       highlightCountries: { USA: "#ff0000" },

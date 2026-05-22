@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { jsx, jsxs, Fragment } from '../../../src/jsx-runtime';
 import { jsxDEV, Fragment as DevFragment } from '../../../src/jsx-dev-runtime';
 import { SPEC_ELEMENT_TYPE, SPEC_FRAGMENT_TYPE } from '../../../src/shared/types';

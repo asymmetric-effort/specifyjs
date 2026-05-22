@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Menubar } from '../src/index';
 import type { MenubarProps, MenuDefinition, MenuItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -28,17 +28,17 @@ const sampleMenus: MenuDefinition[] = [
     id: 'file',
     label: 'File',
     items: [
-      { id: 'new', label: 'New', onClick: vi.fn() },
-      { id: 'open', label: 'Open', onClick: vi.fn() },
-      { id: 'save', label: 'Save', onClick: vi.fn() },
+      { id: 'new', label: 'New', onClick: fn() },
+      { id: 'open', label: 'Open', onClick: fn() },
+      { id: 'save', label: 'Save', onClick: fn() },
     ],
   },
   {
     id: 'edit',
     label: 'Edit',
     items: [
-      { id: 'undo', label: 'Undo', onClick: vi.fn() },
-      { id: 'redo', label: 'Redo', onClick: vi.fn() },
+      { id: 'undo', label: 'Undo', onClick: fn() },
+      { id: 'redo', label: 'Redo', onClick: fn() },
     ],
   },
 ];
@@ -109,7 +109,7 @@ describe('Menubar', () => {
     });
 
     it('renders disabled menu items', async () => {
-      const onClick = vi.fn();
+      const onClick = fn();
       const menus: MenuDefinition[] = [
         {
           id: 'test',
@@ -152,7 +152,7 @@ describe('Menubar', () => {
 
   describe('interaction', () => {
     it('calls onClick when menu item is clicked', async () => {
-      const onClick = vi.fn();
+      const onClick = fn();
       const menus: MenuDefinition[] = [
         {
           id: 'act',

@@ -1,8 +1,7 @@
-// @vitest-environment node
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, fn, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { WebGLPipeline, toFloat32, compileShader, linkProgram, setUniform } from '../src/webgl-pipeline';
 import { FlatShading } from '../src/lighting-model';
 import { SceneGraph } from '../src/scene-graph';
@@ -30,7 +29,7 @@ describe('WebGLPipeline', () => {
   describe('initialize', () => {
     it('throws when WebGL is not available', () => {
       const canvas = {
-        getContext: vi.fn().mockReturnValue(null),
+        getContext: fn().mockReturnValue(null),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -41,7 +40,7 @@ describe('WebGLPipeline', () => {
     it('falls back to experimental-webgl if webgl context is null', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn((name: string, _opts?: object) => {
+        getContext: fn((name: string, _opts?: object) => {
           if (name === 'experimental-webgl') return mockGl;
           return null;
         }),
@@ -56,7 +55,7 @@ describe('WebGLPipeline', () => {
     it('enables depth testing and sets clear color on initialize', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -71,7 +70,7 @@ describe('WebGLPipeline', () => {
     it('deletes cached programs on dispose', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -96,7 +95,7 @@ describe('WebGLPipeline', () => {
     it('is safe to call dispose multiple times', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -119,7 +118,7 @@ describe('WebGLPipeline', () => {
     it('sets viewport and clears buffers', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -149,7 +148,7 @@ describe('WebGLPipeline', () => {
     it('compiles and caches shader program from lighting model', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -173,7 +172,7 @@ describe('WebGLPipeline', () => {
     it('renders visible scene objects with mesh and material', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -200,7 +199,7 @@ describe('WebGLPipeline', () => {
     it('skips objects without mesh', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -223,7 +222,7 @@ describe('WebGLPipeline', () => {
     it('skips objects without material', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -246,7 +245,7 @@ describe('WebGLPipeline', () => {
     it('skips invisible objects', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -271,7 +270,7 @@ describe('WebGLPipeline', () => {
     it('uses wireframe draw mode when material has wireframe enabled', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -300,7 +299,7 @@ describe('WebGLPipeline', () => {
     it('cleans up buffers after rendering each object', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -516,7 +515,7 @@ describe('WebGLPipeline (additional)', () => {
       const mockGl = createMockGl();
       mockGl.getExtension.mockReturnValue(null);
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -547,7 +546,7 @@ describe('WebGLPipeline (additional)', () => {
     it('renders multiple objects in sequence', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -583,7 +582,7 @@ describe('WebGLPipeline (additional)', () => {
       const mockGl = createMockGl();
       mockGl.getAttribLocation.mockReturnValue(-1);
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -610,7 +609,7 @@ describe('WebGLPipeline (additional)', () => {
     it('deletes all cached programs on dispose', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn().mockReturnValue(mockGl),
+        getContext: fn().mockReturnValue(mockGl),
       } as unknown as HTMLCanvasElement;
 
       const pipeline = new WebGLPipeline();
@@ -684,37 +683,37 @@ function createMockGl() {
     LINES: 1,
     COMPILE_STATUS: 35713,
     LINK_STATUS: 35714,
-    enable: vi.fn(),
-    clearColor: vi.fn(),
-    clear: vi.fn(),
-    viewport: vi.fn(),
-    createShader: vi.fn().mockReturnValue('mockShader'),
-    shaderSource: vi.fn(),
-    compileShader: vi.fn(),
-    getShaderParameter: vi.fn().mockReturnValue(true),
-    getShaderInfoLog: vi.fn().mockReturnValue(''),
-    deleteShader: vi.fn(),
-    createProgram: vi.fn().mockReturnValue('mockProgram'),
-    attachShader: vi.fn(),
-    linkProgram: vi.fn(),
-    getProgramParameter: vi.fn().mockReturnValue(true),
-    getProgramInfoLog: vi.fn().mockReturnValue(''),
-    deleteProgram: vi.fn(),
-    useProgram: vi.fn(),
-    getUniformLocation: vi.fn().mockReturnValue('mockLocation'),
-    uniformMatrix4fv: vi.fn(),
-    uniform4fv: vi.fn(),
-    uniform3fv: vi.fn(),
-    uniform2fv: vi.fn(),
-    uniform1f: vi.fn(),
-    getAttribLocation: vi.fn().mockReturnValue(0),
-    enableVertexAttribArray: vi.fn(),
-    vertexAttribPointer: vi.fn(),
-    createBuffer: vi.fn().mockReturnValue('mockBuffer'),
-    bindBuffer: vi.fn(),
-    bufferData: vi.fn(),
-    deleteBuffer: vi.fn(),
-    drawElements: vi.fn(),
-    getExtension: vi.fn().mockReturnValue(true),
+    enable: fn(),
+    clearColor: fn(),
+    clear: fn(),
+    viewport: fn(),
+    createShader: fn().mockReturnValue('mockShader'),
+    shaderSource: fn(),
+    compileShader: fn(),
+    getShaderParameter: fn().mockReturnValue(true),
+    getShaderInfoLog: fn().mockReturnValue(''),
+    deleteShader: fn(),
+    createProgram: fn().mockReturnValue('mockProgram'),
+    attachShader: fn(),
+    linkProgram: fn(),
+    getProgramParameter: fn().mockReturnValue(true),
+    getProgramInfoLog: fn().mockReturnValue(''),
+    deleteProgram: fn(),
+    useProgram: fn(),
+    getUniformLocation: fn().mockReturnValue('mockLocation'),
+    uniformMatrix4fv: fn(),
+    uniform4fv: fn(),
+    uniform3fv: fn(),
+    uniform2fv: fn(),
+    uniform1f: fn(),
+    getAttribLocation: fn().mockReturnValue(0),
+    enableVertexAttribArray: fn(),
+    vertexAttribPointer: fn(),
+    createBuffer: fn().mockReturnValue('mockBuffer'),
+    bindBuffer: fn(),
+    bufferData: fn(),
+    deleteBuffer: fn(),
+    drawElements: fn(),
+    getExtension: fn().mockReturnValue(true),
   };
 }

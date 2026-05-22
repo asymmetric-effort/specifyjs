@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  fn,
+  spyOn,
+  mock,
+} from '@asymmetric-effort/nogginlessdom';
 import { render, hydrate, unmountComponentAtNode } from '../../../src/dom/legacy';
 import { createElement } from '../../../src/index';
 
@@ -35,7 +43,7 @@ describe('legacy render', () => {
   });
 
   it('calls callback after render', async () => {
-    const callback = vi.fn();
+    const callback = fn();
     render(createElement('div', null, 'cb'), container, callback);
     // Callback is async via Promise.resolve().then
     await new Promise((r) => setTimeout(r, 10));
@@ -58,7 +66,7 @@ describe('legacy hydrate', () => {
   });
 
   it('calls callback after hydrate', async () => {
-    const callback = vi.fn();
+    const callback = fn();
     hydrate(createElement('div', null, 'hydrate'), container, callback);
     await new Promise((r) => setTimeout(r, 10));
     expect(callback).toHaveBeenCalledTimes(1);

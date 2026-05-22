@@ -1,7 +1,7 @@
 /**
  * Additional tracing tests to close coverage gaps.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
 import { createTracer, startSpan, endSpan } from '../../../src/telemetry/tracing';
 
 describe('createTracer — advanced', () => {
@@ -11,8 +11,8 @@ describe('createTracer — advanced', () => {
   });
 
   it('flush exports to endpoint when configured', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('fetch', mockFetch);
+    const mockFetch = fn().mockResolvedValue({ ok: true });
+    mock.stubGlobal('fetch', mockFetch);
 
     const tracer = createTracer({
       serviceName: 'test',
@@ -28,7 +28,7 @@ describe('createTracer — advanced', () => {
       expect.objectContaining({ method: 'POST' }),
     );
 
-    vi.unstubAllGlobals();
+    mock.unstubAllGlobals();
   });
 
   it('withSpan handles async functions — success', async () => {

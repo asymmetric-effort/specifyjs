@@ -3,7 +3,15 @@
  * Exercises: reconciler edge cases, work-loop commit paths, synthetic events,
  * and scheduler edge cases through full render cycles.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 import {
@@ -140,7 +148,7 @@ describe('reconciler — keyed list operations', () => {
 // ─── Memo component bail-out ──────────────────────────────────────────
 describe('memo bail-out and custom compare', () => {
   it('bails out with shallow equal props', async () => {
-    const renderSpy = vi.fn();
+    const renderSpy = fn();
     const MemoComp = memo(function Inner(props: { value: number }) {
       renderSpy();
       return createElement('span', null, String(props.value));
@@ -165,7 +173,7 @@ describe('memo bail-out and custom compare', () => {
   });
 
   it('re-renders when props change', async () => {
-    const renderSpy = vi.fn();
+    const renderSpy = fn();
     const MemoComp = memo(function Inner(props: { value: number }) {
       renderSpy();
       return createElement('span', null, String(props.value));
@@ -258,7 +266,7 @@ describe('hooks via full render', () => {
     }
     const root = createRoot(container);
     root.render(createElement(Comp, null));
-    const called = vi.fn();
+    const called = fn();
     startTransition!(called);
     expect(called).toHaveBeenCalled();
     root.unmount();

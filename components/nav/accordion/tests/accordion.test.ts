@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Accordion } from '../src/index';
 import type { AccordionSection, AccordionProps } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -145,7 +145,7 @@ describe('Accordion', () => {
 
   describe('interaction', () => {
     it('calls onChange with expanded IDs on toggle', async () => {
-      const onChange = vi.fn();
+      const onChange = fn();
       const container = renderToContainer(
         createElement(Accordion, { sections: sampleSections, onChange }),
       );

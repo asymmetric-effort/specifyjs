@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { renderToString, renderToStaticMarkup } from '../../../src/server/render-to-string';
 import { createElement, Fragment, Component, createContext } from '../../../src/index';
 import { forwardRef } from '../../../src/core/forward-ref';

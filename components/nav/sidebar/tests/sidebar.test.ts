@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { Sidebar } from '../src/index';
 import type { SidebarProps, SidebarItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -89,7 +89,7 @@ describe('Sidebar', () => {
     });
 
     it('renders collapse toggle when onToggleCollapse provided', () => {
-      const onToggle = vi.fn();
+      const onToggle = fn();
       const container = renderToContainer(
         createElement(Sidebar, { items: sampleItems, onToggleCollapse: onToggle }),
       );
@@ -147,7 +147,7 @@ describe('Sidebar', () => {
 
   describe('interaction', () => {
     it('calls onSelect when item is clicked', () => {
-      const onSelect = vi.fn();
+      const onSelect = fn();
       const container = renderToContainer(
         createElement(Sidebar, { items: sampleItems, onSelect }),
       );
@@ -197,7 +197,7 @@ describe('Sidebar', () => {
     });
 
     it('calls onToggleCollapse when toggle button is clicked', () => {
-      const onToggle = vi.fn();
+      const onToggle = fn();
       const container = renderToContainer(
         createElement(Sidebar, { items: sampleItems, onToggleCollapse: onToggle }),
       );

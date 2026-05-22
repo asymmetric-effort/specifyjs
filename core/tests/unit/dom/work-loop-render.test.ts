@@ -2,7 +2,15 @@
  * Tests for the work-loop render/commit pipeline — covers the rendering,
  * reconciliation, and DOM commit phases that work-loop.ts orchestrates.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { useState, useEffect, useLayoutEffect, useRef } from '../../../src/hooks/index';
@@ -35,7 +43,7 @@ describe('createFiberRoot', () => {
 // ─── Class component rendering ────────────────────────────────────────
 describe('class component lifecycle', () => {
   it('calls componentDidMount on initial render', () => {
-    const didMount = vi.fn();
+    const didMount = fn();
     class MyComp extends Component {
       componentDidMount() {
         didMount();
@@ -51,7 +59,7 @@ describe('class component lifecycle', () => {
   });
 
   it('calls componentDidUpdate on re-render', () => {
-    const didUpdate = vi.fn();
+    const didUpdate = fn();
     class MyComp extends Component<{ value: number }> {
       componentDidUpdate() {
         didUpdate();
@@ -69,7 +77,7 @@ describe('class component lifecycle', () => {
   });
 
   it('calls componentWillUnmount on unmount', () => {
-    const willUnmount = vi.fn();
+    const willUnmount = fn();
     class MyComp extends Component {
       componentWillUnmount() {
         willUnmount();
@@ -102,7 +110,7 @@ describe('context provider rendering', () => {
 // ─── Effect cleanup ───────────────────────────────────────────────────
 describe('effect lifecycle', () => {
   it('runs cleanup on unmount', async () => {
-    const cleanup = vi.fn();
+    const cleanup = fn();
     function Comp() {
       useEffect(() => cleanup, []);
       return createElement('div', null, 'effectful');
@@ -153,7 +161,7 @@ describe('ref attachment', () => {
   });
 
   it('calls function ref with DOM node', () => {
-    const refFn = vi.fn();
+    const refFn = fn();
     const root = createRoot(container);
     root.render(createElement('div', { ref: refFn, id: 'cb' }));
     expect(refFn).toHaveBeenCalledWith(expect.any(HTMLDivElement));

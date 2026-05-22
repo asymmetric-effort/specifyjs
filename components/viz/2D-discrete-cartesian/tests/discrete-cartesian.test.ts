@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, fn } from '@asymmetric-effort/nogginlessdom';
 import { DiscreteCartesian2D } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -151,7 +151,7 @@ describe('DiscreteCartesian2D — edge cases', () => {
 
 describe('DiscreteCartesian2D — features', () => {
   it('onCellClick callback receives correct row/col/value', () => {
-    const clickHandler = vi.fn();
+    const clickHandler = fn();
     const el = DiscreteCartesian2D({ data: sample3x3, onCellClick: clickHandler });
     // Find cell at row=1, col=2 (value=1)
     const rects = cellRects(el);
@@ -165,7 +165,7 @@ describe('DiscreteCartesian2D — features', () => {
   });
 
   it('onCellHover callback fires on mouseEnter', () => {
-    const hoverHandler = vi.fn();
+    const hoverHandler = fn();
     const el = DiscreteCartesian2D({ data: sample3x3, onCellHover: hoverHandler });
     const rects = cellRects(el);
     const cell = rects.find((r: any) => r.key === 'cell-0-1');

@@ -1,4 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  fn,
+  spyOn,
+  mock,
+  beforeEach,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { FeatureFlagProvider, FeatureGate, useFeatureFlags } from '../../../src/features/index';
@@ -204,11 +212,11 @@ describe('useFeatureFlags', () => {
   });
 
   it('fetches flags from URL', async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
+    const mockFetch = fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ remote: true }),
     });
-    vi.stubGlobal('fetch', mockFetch);
+    mock.stubGlobal('fetch', mockFetch);
 
     let capturedFlags: Record<string, boolean> = {};
     function Inspector() {
@@ -236,12 +244,12 @@ describe('useFeatureFlags', () => {
 
     expect(mockFetch).toHaveBeenCalled();
     root.unmount();
-    vi.unstubAllGlobals();
+    mock.unstubAllGlobals();
   });
 
   it('handles fetch failure gracefully', async () => {
-    const mockFetch = vi.fn().mockRejectedValue(new Error('network error'));
-    vi.stubGlobal('fetch', mockFetch);
+    const mockFetch = fn().mockRejectedValue(new Error('network error'));
+    mock.stubGlobal('fetch', mockFetch);
 
     let loadingState = true;
     function Inspector() {
@@ -267,6 +275,6 @@ describe('useFeatureFlags', () => {
       ),
     );
     root.unmount();
-    vi.unstubAllGlobals();
+    mock.unstubAllGlobals();
   });
 });

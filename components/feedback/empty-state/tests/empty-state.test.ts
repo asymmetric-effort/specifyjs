@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
 import { EmptyState } from '../src/index';
 
 // ---------------------------------------------------------------------------
@@ -31,7 +31,7 @@ describe('EmptyState — happy path', () => {
   });
 
   it('renders with all props', () => {
-    const onClick = vi.fn();
+    const onClick = fn();
     const el = EmptyState({
       icon: '🔍',
       title: 'No results',
@@ -47,7 +47,7 @@ describe('EmptyState — happy path', () => {
   });
 
   it('renders with action button', () => {
-    const onClick = vi.fn();
+    const onClick = fn();
     const el = EmptyState({ action: { label: 'Create new', onClick } });
     expect(el).not.toBeNull();
   });
@@ -86,7 +86,7 @@ describe('EmptyState — sad path', () => {
 
 describe('EmptyState — interaction', () => {
   it('action button has correct label', () => {
-    const onClick = vi.fn();
+    const onClick = fn();
     const el = EmptyState({ action: { label: 'Add item', onClick } });
     // Find button child
     const button = (Array.isArray(el.props.children) ? el.props.children : [el.props.children]).find((c: any) => c && c.type === 'button');

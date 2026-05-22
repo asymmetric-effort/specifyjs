@@ -15,7 +15,6 @@ import {
   Camera,
   Viewport,
   CpuPipeline,
-  WebGLPipeline,
   LambertianShading,
   Light,
   createMaterial,
@@ -138,14 +137,7 @@ export function Space3DDemo() {
       clearColor: { r: 0.04, g: 0.06, b: 0.12, a: 1 },
     });
 
-    // Pipeline — detect WebGL availability for future use
-    const glCtx = canvas.getContext('webgl');
-    if (glCtx) {
-      // WebGL available — but stick with CPU pipeline until WebGL is visually validated
-      // TODO: switch to WebGLPipeline when validated
-      // const _webglReady = new WebGLPipeline();
-      void WebGLPipeline; // reference to prevent unused-import lint error
-    }
+    // Pipeline (CPU — WebGL not yet visually validated)
     const pipeline = new CpuPipeline();
     pipeline.initialize(canvas);
 

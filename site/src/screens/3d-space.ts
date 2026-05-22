@@ -21,7 +21,10 @@ import {
   generateTerrain,
   sineTerrain,
   heightGradientColor,
+  CollisionManager,
+  applyBoundary,
 } from '../../../components/viz/3dSpace/src/index';
+import type { SpaceBounds } from '../../../components/viz/3dSpace/src/index';
 
 // ── Scene setup ─────────────────────────────────────────────────────
 
@@ -95,6 +98,42 @@ export function Space3DDemo() {
     terrainObj.mesh = terrainMesh;
     terrainObj.material = createMaterial({ r: 0.3, g: 0.6, b: 0.2, a: 1 });
     scene.register(terrainObj);
+
+    // ── Collision detection + boundary ──
+    const bounds: SpaceBounds = {
+      min: { x: -20, y: -5, z: -20 },
+      max: { x: 20, y: 15, z: 20 },
+    };
+
+    const collisionMgr = new CollisionManager({
+      colliderType: 'sphere',
+      response: (info) => {
+        // Bounce response: push objects apart along collision normal
+        const pushDist = info.overlap / 2;
+        const a = info.objectA;
+        const b = info.objectB;
+        a.position = {
+          x: a.position.x - info.normal.x * pushDist,
+          y: a.position.y - info.normal.y * pushDist,
+          z: a.position.z - info.normal.z * pushDist,
+        };
+        b.position = {
+          x: b.position.x + info.normal.x * pushDist,
+          y: b.position.y + info.normal.y * pushDist,
+          z: b.position.z + info.normal.z * pushDist,
+        };
+      },
+    });
+
+    // Store per-object velocity for bounce boundary mode
+    const velocities = new Map<string, { x: number; y: number; z: number }>();
+    for (const b of BOXES) {
+      velocities.set(b.id, { x: 0, y: 0, z: 0 });
+    }
+
+    // Height function ref for camera terrain avoidance
+    const terrainHeightFn = heightFn;
+    const terrainY = -3; // terrain base Y offset
 
     // ── Camera 1: Orbiting perspective ──
     const orbitCam = new Camera({
@@ -187,17 +226,37 @@ export function Space3DDemo() {
       // Orbit camera 1
       const radius = 15;
       const camAngle = totalTime * 0.3;
-      const x = Math.cos(camAngle) * radius;
-      const z = Math.sin(camAngle) * radius;
-      const y = Math.sin(totalTime * 0.2) * 4 + 1;
-      orbitCam.position = { x, y, z };
+      const cx = Math.cos(camAngle) * radius;
+      const cz = Math.sin(camAngle) * radius;
+      let cy = Math.sin(totalTime * 0.2) * 4 + 1;
+
+      // Ensure camera stays above terrain surface + clearance
+      const terrainH = terrainHeightFn(cx, cz) + terrainY;
+      const minCamY = terrainH + 2; // 2 units above terrain surface
+      if (cy < minCamY) cy = minCamY;
+
+      orbitCam.position = { x: cx, y: cy, z: cz };
       orbitCam.lookAt({ x: 0, y: 0, z: 0 });
+
+      // Apply boundary bounce to scene objects (excluding terrain and light)
+      const bounceable = scene.getVisibleObjects().filter(
+        (o) => o.id !== 'terrain' && o.id !== 'light-indicator',
+      );
+      for (const obj of bounceable) {
+        const vel = velocities.get(obj.id);
+        if (vel) applyBoundary(obj, bounds, 'bounce', vel);
+      }
+
+      // Run collision detection
+      collisionMgr.update(bounceable);
 
       // Position the red point light 30 degrees behind the camera
       const lightAngle = camAngle - Math.PI / 6;
       const lx = Math.cos(lightAngle) * radius;
       const lz = Math.sin(lightAngle) * radius;
-      const ly = Math.sin(totalTime * 0.2) * 4 + 1;
+      let ly = Math.sin(totalTime * 0.2) * 4 + 1;
+      const lightTerrainH = terrainHeightFn(lx, lz) + terrainY;
+      if (ly < lightTerrainH + 1) ly = lightTerrainH + 1;
       redLight.position = { x: lx, y: ly, z: lz };
       lightSphere.position = { x: lx, y: ly, z: lz };
 

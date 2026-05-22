@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('3D Space WebGL Demo', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
   });
 
   test('renders dialog with title', async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('3D Space WebGL Demo', () => {
   test('no JavaScript errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     await expect(page.locator('.dialog-title')).toContainText('3D Space (WebGL)');
     await page.waitForTimeout(2000);
     expect(errors).toEqual([]);

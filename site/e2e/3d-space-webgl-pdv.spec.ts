@@ -4,13 +4,13 @@ test.describe('3D Space WebGL — PDV', () => {
   test('route loads without errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     await expect(page.locator('.dialog-title')).toContainText('3D Space (WebGL)');
     expect(errors).toEqual([]);
   });
 
   test('canvas is visible', async ({ page }) => {
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     const canvas = page.locator('.dialog-body canvas');
     await expect(canvas).toBeVisible();
     const box = await canvas.boundingBox();
@@ -20,7 +20,7 @@ test.describe('3D Space WebGL — PDV', () => {
   });
 
   test('canvas renders content (not blank)', async ({ page }) => {
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     await page.waitForTimeout(1000);
     const canvas = page.locator('.dialog-body canvas');
     const isBlank = await canvas.evaluate((el: HTMLCanvasElement) => {
@@ -39,13 +39,13 @@ test.describe('3D Space WebGL — PDV', () => {
   test('no JS errors during animation', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     await page.waitForTimeout(3000);
     expect(errors).toEqual([]);
   });
 
   test('sidebar describes WebGL pipeline', async ({ page }) => {
-    await page.goto('/#/3dSpaceWebGl');
+    await page.goto('./#/3dSpaceWebGl');
     const body = page.locator('.dialog-body');
     await expect(body).toContainText('WebGL Pipeline');
     await expect(body).toContainText('FlatShading');

@@ -4,13 +4,13 @@ test.describe('3D Space — PDV', () => {
   test('route loads without JS errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     await expect(page.locator('.dialog-title')).toContainText('3D Space');
     expect(errors).toEqual([]);
   });
 
   test('canvas is visible with non-zero dimensions', async ({ page }) => {
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     const canvas = page.locator('.dialog-body canvas');
     await expect(canvas).toBeVisible();
     const box = await canvas.boundingBox();
@@ -20,7 +20,7 @@ test.describe('3D Space — PDV', () => {
   });
 
   test('canvas renders content (not blank)', async ({ page }) => {
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     await page.waitForTimeout(1000);
     const canvas = page.locator('.dialog-body canvas');
     const isBlank = await canvas.evaluate((el: HTMLCanvasElement) => {
@@ -36,7 +36,7 @@ test.describe('3D Space — PDV', () => {
   });
 
   test('both viewports render (left and right halves have content)', async ({ page }) => {
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     await page.waitForTimeout(1000);
     const canvas = page.locator('.dialog-body canvas');
     const bothHalves = await canvas.evaluate((el: HTMLCanvasElement) => {
@@ -56,13 +56,13 @@ test.describe('3D Space — PDV', () => {
   test('no JS errors during animation', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     await page.waitForTimeout(3000);
     expect(errors).toEqual([]);
   });
 
   test('sidebar mentions dual viewports', async ({ page }) => {
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     const body = page.locator('.dialog-body');
     await expect(body).toContainText('Dual Viewport');
     await expect(body).toContainText('Perspective');
@@ -70,7 +70,7 @@ test.describe('3D Space — PDV', () => {
   });
 
   test('sidebar lists all five boxes', async ({ page }) => {
-    await page.goto('/#/3dSpace');
+    await page.goto('./#/3dSpace');
     const body = page.locator('.dialog-body');
     for (const label of ['Red', 'Green', 'Blue', 'Yellow', 'Cyan']) {
       await expect(body).toContainText(label);

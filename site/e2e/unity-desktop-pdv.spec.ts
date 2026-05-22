@@ -14,7 +14,7 @@ const desktop = '.unity-desktop';
 
 test.describe('Unity Desktop PDV', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/#/components');
+    await page.goto('./#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });
     const pageLayoutsHeader = page.locator('.accordion-header', { hasText: 'Page Layouts' });
     await pageLayoutsHeader.waitFor({ state: 'visible', timeout: 15000 });

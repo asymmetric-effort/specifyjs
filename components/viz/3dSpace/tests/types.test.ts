@@ -7,12 +7,22 @@ import { Mesh } from '../src/mesh';
 import { SceneObject } from '../src/scene-object';
 import { Camera } from '../src/camera';
 import { SceneGraph } from '../src/scene-graph';
-import { FlatShading } from '../src/lighting-model';
+import { FlatShading, LambertianShading } from '../src/lighting-model';
 import { DefaultObjectPicker } from '../src/types';
 import { Light } from '../src/light';
 import { Viewport } from '../src/viewport';
 import { createMaterial } from '../src/material';
+import { generateTerrain, sineTerrain, heightGradientColor } from '../src/terrain';
 import type { Color, ShadeParams } from '../src/types';
+import { solidTexture, checkerboardTexture, gradientTexture, noiseTexture } from '../src/texture';
+import { createInputTracker, resetFrameDeltas, orbitController, flyController } from '../src/camera-controller';
+import type { InputState } from '../src/camera-controller';
+import { clampToBounds, isInBounds, boundsCenter, boundsSize } from '../src/bounds';
+import type { SpaceBounds } from '../src/bounds';
+import { CpuPipeline } from '../src/cpu-pipeline';
+import { screenToRay, rayIntersectSphere, rayIntersectAABB, BoundingSpherePicker, pickAtScreen } from '../src/picking';
+import { vec3Length } from '../../../math/src/vec';
+import { AnimationManager, rotateY, bob, orbit, compose } from '../src/animation';
 
 describe('Mesh', () => {
   describe('createBox', () => {
@@ -931,5 +941,892 @@ describe('SceneGraph (additional)', () => {
     const visited: string[] = [];
     sg.traverse((obj) => visited.push(obj.id));
     expect(visited.length).toBe(0);
+  });
+});
+
+describe('LambertianShading', () => {
+  it('has name "lambertian"', () => {
+    const lam = new LambertianShading();
+    expect(lam.name).toBe('lambertian');
+  });
+
+  it('shade with light facing the surface (NdotL = 1) returns full brightness', () => {
+    const lam = new LambertianShading();
+    const result = lam.shade({
+      normal: { x: 0, y: 1, z: 0 },
+      lightDir: { x: 0, y: 1, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 1, b: 1, a: 1 },
+      materialColor: { r: 0.8, g: 0.6, b: 0.4, a: 1.0 },
+      ambientStrength: 0.2,
+    });
+    // ambient + diffuse = mat * 0.2 + mat * 1 * 1 = mat * 1.2 => clamped to mat (since > 1 clamps)
+    expect(result.r).toBeCloseTo(Math.min(1, 0.8 * 0.2 + 0.8 * 1));
+    expect(result.g).toBeCloseTo(Math.min(1, 0.6 * 0.2 + 0.6 * 1));
+    expect(result.b).toBeCloseTo(Math.min(1, 0.4 * 0.2 + 0.4 * 1));
+  });
+
+  it('shade with light behind the surface (NdotL < 0) returns ambient only', () => {
+    const lam = new LambertianShading();
+    const result = lam.shade({
+      normal: { x: 0, y: 1, z: 0 },
+      lightDir: { x: 0, y: -1, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 1, b: 1, a: 1 },
+      materialColor: { r: 0.8, g: 0.6, b: 0.4, a: 1.0 },
+      ambientStrength: 0.2,
+    });
+    // NdotL = -1, clamped to 0, so result = mat * ambient
+    expect(result.r).toBeCloseTo(0.8 * 0.2);
+    expect(result.g).toBeCloseTo(0.6 * 0.2);
+    expect(result.b).toBeCloseTo(0.4 * 0.2);
+  });
+
+  it('shade with 45-degree angle returns partial brightness', () => {
+    const lam = new LambertianShading();
+    // lightDir at 45 degrees to normal: dot(N, L) = cos(45) ~= 0.7071
+    const s = Math.SQRT1_2; // ~0.7071
+    const result = lam.shade({
+      normal: { x: 0, y: 1, z: 0 },
+      lightDir: { x: s, y: s, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 1, b: 1, a: 1 },
+      materialColor: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+      ambientStrength: 0.2,
+    });
+    const expected = Math.min(1, 1.0 * 0.2 + 1.0 * 1.0 * s);
+    expect(result.r).toBeCloseTo(expected);
+    expect(result.g).toBeCloseTo(expected);
+    expect(result.b).toBeCloseTo(expected);
+  });
+
+  it('shade with red light on blue material produces dark (no red in blue)', () => {
+    const lam = new LambertianShading();
+    const result = lam.shade({
+      normal: { x: 0, y: 1, z: 0 },
+      lightDir: { x: 0, y: 1, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 0, b: 0, a: 1 },
+      materialColor: { r: 0, g: 0, b: 1, a: 1 },
+      ambientStrength: 0.2,
+    });
+    // Red light * blue material => diffuse r=0*1=0, g=0*0=0, b=1*0=0
+    // Ambient: r=0*0.2=0, g=0*0.2=0, b=1*0.2=0.2
+    expect(result.r).toBeCloseTo(0);
+    expect(result.g).toBeCloseTo(0);
+    expect(result.b).toBeCloseTo(0.2);
+  });
+
+  it('shade preserves alpha', () => {
+    const lam = new LambertianShading();
+    const result = lam.shade({
+      normal: { x: 0, y: 1, z: 0 },
+      lightDir: { x: 0, y: 1, z: 0 },
+      viewDir: { x: 0, y: 0, z: -1 },
+      lightColor: { r: 1, g: 1, b: 1, a: 1 },
+      materialColor: { r: 0.5, g: 0.5, b: 0.5, a: 0.7 },
+      ambientStrength: 0.2,
+    });
+    expect(result.a).toBe(0.7);
+  });
+
+  it('vertexShaderSource contains expected GLSL keywords', () => {
+    const lam = new LambertianShading();
+    const src = lam.vertexShaderSource();
+    expect(src).toContain('gl_Position');
+    expect(src).toContain('attribute');
+    expect(src).toContain('uniform');
+    expect(src).toContain('varying');
+    expect(src).toContain('aNormal');
+  });
+
+  it('fragmentShaderSource contains expected GLSL keywords', () => {
+    const lam = new LambertianShading();
+    const src = lam.fragmentShaderSource();
+    expect(src).toContain('gl_FragColor');
+    expect(src).toContain('precision mediump float');
+    expect(src).toContain('normalize');
+    expect(src).toContain('dot');
+    expect(src).toContain('uLightPos');
+    expect(src).toContain('uLightColor');
+  });
+
+  it('uniforms returns light position and color', () => {
+    const lam = new LambertianShading();
+    const light = new Light({
+      type: 'point',
+      position: { x: 5, y: 10, z: 3 },
+      color: { r: 1, g: 0.2, b: 0.1, a: 1 },
+    });
+    const material = createMaterial({ r: 0.5, g: 0.5, b: 0.5, a: 1 });
+    const uniforms = lam.uniforms([light], material);
+    expect(uniforms.uColor).toEqual([0.5, 0.5, 0.5, 1]);
+    expect(uniforms.uLightPos).toEqual([5, 10, 3]);
+    expect(uniforms.uLightColor).toEqual([1, 0.2, 0.1]);
+    expect(uniforms.uAmbientStrength).toBe(0.2);
+  });
+
+  it('uniforms uses defaults when no lights provided', () => {
+    const lam = new LambertianShading();
+    const material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+    const uniforms = lam.uniforms([], material);
+    expect(uniforms.uLightPos).toEqual([0, 10, 0]);
+    expect(uniforms.uLightColor).toEqual([1, 1, 1]);
+  });
+});
+
+describe('generateTerrain', () => {
+  it('produces correct vertex count for given segments', () => {
+    const terrain = generateTerrain(10, 10, 5, 4, () => 0);
+    // (5+1) * (4+1) = 30 vertices
+    expect(terrain.vertexCount).toBe(30);
+  });
+
+  it('produces correct index count', () => {
+    const terrain = generateTerrain(10, 10, 5, 4, () => 0);
+    // 5 * 4 * 2 triangles * 3 indices = 120
+    expect(terrain.indexCount).toBe(120);
+  });
+
+  it('with colorFn populates mesh.colors', () => {
+    const colorFn = () => ({ r: 1, g: 0, b: 0, a: 1 });
+    const terrain = generateTerrain(10, 10, 3, 3, () => 0, colorFn);
+    expect(terrain.colors).toBeDefined();
+    expect(terrain.colors!.length).toBe(terrain.vertexCount * 4);
+  });
+
+  it('without colorFn has no colors array', () => {
+    const terrain = generateTerrain(10, 10, 3, 3, () => 0);
+    expect(terrain.colors).toBeUndefined();
+  });
+});
+
+describe('sineTerrain', () => {
+  it('returns non-zero heights', () => {
+    const heightFn = sineTerrain(3, 0.3);
+    // Check multiple positions - at least one should be non-zero
+    let anyNonZero = false;
+    for (let x = -5; x <= 5; x++) {
+      for (let z = -5; z <= 5; z++) {
+        if (heightFn(x, z) !== 0) {
+          anyNonZero = true;
+          break;
+        }
+      }
+      if (anyNonZero) break;
+    }
+    expect(anyNonZero).toBe(true);
+  });
+
+  it('height varies across positions', () => {
+    const heightFn = sineTerrain(3, 0.3);
+    const h1 = heightFn(0, 0);
+    const h2 = heightFn(5, 5);
+    const h3 = heightFn(-3, 7);
+    // At least two of these should differ
+    const allSame = (h1 === h2) && (h2 === h3);
+    expect(allSame).toBe(false);
+  });
+});
+
+describe('heightGradientColor', () => {
+  it('returns green for low elevations', () => {
+    const colorFn = heightGradientColor(0, 10);
+    const color = colorFn(0, 0, 1); // t = 0.1, which is < 0.3 => green
+    expect(color.g).toBeGreaterThan(color.r);
+    expect(color.g).toBeGreaterThan(color.b);
+    expect(color.a).toBe(1);
+  });
+
+  it('returns white for high elevations', () => {
+    const colorFn = heightGradientColor(0, 10);
+    const color = colorFn(0, 0, 10); // t = 1.0, which is >= 0.7 => snow/white
+    expect(color.r).toBeGreaterThan(0.7);
+    expect(color.g).toBeGreaterThan(0.7);
+    expect(color.b).toBeGreaterThan(0.7);
+    expect(color.a).toBe(1);
+  });
+});
+
+describe('solidTexture', () => {
+  it('returns same color at all UV coordinates', () => {
+    const color: Color = { r: 0.3, g: 0.6, b: 0.9, a: 1.0 };
+    const tex = solidTexture(color);
+    const uvPairs = [[0, 0], [0.5, 0.5], [1, 1], [0.25, 0.75], [0, 1]];
+    for (const [u, v] of uvPairs) {
+      const sampled = tex.sample(u!, v!);
+      expect(sampled.r).toBe(color.r);
+      expect(sampled.g).toBe(color.g);
+      expect(sampled.b).toBe(color.b);
+      expect(sampled.a).toBe(color.a);
+    }
+  });
+
+  it('has width=1 and height=1', () => {
+    const tex = solidTexture({ r: 1, g: 0, b: 0, a: 1 });
+    expect(tex.width).toBe(1);
+    expect(tex.height).toBe(1);
+  });
+});
+
+describe('checkerboardTexture', () => {
+  it('alternates colors', () => {
+    const white: Color = { r: 1, g: 1, b: 1, a: 1 };
+    const black: Color = { r: 0, g: 0, b: 0, a: 1 };
+    const tex = checkerboardTexture(white, black, 2, 2);
+
+    // (0,0) should be color1 (white)
+    const c00 = tex.sample(0, 0);
+    expect(c00.r).toBe(1);
+    expect(c00.g).toBe(1);
+    expect(c00.b).toBe(1);
+
+    // Adjacent tile should be color2 (black)
+    const c10 = tex.sample(0.75, 0);
+    expect(c10.r).toBe(0);
+    expect(c10.g).toBe(0);
+    expect(c10.b).toBe(0);
+  });
+
+  it('corners: (0,0)=color1, (0.5/tiles, 0)=color2', () => {
+    const red: Color = { r: 1, g: 0, b: 0, a: 1 };
+    const blue: Color = { r: 0, g: 0, b: 1, a: 1 };
+    const tiles = 4;
+    const tex = checkerboardTexture(red, blue, tiles, tiles);
+
+    // (0,0) should be color1 (red)
+    const corner = tex.sample(0, 0);
+    expect(corner.r).toBe(red.r);
+    expect(corner.g).toBe(red.g);
+    expect(corner.b).toBe(red.b);
+
+    // (0.5/tiles, 0) = (0.125, 0) should be in tile 0 still for U, so color1
+    // Actually 0.5/tiles with tiles=4 => u=0.125, floor(0.125*4)=0, so cu=0, cv=0 => color1
+    // To get color2 we need the next tile: u that makes floor(u*tiles) odd
+    const nextTile = tex.sample(1.0 / tiles + 0.01, 0);
+    expect(nextTile.r).toBe(blue.r);
+    expect(nextTile.g).toBe(blue.g);
+    expect(nextTile.b).toBe(blue.b);
+  });
+
+  it('has correct dimensions based on tile count', () => {
+    const tex = checkerboardTexture(
+      { r: 1, g: 1, b: 1, a: 1 },
+      { r: 0, g: 0, b: 0, a: 1 },
+      4,
+      6,
+    );
+    expect(tex.width).toBe(4 * 16);
+    expect(tex.height).toBe(6 * 16);
+  });
+});
+
+describe('gradientTexture', () => {
+  it('at u=0 returns colorA', () => {
+    const colorA: Color = { r: 1, g: 0, b: 0, a: 1 };
+    const colorB: Color = { r: 0, g: 0, b: 1, a: 1 };
+    const tex = gradientTexture(colorA, colorB);
+    const c = tex.sample(0, 0);
+    expect(c.r).toBeCloseTo(1);
+    expect(c.g).toBeCloseTo(0);
+    expect(c.b).toBeCloseTo(0);
+    expect(c.a).toBeCloseTo(1);
+  });
+
+  it('at u=1 returns colorB', () => {
+    const colorA: Color = { r: 1, g: 0, b: 0, a: 1 };
+    const colorB: Color = { r: 0, g: 0, b: 1, a: 1 };
+    const tex = gradientTexture(colorA, colorB);
+    const c = tex.sample(1, 0);
+    expect(c.r).toBeCloseTo(0);
+    expect(c.g).toBeCloseTo(0);
+    expect(c.b).toBeCloseTo(1);
+    expect(c.a).toBeCloseTo(1);
+  });
+
+  it('at u=0.5 returns midpoint', () => {
+    const colorA: Color = { r: 1, g: 0, b: 0, a: 1 };
+    const colorB: Color = { r: 0, g: 0, b: 1, a: 0 };
+    const tex = gradientTexture(colorA, colorB);
+    const c = tex.sample(0.5, 0);
+    expect(c.r).toBeCloseTo(0.5);
+    expect(c.g).toBeCloseTo(0);
+    expect(c.b).toBeCloseTo(0.5);
+    expect(c.a).toBeCloseTo(0.5);
+  });
+
+  it('has width=256 and height=1', () => {
+    const tex = gradientTexture(
+      { r: 0, g: 0, b: 0, a: 1 },
+      { r: 1, g: 1, b: 1, a: 1 },
+    );
+    expect(tex.width).toBe(256);
+    expect(tex.height).toBe(1);
+  });
+});
+
+describe('noiseTexture', () => {
+  it('returns values between baseColor and noiseColor', () => {
+    const base: Color = { r: 0, g: 0, b: 0, a: 1 };
+    const noise: Color = { r: 1, g: 1, b: 1, a: 1 };
+    const tex = noiseTexture(base, noise, 4);
+
+    for (let i = 0; i < 20; i++) {
+      const u = Math.random();
+      const v = Math.random();
+      const c = tex.sample(u, v);
+      expect(c.r).toBeGreaterThanOrEqual(0);
+      expect(c.r).toBeLessThanOrEqual(1);
+      expect(c.g).toBeGreaterThanOrEqual(0);
+      expect(c.g).toBeLessThanOrEqual(1);
+      expect(c.b).toBeGreaterThanOrEqual(0);
+      expect(c.b).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('returns different values at different UVs (not constant)', () => {
+    const base: Color = { r: 0, g: 0, b: 0, a: 1 };
+    const noise: Color = { r: 1, g: 1, b: 1, a: 1 };
+    const tex = noiseTexture(base, noise, 8);
+
+    // Sample many points and check that not all are the same
+    const samples: number[] = [];
+    for (let i = 0; i < 50; i++) {
+      const u = i / 50;
+      const v = i / 50;
+      samples.push(tex.sample(u, v).r);
+    }
+
+    const allSame = samples.every(s => s === samples[0]);
+    expect(allSame).toBe(false);
+  });
+
+  it('has correct dimensions based on resolution', () => {
+    const tex = noiseTexture(
+      { r: 0, g: 0, b: 0, a: 1 },
+      { r: 1, g: 1, b: 1, a: 1 },
+      8,
+    );
+    expect(tex.width).toBe(8 * 16);
+    expect(tex.height).toBe(8 * 16);
+  });
+
+  it('alpha is always 1', () => {
+    const tex = noiseTexture(
+      { r: 0.2, g: 0.3, b: 0.4, a: 0.5 },
+      { r: 0.8, g: 0.9, b: 1.0, a: 0.9 },
+      4,
+    );
+    for (let i = 0; i < 10; i++) {
+      const c = tex.sample(Math.random(), Math.random());
+      expect(c.a).toBe(1);
+    }
+  });
+});
+
+describe('createInputTracker', () => {
+  function mockEventTarget(): { addEventListener: Function; removeEventListener: Function; _listeners: Map<string, Function[]> } {
+    const listeners = new Map<string, Function[]>();
+    return {
+      _listeners: listeners,
+      addEventListener: (type: string, fn: Function) => {
+        if (!listeners.has(type)) listeners.set(type, []);
+        listeners.get(type)!.push(fn);
+      },
+      removeEventListener: (type: string, fn: Function) => {
+        const fns = listeners.get(type);
+        if (fns) {
+          const idx = fns.indexOf(fn);
+          if (idx >= 0) fns.splice(idx, 1);
+        }
+      },
+    };
+  }
+
+  function mockCanvas(): HTMLCanvasElement {
+    const target = mockEventTarget();
+    return {
+      ...target,
+      getBoundingClientRect: () => ({ left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600, x: 0, y: 0, toJSON: () => ({}) }),
+    } as unknown as HTMLCanvasElement;
+  }
+
+  it('returns state and cleanup function', () => {
+    const canvas = mockCanvas();
+    const mockDoc = mockEventTarget();
+    const origDoc = (globalThis as Record<string, unknown>).document;
+    (globalThis as Record<string, unknown>).document = mockDoc;
+    try {
+      const tracker = createInputTracker(canvas);
+      expect(tracker).toHaveProperty('state');
+      expect(tracker).toHaveProperty('cleanup');
+      expect(typeof tracker.cleanup).toBe('function');
+      tracker.cleanup();
+    } finally {
+      if (origDoc === undefined) {
+        delete (globalThis as Record<string, unknown>).document;
+      } else {
+        (globalThis as Record<string, unknown>).document = origDoc;
+      }
+    }
+  });
+
+  it('InputState has correct initial values', () => {
+    const canvas = mockCanvas();
+    const mockDoc = mockEventTarget();
+    const origDoc = (globalThis as Record<string, unknown>).document;
+    (globalThis as Record<string, unknown>).document = mockDoc;
+    try {
+      const { state, cleanup } = createInputTracker(canvas);
+      expect(state.keysDown).toBeInstanceOf(Set);
+      expect(state.keysDown.size).toBe(0);
+      expect(state.mouseX).toBe(0);
+      expect(state.mouseY).toBe(0);
+      expect(state.mouseLeft).toBe(false);
+      expect(state.mouseRight).toBe(false);
+      expect(state.mouseMiddle).toBe(false);
+      expect(state.mouseDeltaX).toBe(0);
+      expect(state.mouseDeltaY).toBe(0);
+      expect(state.scrollDelta).toBe(0);
+      cleanup();
+    } finally {
+      if (origDoc === undefined) {
+        delete (globalThis as Record<string, unknown>).document;
+      } else {
+        (globalThis as Record<string, unknown>).document = origDoc;
+      }
+    }
+  });
+});
+
+describe('resetFrameDeltas', () => {
+  it('zeroes mouseDeltaX, mouseDeltaY, and scrollDelta', () => {
+    const state: InputState = {
+      keysDown: new Set(['w']),
+      mouseX: 100,
+      mouseY: 200,
+      mouseLeft: true,
+      mouseRight: false,
+      mouseMiddle: false,
+      mouseDeltaX: 15,
+      mouseDeltaY: -8,
+      scrollDelta: 120,
+    };
+    resetFrameDeltas(state);
+    expect(state.mouseDeltaX).toBe(0);
+    expect(state.mouseDeltaY).toBe(0);
+    expect(state.scrollDelta).toBe(0);
+    // Non-delta fields should be unchanged
+    expect(state.mouseX).toBe(100);
+    expect(state.mouseY).toBe(200);
+    expect(state.mouseLeft).toBe(true);
+    expect(state.keysDown.has('w')).toBe(true);
+  });
+});
+
+describe('orbitController', () => {
+  it('returns a function', () => {
+    const fn = orbitController({ x: 0, y: 0, z: 0 });
+    expect(typeof fn).toBe('function');
+  });
+
+  it('returned function accepts camera, input, and deltaTime', () => {
+    const fn = orbitController({ x: 0, y: 0, z: 0 });
+    const cam = new Camera({ position: { x: 0, y: 5, z: 10 } });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    const input: InputState = {
+      keysDown: new Set(),
+      mouseX: 0, mouseY: 0,
+      mouseLeft: false, mouseRight: false, mouseMiddle: false,
+      mouseDeltaX: 0, mouseDeltaY: 0,
+      scrollDelta: 0,
+    };
+    expect(() => fn(cam, input, 0.016)).not.toThrow();
+  });
+
+  it('accepts custom options', () => {
+    const fn = orbitController({ x: 1, y: 2, z: 3 }, {
+      orbitSpeed: 0.01,
+      zoomSpeed: 0.2,
+      minDist: 2,
+      maxDist: 500,
+    });
+    expect(typeof fn).toBe('function');
+  });
+});
+
+describe('flyController', () => {
+  it('returns a function', () => {
+    const fn = flyController();
+    expect(typeof fn).toBe('function');
+  });
+
+  it('returned function accepts camera, input, and deltaTime', () => {
+    const fn = flyController();
+    const cam = new Camera({ position: { x: 0, y: 0, z: 0 } });
+    const input: InputState = {
+      keysDown: new Set(),
+      mouseX: 0, mouseY: 0,
+      mouseLeft: false, mouseRight: false, mouseMiddle: false,
+      mouseDeltaX: 0, mouseDeltaY: 0,
+      scrollDelta: 0,
+    };
+    expect(() => fn(cam, input, 0.016)).not.toThrow();
+  });
+
+  it('accepts custom options', () => {
+    const fn = flyController({ moveSpeed: 20, lookSpeed: 0.005 });
+    expect(typeof fn).toBe('function');
+  });
+});
+
+describe('clampToBounds', () => {
+  const bounds: SpaceBounds = {
+    min: { x: -10, y: -5, z: -20 },
+    max: { x: 10, y: 5, z: 20 },
+  };
+
+  it('clamps x/y/z to min/max', () => {
+    const result = clampToBounds({ x: 100, y: -50, z: 30 }, bounds);
+    expect(result.x).toBe(10);
+    expect(result.y).toBe(-5);
+    expect(result.z).toBe(20);
+  });
+
+  it('passes through positions already inside', () => {
+    const pos = { x: 3, y: -2, z: 7 };
+    const result = clampToBounds(pos, bounds);
+    expect(result.x).toBe(3);
+    expect(result.y).toBe(-2);
+    expect(result.z).toBe(7);
+  });
+});
+
+describe('isInBounds', () => {
+  const bounds: SpaceBounds = {
+    min: { x: -10, y: -10, z: -10 },
+    max: { x: 10, y: 10, z: 10 },
+  };
+
+  it('returns true for interior point', () => {
+    expect(isInBounds({ x: 0, y: 0, z: 0 }, bounds)).toBe(true);
+    expect(isInBounds({ x: 5, y: -3, z: 8 }, bounds)).toBe(true);
+  });
+
+  it('returns false for exterior point', () => {
+    expect(isInBounds({ x: 11, y: 0, z: 0 }, bounds)).toBe(false);
+    expect(isInBounds({ x: 0, y: -11, z: 0 }, bounds)).toBe(false);
+    expect(isInBounds({ x: 0, y: 0, z: 15 }, bounds)).toBe(false);
+  });
+});
+
+describe('boundsCenter', () => {
+  it('computes correct center', () => {
+    const bounds: SpaceBounds = {
+      min: { x: -10, y: -6, z: 0 },
+      max: { x: 10, y: 4, z: 20 },
+    };
+    const center = boundsCenter(bounds);
+    expect(center.x).toBe(0);
+    expect(center.y).toBe(-1);
+    expect(center.z).toBe(10);
+  });
+});
+
+describe('boundsSize', () => {
+  it('computes correct dimensions', () => {
+    const bounds: SpaceBounds = {
+      min: { x: -5, y: 0, z: -3 },
+      max: { x: 15, y: 10, z: 7 },
+    };
+    const size = boundsSize(bounds);
+    expect(size.x).toBe(20);
+    expect(size.y).toBe(10);
+    expect(size.z).toBe(10);
+  });
+});
+
+describe('renderBounds', () => {
+  it('does not crash with null ctx', () => {
+    const pipeline = new CpuPipeline();
+    const camera = new Camera({ position: { x: 0, y: 5, z: 10 }, near: 0.1, far: 100 });
+    camera.lookAt({ x: 0, y: 0, z: 0 });
+    const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
+    const bounds: SpaceBounds = {
+      min: { x: -10, y: -10, z: -10 },
+      max: { x: 10, y: 10, z: 10 },
+    };
+    expect(() => pipeline.renderBounds(camera, viewport, bounds)).not.toThrow();
+  });
+});
+
+describe('rayIntersectSphere', () => {
+  it('ray hits sphere returns distance', () => {
+    const ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
+    const center = { x: 0, y: 0, z: 0 };
+    const result = rayIntersectSphere(ray, center, 1);
+    expect(result).not.toBeNull();
+    expect(result).toBeCloseTo(9); // 10 - 1 = 9
+  });
+
+  it('ray misses sphere returns null', () => {
+    const ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
+    const center = { x: 5, y: 5, z: 0 };
+    const result = rayIntersectSphere(ray, center, 1);
+    expect(result).toBeNull();
+  });
+
+  it('ray origin inside sphere returns null (behind)', () => {
+    const ray = { origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 1 } };
+    const center = { x: 0, y: 0, z: 0 };
+    const result = rayIntersectSphere(ray, center, 1);
+    expect(result).toBeNull();
+  });
+});
+
+describe('rayIntersectAABB', () => {
+  it('ray hits box returns distance', () => {
+    const ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
+    const min = { x: -1, y: -1, z: -1 };
+    const max = { x: 1, y: 1, z: 1 };
+    const result = rayIntersectAABB(ray, min, max);
+    expect(result).not.toBeNull();
+    expect(result).toBeCloseTo(9); // 10 - 1 = 9
+  });
+
+  it('ray misses box returns null', () => {
+    const ray = { origin: { x: 0, y: 0, z: -10 }, direction: { x: 0, y: 0, z: 1 } };
+    const min = { x: 5, y: 5, z: 5 };
+    const max = { x: 6, y: 6, z: 6 };
+    const result = rayIntersectAABB(ray, min, max);
+    expect(result).toBeNull();
+  });
+
+  it('ray parallel to face misses', () => {
+    const ray = { origin: { x: -10, y: 5, z: 0 }, direction: { x: 1, y: 0, z: 0 } };
+    const min = { x: -1, y: -1, z: -1 };
+    const max = { x: 1, y: 1, z: 1 };
+    const result = rayIntersectAABB(ray, min, max);
+    expect(result).toBeNull();
+  });
+});
+
+describe('BoundingSpherePicker', () => {
+  it('picks nearest object', () => {
+    const picker = new BoundingSpherePicker();
+    const obj1 = new SceneObject('near');
+    obj1.position = { x: 0, y: 0, z: -5 };
+    obj1.mesh = Mesh.createSphere(1);
+
+    const obj2 = new SceneObject('far');
+    obj2.position = { x: 0, y: 0, z: -20 };
+    obj2.mesh = Mesh.createSphere(1);
+
+    const result = picker.pick(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      [obj1, obj2],
+    );
+    expect(result).toBe(obj1);
+  });
+
+  it('returns null for empty array', () => {
+    const picker = new BoundingSpherePicker();
+    const result = picker.pick(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      [],
+    );
+    expect(result).toBeNull();
+  });
+
+  it('skips invisible objects', () => {
+    const picker = new BoundingSpherePicker();
+    const obj = new SceneObject('hidden');
+    obj.visible = false;
+    obj.position = { x: 0, y: 0, z: -5 };
+    obj.mesh = Mesh.createSphere(1);
+
+    const result = picker.pick(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      [obj],
+    );
+    expect(result).toBeNull();
+  });
+
+  it('skips objects without mesh', () => {
+    const picker = new BoundingSpherePicker();
+    const obj = new SceneObject('noMesh');
+    obj.position = { x: 0, y: 0, z: -5 };
+
+    const result = picker.pick(
+      { x: 0, y: 0, z: 0 },
+      { x: 0, y: 0, z: -1 },
+      [obj],
+    );
+    expect(result).toBeNull();
+  });
+});
+
+describe('screenToRay', () => {
+  it('returns ray with normalized direction', () => {
+    const cam = new Camera({ position: { x: 0, y: 0, z: 5 } });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+
+    const ray = screenToRay(400, 300, cam, vp);
+    const len = vec3Length(ray.direction);
+    expect(len).toBeCloseTo(1, 5);
+  });
+});
+
+describe('pickAtScreen', () => {
+  it('returns picked object', () => {
+    const cam = new Camera({ position: { x: 0, y: 0, z: 10 } });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    const vp = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera: cam });
+
+    const obj = new SceneObject('target');
+    obj.position = { x: 0, y: 0, z: 0 };
+    obj.mesh = Mesh.createSphere(2);
+
+    const picker = new BoundingSpherePicker();
+    const result = pickAtScreen(400, 300, cam, vp, [obj], picker);
+    expect(result).toBe(obj);
+  });
+});
+
+describe('AnimationManager', () => {
+  it('register adds a binding', () => {
+    const mgr = new AnimationManager();
+    mgr.register({ objectId: 'obj1', animate: () => {} });
+    expect(mgr.getRegisteredIds()).toContain('obj1');
+  });
+
+  it('unregister removes a binding', () => {
+    const mgr = new AnimationManager();
+    mgr.register({ objectId: 'obj1', animate: () => {} });
+    mgr.unregister('obj1');
+    expect(mgr.getRegisteredIds()).not.toContain('obj1');
+  });
+
+  it('pause/resume toggles active', () => {
+    const mgr = new AnimationManager();
+    mgr.register({ objectId: 'obj1', animate: () => {} });
+    expect(mgr.isActive('obj1')).toBe(true);
+    mgr.pause('obj1');
+    expect(mgr.isActive('obj1')).toBe(false);
+    mgr.resume('obj1');
+    expect(mgr.isActive('obj1')).toBe(true);
+  });
+
+  it('isActive returns correct state', () => {
+    const mgr = new AnimationManager();
+    expect(mgr.isActive('nonexistent')).toBe(false);
+    mgr.register({ objectId: 'obj1', animate: () => {}, active: false });
+    expect(mgr.isActive('obj1')).toBe(false);
+    mgr.register({ objectId: 'obj2', animate: () => {}, active: true });
+    expect(mgr.isActive('obj2')).toBe(true);
+  });
+
+  it('getRegisteredIds returns all IDs', () => {
+    const mgr = new AnimationManager();
+    mgr.register({ objectId: 'a', animate: () => {} });
+    mgr.register({ objectId: 'b', animate: () => {} });
+    mgr.register({ objectId: 'c', animate: () => {} });
+    const ids = mgr.getRegisteredIds();
+    expect(ids).toHaveLength(3);
+    expect(ids).toContain('a');
+    expect(ids).toContain('b');
+    expect(ids).toContain('c');
+  });
+
+  it('update calls animate on active bindings', () => {
+    const mgr = new AnimationManager();
+    const obj = new SceneObject('obj1');
+    let called = false;
+    mgr.register({
+      objectId: 'obj1',
+      animate: () => { called = true; },
+    });
+    const scene = new SceneGraph();
+    scene.register(obj);
+    mgr.update(scene, 1.0, 0.016);
+    expect(called).toBe(true);
+  });
+
+  it('update skips paused bindings', () => {
+    const mgr = new AnimationManager();
+    const obj = new SceneObject('obj1');
+    let called = false;
+    mgr.register({
+      objectId: 'obj1',
+      animate: () => { called = true; },
+    });
+    mgr.pause('obj1');
+    const scene = new SceneGraph();
+    scene.register(obj);
+    mgr.update(scene, 1.0, 0.016);
+    expect(called).toBe(false);
+  });
+
+  it('clear removes all bindings', () => {
+    const mgr = new AnimationManager();
+    mgr.register({ objectId: 'a', animate: () => {} });
+    mgr.register({ objectId: 'b', animate: () => {} });
+    mgr.clear();
+    expect(mgr.getRegisteredIds()).toHaveLength(0);
+  });
+});
+
+describe('rotateY', () => {
+  it('modifies object rotation', () => {
+    const fn = rotateY(Math.PI);
+    const obj = new SceneObject('test');
+    fn(obj, 1.0, 0.016);
+    expect(obj.rotation.y).toBeCloseTo(Math.sin(Math.PI / 2));
+    expect(obj.rotation.w).toBeCloseTo(Math.cos(Math.PI / 2));
+    expect(obj.rotation.x).toBe(0);
+    expect(obj.rotation.z).toBe(0);
+  });
+});
+
+describe('bob', () => {
+  it('modifies object Y position', () => {
+    const fn = bob(2, 1, 5);
+    const obj = new SceneObject('test');
+    obj.position = { x: 3, y: 0, z: 7 };
+    fn(obj, Math.PI / 2, 0.016);
+    expect(obj.position.y).toBeCloseTo(7);
+    expect(obj.position.x).toBe(3);
+    expect(obj.position.z).toBe(7);
+  });
+});
+
+describe('orbit', () => {
+  it('modifies object XZ position', () => {
+    const fn = orbit(5, 1, 0, 0);
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: 3, z: 0 };
+    fn(obj, 0, 0.016);
+    expect(obj.position.x).toBeCloseTo(5);
+    expect(obj.position.z).toBeCloseTo(0);
+    expect(obj.position.y).toBe(3);
+  });
+});
+
+describe('compose', () => {
+  it('applies multiple animations', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: 0, z: 0 };
+    const fn = compose(
+      bob(1, 1, 0),
+      orbit(3, 1, 0, 0),
+    );
+    fn(obj, Math.PI / 2, 0.016);
+    expect(obj.position.y).toBeCloseTo(1);
+    expect(obj.position.x).toBeCloseTo(0, 4);
+    expect(obj.position.z).toBeCloseTo(3);
   });
 });

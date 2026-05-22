@@ -7,10 +7,12 @@ import type { Camera } from './camera';
 import type { Viewport } from './viewport';
 import type { LightingModel } from './lighting-model';
 import type { Color } from './types';
+import type { Light } from './light';
 import type { Vec3 } from '../../../math/src/vec';
 import { vec3, vec3Sub, vec3Cross, vec3Normalize } from '../../../math/src/vec';
 import { mat4Multiply } from '../../../math/src/mat4';
 import type { Mat4 } from '../../../math/src/mat4';
+import type { SpaceBounds } from './bounds';
 
 /** Triangle ready for rasterization after projection. */
 interface ProjectedTriangle {
@@ -43,7 +45,7 @@ export class CpuPipeline implements RenderPipeline {
     this.ctx = null;
   }
 
-  render(scene: SceneGraph, camera: Camera, viewport: Viewport, lighting: LightingModel): void {
+  render(scene: SceneGraph, camera: Camera, viewport: Viewport, lighting: LightingModel, lights?: Light[]): void {
     const ctx = this.ctx;
     if (!ctx) return;
 
@@ -81,6 +83,9 @@ export class CpuPipeline implements RenderPipeline {
 
       const vertices = mesh.vertices;
       const indices = mesh.indices;
+      const meshColors = mesh.colors;
+      const meshUvs = mesh.uvs;
+      const materialTexture = material.texture;
 
       // Transform all vertices to clip space
       const vertCount = mesh.vertexCount;
@@ -102,8 +107,13 @@ export class CpuPipeline implements RenderPipeline {
         clipW[v] = mvp[3]! * vx + mvp[7]! * vy + mvp[11]! * vz + mvp[15]!;
       }
 
-      // Default light direction for shading (from above-right-front)
-      const lightDir: Vec3 = vec3Normalize(vec3(0.5, 1.0, 0.3));
+      // Determine light source: use provided lights or fall back to default direction
+      const activeLight = lights && lights.length > 0 ? lights[0]! : null;
+      const defaultLightDir: Vec3 = vec3Normalize(vec3(0.5, 1.0, 0.3));
+      const lightColor: Color = activeLight
+        ? activeLight.color
+        : { r: 1, g: 1, b: 1, a: 1 };
+
       // View direction approximation (camera forward)
       const viewDir: Vec3 = vec3Normalize(vec3(
         -viewMat[2]!,
@@ -161,13 +171,52 @@ export class CpuPipeline implements RenderPipeline {
         const edge2 = vec3Sub(p2, p0);
         const faceNormal = vec3Normalize(vec3Cross(edge1, edge2));
 
+        // Compute light direction: for point lights use direction from triangle center to light
+        let lightDir: Vec3;
+        if (activeLight) {
+          // Transform triangle center to world space using model matrix
+          const cx = (p0.x + p1.x + p2.x) / 3;
+          const cy = (p0.y + p1.y + p2.y) / 3;
+          const cz = (p0.z + p1.z + p2.z) / 3;
+          const wcx = modelMat[0]! * cx + modelMat[4]! * cy + modelMat[8]! * cz + modelMat[12]!;
+          const wcy = modelMat[1]! * cx + modelMat[5]! * cy + modelMat[9]! * cz + modelMat[13]!;
+          const wcz = modelMat[2]! * cx + modelMat[6]! * cy + modelMat[10]! * cz + modelMat[14]!;
+          lightDir = vec3Normalize(vec3Sub(activeLight.position, vec3(wcx, wcy, wcz)));
+        } else {
+          lightDir = defaultLightDir;
+        }
+
+        // Determine material color: texture > per-vertex colors > material.color
+        let materialColor: Color;
+        if (materialTexture && meshUvs) {
+          // Interpolate UV coordinates at the face center (average of 3 vertex UVs)
+          const uv0i = i0 * 2;
+          const uv1i = i1 * 2;
+          const uv2i = i2 * 2;
+          const avgU = (meshUvs[uv0i]! + meshUvs[uv1i]! + meshUvs[uv2i]!) / 3;
+          const avgV = (meshUvs[uv0i + 1]! + meshUvs[uv1i + 1]! + meshUvs[uv2i + 1]!) / 3;
+          materialColor = materialTexture.sample(avgU, avgV);
+        } else if (meshColors) {
+          const c0i = i0 * 4;
+          const c1i = i1 * 4;
+          const c2i = i2 * 4;
+          materialColor = {
+            r: (meshColors[c0i]! + meshColors[c1i]! + meshColors[c2i]!) / 3,
+            g: (meshColors[c0i + 1]! + meshColors[c1i + 1]! + meshColors[c2i + 1]!) / 3,
+            b: (meshColors[c0i + 2]! + meshColors[c1i + 2]! + meshColors[c2i + 2]!) / 3,
+            a: (meshColors[c0i + 3]! + meshColors[c1i + 3]! + meshColors[c2i + 3]!) / 3,
+          };
+        } else {
+          materialColor = material.color;
+        }
+
         // Shade the triangle
         const color = lighting.shade({
           normal: faceNormal,
           lightDir,
           viewDir,
-          lightColor: { r: 1, g: 1, b: 1, a: 1 },
-          materialColor: material.color,
+          lightColor,
+          materialColor,
           ambientStrength: 0.2,
         });
 
@@ -367,6 +416,86 @@ export class CpuPipeline implements RenderPipeline {
         ctx.beginPath();
         ctx.moveTo(a[0], a[1]);
         ctx.lineTo(b[0], b[1]);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Render a wireframe bounding box showing space boundaries.
+   * Draws the 12 edges of the box projected through the camera.
+   */
+  renderBounds(
+    camera: Camera,
+    viewport: Viewport,
+    bounds: SpaceBounds,
+    options?: { color?: string; opacity?: number },
+  ): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+
+    const color = options?.color ?? '#ffff00';
+    const opacity = options?.opacity ?? 0.4;
+
+    const viewMat = camera.getViewMatrix();
+    const projMat = camera.getProjectionMatrix();
+    const vp = mat4Multiply(projMat, viewMat);
+
+    const halfW = viewport.width / 2;
+    const halfH = viewport.height / 2;
+
+    const project = (x: number, y: number, z: number): [number, number] | null => {
+      const cw = vp[3]! * x + vp[7]! * y + vp[11]! * z + vp[15]!;
+      if (cw <= 0) return null;
+      const ndcX = (vp[0]! * x + vp[4]! * y + vp[8]! * z + vp[12]!) / cw;
+      const ndcY = (vp[1]! * x + vp[5]! * y + vp[9]! * z + vp[13]!) / cw;
+      return [
+        viewport.x + (ndcX + 1) * halfW,
+        viewport.y + (1 - ndcY) * halfH,
+      ];
+    };
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(viewport.x, viewport.y, viewport.width, viewport.height);
+    ctx.clip();
+
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = opacity;
+    ctx.lineWidth = 1;
+
+    // 8 corners of the bounding box
+    const mn = bounds.min;
+    const mx = bounds.max;
+    const corners: [number, number, number][] = [
+      [mn.x, mn.y, mn.z], // 0
+      [mx.x, mn.y, mn.z], // 1
+      [mx.x, mx.y, mn.z], // 2
+      [mn.x, mx.y, mn.z], // 3
+      [mn.x, mn.y, mx.z], // 4
+      [mx.x, mn.y, mx.z], // 5
+      [mx.x, mx.y, mx.z], // 6
+      [mn.x, mx.y, mx.z], // 7
+    ];
+
+    // 12 edges as pairs of corner indices
+    const edges: [number, number][] = [
+      [0, 1], [1, 2], [2, 3], [3, 0], // front face
+      [4, 5], [5, 6], [6, 7], [7, 4], // back face
+      [0, 4], [1, 5], [2, 6], [3, 7], // connecting edges
+    ];
+
+    for (const [a, b] of edges) {
+      const ca = corners[a]!;
+      const cb = corners[b]!;
+      const pa = project(ca[0], ca[1], ca[2]);
+      const pb = project(cb[0], cb[1], cb[2]);
+      if (pa && pb) {
+        ctx.beginPath();
+        ctx.moveTo(pa[0], pa[1]);
+        ctx.lineTo(pb[0], pb[1]);
         ctx.stroke();
       }
     }

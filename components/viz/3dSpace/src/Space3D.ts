@@ -7,7 +7,9 @@ import type { Vec3 } from '../../../math/src/vec';
 import type { RenderPipeline } from './render-pipeline';
 import type { LightingModel } from './lighting-model';
 import type { ObjectPicker, Color } from './types';
+import type { CameraControllerFn } from './camera-controller';
 import type { Light } from './light';
+import type { AnimationManager } from './animation';
 import { FlatShading } from './lighting-model';
 import { DefaultObjectPicker } from './types';
 import { Camera } from './camera';
@@ -22,9 +24,9 @@ export interface Space3DProps {
   width: number;
   /** Height of the canvas in pixels. */
   height: number;
-  /** Space mode. */
-  spaceMode?: 'finite' | 'infinite';
-  /** Bounds for finite mode. */
+  /** Whether space is finite (bounded). Default: true */
+  finiteSpace?: boolean;
+  /** Bounds for finite space. Objects and camera are clamped within. */
   bounds?: { min: Vec3; max: Vec3 };
   /** Lighting model (default: FlatShading). */
   lightingModel?: LightingModel;
@@ -48,6 +50,10 @@ export interface Space3DProps {
   gridDivisions?: number;
   /** Preferred renderer: 'webgl' | 'cpu' | 'auto' (default 'auto'). */
   renderer?: 'webgl' | 'cpu' | 'auto';
+  /** Pluggable camera controller function, called each frame with camera, input state, and delta time. */
+  cameraController?: CameraControllerFn;
+  /** Animation manager for per-object animations */
+  animations?: AnimationManager;
 }
 
 /**

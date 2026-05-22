@@ -6,6 +6,7 @@ import type { SceneGraph } from './scene-graph';
 import type { Camera } from './camera';
 import type { Viewport } from './viewport';
 import type { LightingModel } from './lighting-model';
+import type { Light } from './light';
 import type { SceneObject } from './scene-object';
 import { mat4Multiply } from '../../../math/src/mat4';
 
@@ -141,6 +142,7 @@ export class WebGLPipeline implements RenderPipeline {
     camera: Camera,
     viewport: Viewport,
     lighting: LightingModel,
+    lights?: Light[],
   ): void {
     const gl = this.gl;
     if (!gl) {
@@ -168,9 +170,10 @@ export class WebGLPipeline implements RenderPipeline {
     setUniform(gl, program, 'uProjectionMatrix', toFloat32(projData));
 
     // 5. Traverse scene and render visible objects with meshes
+    const activeLights = lights ?? [];
     const objects = scene.getVisibleObjects();
     for (let i = 0; i < objects.length; i++) {
-      this.renderObject(gl, program, objects[i]!, viewData, projData, lighting);
+      this.renderObject(gl, program, objects[i]!, viewData, projData, lighting, activeLights);
     }
   }
 
@@ -204,6 +207,7 @@ export class WebGLPipeline implements RenderPipeline {
     viewData: Float64Array,
     projData: Float64Array,
     lighting: LightingModel,
+    lights: Light[],
   ): void {
     if (!obj.mesh || !obj.material) return;
 
@@ -220,11 +224,11 @@ export class WebGLPipeline implements RenderPipeline {
     // Set the MVP uniform (used by FlatShading and similar models)
     setUniform(gl, program, 'uModelViewProjection', toFloat32(mvp));
 
-    // Set individual matrix uniforms for more advanced shaders
-    setUniform(gl, program, 'uModelMatrix', toFloat32(modelData));
+    // Set individual matrix uniforms for more advanced shaders (matches LambertianShading's uModel)
+    setUniform(gl, program, 'uModel', toFloat32(modelData));
 
-    // Set lighting model uniforms (e.g., uColor for FlatShading)
-    const uniforms = lighting.uniforms([], material);
+    // Set lighting model uniforms (e.g., uColor for FlatShading, light params for Lambertian)
+    const uniforms = lighting.uniforms(lights, material);
     const uniformNames = Object.keys(uniforms);
     for (let i = 0; i < uniformNames.length; i++) {
       const name = uniformNames[i]!;

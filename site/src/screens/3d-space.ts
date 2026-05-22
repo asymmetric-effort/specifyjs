@@ -15,8 +15,13 @@ import {
   Camera,
   Viewport,
   CpuPipeline,
-  FlatShading,
+  WebGLPipeline,
+  LambertianShading,
+  Light,
   createMaterial,
+  generateTerrain,
+  sineTerrain,
+  heightGradientColor,
 } from '../../../components/viz/3dSpace/src/index';
 
 // ── Scene setup ─────────────────────────────────────────────────────
@@ -82,6 +87,16 @@ export function Space3DDemo() {
       scene.register(obj);
     }
 
+    // ── Terrain ──
+    const heightFn = sineTerrain(2, 0.4);
+    const colorFn = heightGradientColor(-2, 2);
+    const terrainMesh = generateTerrain(40, 40, 40, 40, heightFn, colorFn);
+    const terrainObj = new SceneObject('terrain');
+    terrainObj.position = { x: 0, y: -3, z: 0 };
+    terrainObj.mesh = terrainMesh;
+    terrainObj.material = createMaterial({ r: 0.3, g: 0.6, b: 0.2, a: 1 });
+    scene.register(terrainObj);
+
     // ── Camera 1: Orbiting perspective ──
     const orbitCam = new Camera({
       position: { x: 15, y: 1, z: 0 },
@@ -123,11 +138,33 @@ export function Space3DDemo() {
       clearColor: { r: 0.04, g: 0.06, b: 0.12, a: 1 },
     });
 
-    // Pipeline
+    // Pipeline — detect WebGL availability for future use
+    const glCtx = canvas.getContext('webgl');
+    if (glCtx) {
+      // WebGL available — but stick with CPU pipeline until WebGL is visually validated
+      // TODO: switch to WebGLPipeline when validated
+      // const _webglReady = new WebGLPipeline();
+      void WebGLPipeline; // reference to prevent unused-import lint error
+    }
     const pipeline = new CpuPipeline();
     pipeline.initialize(canvas);
 
-    const lighting = new FlatShading();
+    const lighting = new LambertianShading();
+
+    // Red point light that orbits behind the camera
+    const redLight = new Light({
+      type: 'point',
+      color: { r: 1.0, g: 0.2, b: 0.1, a: 1 },
+      intensity: 1,
+      range: 50,
+    });
+
+    // Small red sphere to visualize the light position
+    const lightSphere = new SceneObject('light-indicator');
+    lightSphere.mesh = Mesh.createSphere(0.3, 8, 12);
+    lightSphere.material = createMaterial({ r: 1.0, g: 0.2, b: 0.1, a: 1 });
+    lightSphere.scale = { x: 1, y: 1, z: 1 };
+    scene.register(lightSphere);
 
     // Animation loop
     let totalTime = 0;
@@ -157,14 +194,25 @@ export function Space3DDemo() {
 
       // Orbit camera 1
       const radius = 15;
-      const x = Math.cos(totalTime * 0.3) * radius;
-      const z = Math.sin(totalTime * 0.3) * radius;
+      const camAngle = totalTime * 0.3;
+      const x = Math.cos(camAngle) * radius;
+      const z = Math.sin(camAngle) * radius;
       const y = Math.sin(totalTime * 0.2) * 4 + 1;
       orbitCam.position = { x, y, z };
       orbitCam.lookAt({ x: 0, y: 0, z: 0 });
 
+      // Position the red point light 30 degrees behind the camera
+      const lightAngle = camAngle - Math.PI / 6;
+      const lx = Math.cos(lightAngle) * radius;
+      const lz = Math.sin(lightAngle) * radius;
+      const ly = Math.sin(totalTime * 0.2) * 4 + 1;
+      redLight.position = { x: lx, y: ly, z: lz };
+      lightSphere.position = { x: lx, y: ly, z: lz };
+
+      const sceneLights = [redLight];
+
       // Render viewport 1 (orbit perspective)
-      pipeline.render(scene, orbitCam, orbitViewport, lighting);
+      pipeline.render(scene, orbitCam, orbitViewport, lighting, sceneLights);
       pipeline.renderGrid(orbitCam, orbitViewport, { size: 30, divisions: 30, opacity: 0.12 });
       pipeline.renderEdges(scene, orbitCam, orbitViewport, { color: '#000000', lineWidth: 1, opacity: 0.5 });
 
@@ -176,12 +224,27 @@ export function Space3DDemo() {
       }
 
       // Render viewport 2 (top-down)
-      pipeline.render(scene, topCam, topViewport, lighting);
+      pipeline.render(scene, topCam, topViewport, lighting, sceneLights);
       pipeline.renderGrid(topCam, topViewport, { size: 30, divisions: 30, opacity: 0.15 });
       pipeline.renderEdges(scene, topCam, topViewport, { color: '#000000', lineWidth: 1, opacity: 0.4 });
 
       // Draw camera position indicator on top-down view
       if (ctx) drawCamIndicator(ctx);
+
+      // Draw light position indicator on top-down view
+      if (ctx) {
+        const lpos = redLight.position;
+        const lvpX = topViewport.x + ((lpos.x + 15) / 30) * topViewport.width;
+        const lvpY = topViewport.y + ((lpos.z + 15) / 30) * topViewport.height;
+        ctx.save();
+        ctx.fillStyle = '#ff3322';
+        ctx.beginPath();
+        ctx.arc(lvpX, lvpY, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '10px sans-serif';
+        ctx.fillText('LIGHT', lvpX + 6, lvpY + 3);
+        ctx.restore();
+      }
 
       // Viewport labels
       if (ctx) {
@@ -228,7 +291,7 @@ export function Space3DDemo() {
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'Left: orbiting perspective camera. Right: fixed top-down view with camera position indicator (yellow dot).'),
+      }, 'Left: orbiting perspective camera. Right: fixed top-down view with camera (yellow) and light (red) indicators.'),
     ),
     // Right: sidebar
     createElement('div', {
@@ -262,7 +325,7 @@ export function Space3DDemo() {
         ),
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Rendering'),
-      createElement('p', null, 'CPU pipeline with flat shading, grid overlay, and wireframe edges.'),
+      createElement('p', null, 'CPU pipeline with Lambertian diffuse shading, a red orbiting point light, grid overlay, and wireframe edges.'),
     ),
   );
 }

@@ -44,21 +44,46 @@ interface PlanetDef {
   eccentricity: number;  // orbital eccentricity
   meanRadiusKm: number;  // mean radius in km
   periodDays: number;    // orbital period in days
+  axialTiltDeg: number;  // axial tilt in degrees
+  rotPeriodDays: number; // sidereal rotation period in days
 }
 
 const PLANETS: PlanetDef[] = [
-  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, semiMajorAU: 0.387098,  eccentricity: 0.205630, meanRadiusKm: 2439.7,  periodDays: 87.97   },
-  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, semiMajorAU: 0.723332,  eccentricity: 0.006772, meanRadiusKm: 6051.8,  periodDays: 224.7   },
-  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, semiMajorAU: 1.000000,  eccentricity: 0.016709, meanRadiusKm: 6371.0,  periodDays: 365.25  },
-  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, semiMajorAU: 1.523681,  eccentricity: 0.093400, meanRadiusKm: 3389.5,  periodDays: 687.0   },
-  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, semiMajorAU: 5.203800,  eccentricity: 0.048900, meanRadiusKm: 69886,   periodDays: 4332.6  },
-  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, semiMajorAU: 9.582600,  eccentricity: 0.056500, meanRadiusKm: 58232,   periodDays: 10759   },
-  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, semiMajorAU: 19.19126,  eccentricity: 0.047170, meanRadiusKm: 25362,   periodDays: 30688   },
-  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, semiMajorAU: 30.07000,  eccentricity: 0.008678, meanRadiusKm: 24622,   periodDays: 60182   },
+  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, semiMajorAU: 0.387098,  eccentricity: 0.205630, meanRadiusKm: 2439.7,  periodDays: 87.97,   axialTiltDeg: 0.03,   rotPeriodDays: 58.65  },
+  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, semiMajorAU: 0.723332,  eccentricity: 0.006772, meanRadiusKm: 6051.8,  periodDays: 224.7,   axialTiltDeg: 177.4,  rotPeriodDays: 243.02 },
+  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, semiMajorAU: 1.000000,  eccentricity: 0.016709, meanRadiusKm: 6371.0,  periodDays: 365.25,  axialTiltDeg: 23.44,  rotPeriodDays: 1.0    },
+  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, semiMajorAU: 1.523681,  eccentricity: 0.093400, meanRadiusKm: 3389.5,  periodDays: 687.0,   axialTiltDeg: 25.19,  rotPeriodDays: 1.026  },
+  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, semiMajorAU: 5.203800,  eccentricity: 0.048900, meanRadiusKm: 69886,   periodDays: 4332.6,  axialTiltDeg: 3.13,   rotPeriodDays: 0.414  },
+  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, semiMajorAU: 9.582600,  eccentricity: 0.056500, meanRadiusKm: 58232,   periodDays: 10759,   axialTiltDeg: 26.73,  rotPeriodDays: 0.444  },
+  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, semiMajorAU: 19.19126,  eccentricity: 0.047170, meanRadiusKm: 25362,   periodDays: 30688,   axialTiltDeg: 82.23,  rotPeriodDays: 0.718  },
+  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, semiMajorAU: 30.07000,  eccentricity: 0.008678, meanRadiusKm: 24622,   periodDays: 60182,   axialTiltDeg: 28.32,  rotPeriodDays: 0.671  },
 ];
 
 const SUN_MEAN_RADIUS_KM = 695700;
 const SUN_SIZE = 2; // Fixed visual size — must be smaller than Mercury perihelion
+const SUN_AXIAL_TILT_DEG = 7.25;
+const SUN_ROT_PERIOD_DAYS = 25.38;
+
+// ── Quaternion helpers ────────────────────────────────────────────────
+
+interface Quat { x: number; y: number; z: number; w: number }
+
+const DEG_TO_RAD = Math.PI / 180;
+
+function quatFromAxisAngle(ax: number, ay: number, az: number, angle: number): Quat {
+  const half = angle / 2;
+  const s = Math.sin(half);
+  return { x: ax * s, y: ay * s, z: az * s, w: Math.cos(half) };
+}
+
+function quatMul(a: Quat, b: Quat): Quat {
+  return {
+    w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+    x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+    y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+    z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+  };
+}
 
 function planetSize(radiusKm: number): number {
   return Math.max(radiusKm * SIZE_EXAGGERATION, MIN_PLANET_SIZE);
@@ -155,6 +180,10 @@ export function PlanetsScreen() {
       planetObjects.push(obj);
     }
 
+    // ── Pre-compute axial tilt quaternions (constant per body) ──
+    const sunTiltQuat = quatFromAxisAngle(0, 0, 1, SUN_AXIAL_TILT_DEG * DEG_TO_RAD);
+    const tiltQuats = PLANETS.map(b => quatFromAxisAngle(0, 0, 1, b.axialTiltDeg * DEG_TO_RAD));
+
     // ── Camera 1: Rotating planet view (perspective) ──
     const planetCam = new Camera({
       position: { x: 30, y: 5, z: 10 },
@@ -225,11 +254,22 @@ export function PlanetsScreen() {
       // Update planet positions (elliptical orbits via Kepler's equation)
       // totalTime is in real seconds; TIME_SCALE converts to simulated days
       const simDays = totalTime * 10; // 1 real second = 10 simulated days
+
+      // Sun axial rotation
+      const sunSpinAngle = (2 * Math.PI * simDays) / SUN_ROT_PERIOD_DAYS;
+      const sunSpinQuat = quatFromAxisAngle(0, 1, 0, sunSpinAngle);
+      sunObj.rotation = quatMul(sunTiltQuat, sunSpinQuat);
+
       for (let i = 0; i < PLANETS.length; i++) {
         const p = PLANETS[i]!;
         const obj = planetObjects[i]!;
         const pos = orbitalPosition(p, simDays);
         obj.position = { x: pos.x, y: 0, z: pos.z };
+
+        // Axial rotation: tiltQuat * spinQuat
+        const spinAngle = (2 * Math.PI * simDays) / p.rotPeriodDays;
+        const spinQuat = quatFromAxisAngle(0, 1, 0, spinAngle);
+        obj.rotation = quatMul(tiltQuats[i]!, spinQuat);
       }
 
       // Rotate planet camera every 30 seconds
@@ -239,20 +279,30 @@ export function PlanetsScreen() {
         currentPlanetIdx = (currentPlanetIdx + 1) % PLANETS.length;
       }
 
-      // Position camera at current planet — 10 units above planet radius, looking at sun
+      // Position camera at current planet — geosynchronous orbit facing away from Sun
       const curPlanet = PLANETS[currentPlanetIdx]!;
       const curObj = planetObjects[currentPlanetIdx]!;
       const curRadius = planetSize(curPlanet.meanRadiusKm);
-      // Camera at 3x planet radius or minimum 5 units above surface
-      const camAlt = Math.max(curRadius * 3, curRadius + 5);
+      const px = curObj.position.x;
+      const pz = curObj.position.z;
+      // Direction from sun to planet (away from sun)
+      const dist = Math.sqrt(px * px + pz * pz) || 1;
+      const awayX = px / dist;
+      const awayZ = pz / dist;
+      const camOffset = curRadius + 20;
       planetCam.position = {
-        x: curObj.position.x,
-        y: camAlt,
-        z: curObj.position.z,
+        x: px + awayX * camOffset,
+        y: 2, // slight elevation above orbital plane
+        z: pz + awayZ * camOffset,
       };
       // Near plane must be > 0 and far enough to avoid z-fighting with planet surface
       planetCam.near = Math.max(0.1, curRadius * 0.5);
-      planetCam.lookAt({ x: 0, y: 0, z: 0 });
+      // Look outward (away from sun)
+      planetCam.lookAt({
+        x: px + awayX * camOffset * 2,
+        y: 0,
+        z: pz + awayZ * camOffset * 2,
+      });
 
       // ── Render left viewport (planet view) ──
       pipeline.render(scene, planetCam, planetViewport, lighting);
@@ -357,6 +407,8 @@ export function PlanetsScreen() {
             createElement('th', { style: { textAlign: 'left', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Planet'),
             createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Distance'),
             createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Radius'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Tilt'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Rot (d)'),
           ),
         ),
         createElement('tbody', null,
@@ -366,6 +418,8 @@ export function PlanetsScreen() {
             ),
             createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, '0'),
             createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(SUN_SIZE)),
+            createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${SUN_AXIAL_TILT_DEG}\u00b0`),
+            createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(SUN_ROT_PERIOD_DAYS)),
           ),
           ...PLANETS.map((p) =>
             createElement('tr', { key: p.id },
@@ -376,6 +430,8 @@ export function PlanetsScreen() {
               ),
               createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.semiMajorAU} AU`),
               createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.meanRadiusKm} km`),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.axialTiltDeg}\u00b0`),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(p.rotPeriodDays)),
             ),
           ),
         ),

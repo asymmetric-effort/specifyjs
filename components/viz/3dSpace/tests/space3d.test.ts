@@ -31,7 +31,7 @@ describe('Space3D props interface', () => {
     const props: Space3DProps = {
       width: 1024,
       height: 768,
-      spaceMode: 'finite',
+      finiteSpace: true,
       bounds: {
         min: { x: -10, y: -10, z: -10 },
         max: { x: 10, y: 10, z: 10 },
@@ -46,20 +46,20 @@ describe('Space3D props interface', () => {
       renderer: 'cpu',
     };
 
-    expect(props.spaceMode).toBe('finite');
+    expect(props.finiteSpace).toBe(true);
     expect(props.renderer).toBe('cpu');
     expect(props.cameras!.length).toBe(1);
     expect(props.viewports!.length).toBe(1);
     expect(props.objects!.length).toBe(1);
   });
 
-  it('supports "infinite" space mode', () => {
+  it('supports infinite space (finiteSpace=false)', () => {
     const props: Space3DProps = {
       width: 640,
       height: 480,
-      spaceMode: 'infinite',
+      finiteSpace: false,
     };
-    expect(props.spaceMode).toBe('infinite');
+    expect(props.finiteSpace).toBe(false);
   });
 
   it('supports all renderer options', () => {

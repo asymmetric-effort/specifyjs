@@ -57,8 +57,8 @@ import type {
 |------|------|---------|-------------|
 | `width` | `number` | *required* | Canvas width in pixels |
 | `height` | `number` | *required* | Canvas height in pixels |
-| `spaceMode` | `'finite' \| 'infinite'` | `undefined` | Whether the world has boundaries |
-| `bounds` | `{ min: Vec3; max: Vec3 }` | `undefined` | Axis-aligned bounding box for finite mode |
+| `finiteSpace` | `boolean` | `true` | Whether space is finite (bounded) |
+| `bounds` | `{ min: Vec3; max: Vec3 }` | `undefined` | Bounds for finite space. Objects and camera are clamped within. |
 | `lightingModel` | `LightingModel` | `FlatShading` | Pluggable lighting/shading model |
 | `onFrame` | `(dt: number, scene: SceneGraph, cameras: Camera[]) => void` | `undefined` | Called every frame with delta time in seconds |
 | `objectPicker` | `ObjectPicker` | `DefaultObjectPicker` (no-op) | Ray-cast object picking implementation |

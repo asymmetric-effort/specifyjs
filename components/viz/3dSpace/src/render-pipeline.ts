@@ -5,11 +5,12 @@ import type { SceneGraph } from './scene-graph';
 import type { Camera } from './camera';
 import type { Viewport } from './viewport';
 import type { LightingModel } from './lighting-model';
+import type { Light } from './light';
 
 /** Pluggable render pipeline interface. */
 export interface RenderPipeline {
   name: string;
   initialize(canvas: HTMLCanvasElement): void;
   dispose(): void;
-  render(scene: SceneGraph, camera: Camera, viewport: Viewport, lighting: LightingModel): void;
+  render(scene: SceneGraph, camera: Camera, viewport: Viewport, lighting: LightingModel, lights?: Light[]): void;
 }

@@ -119,7 +119,7 @@ export class WebGLPipeline implements RenderPipeline {
   private shaderCache: Map<string, WebGLProgram> = new Map();
 
   initialize(canvas: HTMLCanvasElement): void {
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true }) || canvas.getContext('experimental-webgl', { preserveDrawingBuffer: true });
     if (!gl) {
       throw new Error('WebGL not available');
     }

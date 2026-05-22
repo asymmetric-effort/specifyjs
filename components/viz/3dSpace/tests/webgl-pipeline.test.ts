@@ -35,13 +35,13 @@ describe('WebGLPipeline', () => {
 
       const pipeline = new WebGLPipeline();
       expect(() => pipeline.initialize(canvas)).toThrow('WebGL not available');
-      expect(canvas.getContext).toHaveBeenCalledWith('webgl');
+      expect(canvas.getContext).toHaveBeenCalledWith('webgl', { preserveDrawingBuffer: true });
     });
 
     it('falls back to experimental-webgl if webgl context is null', () => {
       const mockGl = createMockGl();
       const canvas = {
-        getContext: vi.fn((name: string) => {
+        getContext: vi.fn((name: string, _opts?: object) => {
           if (name === 'experimental-webgl') return mockGl;
           return null;
         }),
@@ -49,8 +49,8 @@ describe('WebGLPipeline', () => {
 
       const pipeline = new WebGLPipeline();
       pipeline.initialize(canvas);
-      expect(canvas.getContext).toHaveBeenCalledWith('webgl');
-      expect(canvas.getContext).toHaveBeenCalledWith('experimental-webgl');
+      expect(canvas.getContext).toHaveBeenCalledWith('webgl', { preserveDrawingBuffer: true });
+      expect(canvas.getContext).toHaveBeenCalledWith('experimental-webgl', { preserveDrawingBuffer: true });
     });
 
     it('enables depth testing and sets clear color on initialize', () => {

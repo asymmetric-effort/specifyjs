@@ -17,12 +17,20 @@ import type { Color, ShadeParams } from '../src/types';
 import { solidTexture, checkerboardTexture, gradientTexture, noiseTexture } from '../src/texture';
 import { createInputTracker, resetFrameDeltas, orbitController, flyController } from '../src/camera-controller';
 import type { InputState } from '../src/camera-controller';
-import { clampToBounds, isInBounds, boundsCenter, boundsSize } from '../src/bounds';
-import type { SpaceBounds } from '../src/bounds';
+import { clampToBounds, isInBounds, boundsCenter, boundsSize, applyBoundary } from '../src/bounds';
+import type { SpaceBounds, BoundaryMode } from '../src/bounds';
 import { CpuPipeline } from '../src/cpu-pipeline';
 import { screenToRay, rayIntersectSphere, rayIntersectAABB, BoundingSpherePicker, pickAtScreen } from '../src/picking';
 import { vec3Length } from '../../../math/src/vec';
 import { AnimationManager, rotateY, bob, orbit, compose } from '../src/animation';
+import {
+  computeBoundingSphereRadius,
+  computeAABB,
+  sphereSphereTest,
+  aabbTest,
+  CollisionManager,
+} from '../src/collision';
+import type { CollisionInfo } from '../src/collision';
 
 describe('Mesh', () => {
   describe('createBox', () => {
@@ -1828,5 +1836,1156 @@ describe('compose', () => {
     expect(obj.position.y).toBeCloseTo(1);
     expect(obj.position.x).toBeCloseTo(0, 4);
     expect(obj.position.z).toBeCloseTo(3);
+  });
+});
+
+describe('applyBoundary', () => {
+  const bounds: SpaceBounds = {
+    min: { x: -10, y: -10, z: -10 },
+    max: { x: 10, y: 10, z: 10 },
+  };
+
+  // none mode
+  it('none: returns true and position unchanged', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 50, y: 50, z: 50 };
+    const result = applyBoundary(obj, bounds, 'none');
+    expect(result).toBe(true);
+    expect(obj.position).toEqual({ x: 50, y: 50, z: 50 });
+  });
+
+  // clamp mode
+  it('clamp: clamps to bounds on all axes', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 20, y: -30, z: 15 };
+    const result = applyBoundary(obj, bounds, 'clamp');
+    expect(result).toBe(true);
+    expect(obj.position).toEqual({ x: 10, y: -10, z: 10 });
+  });
+
+  it('clamp: position inside bounds unchanged', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 5, y: -3, z: 7 };
+    const result = applyBoundary(obj, bounds, 'clamp');
+    expect(result).toBe(true);
+    expect(obj.position).toEqual({ x: 5, y: -3, z: 7 });
+  });
+
+  // wrap mode
+  it('wrap: wraps X past max to min', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 13, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // size.x = 20, x > max(10): x = min(-10) + (13 - 10) % 20 = -10 + 3 = -7
+    expect(obj.position.x).toBeCloseTo(-7);
+    expect(obj.position.y).toBe(0);
+    expect(obj.position.z).toBe(0);
+  });
+
+  it('wrap: wraps Y past min to max', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: -15, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // size.y = 20, y < min(-10): y = max(10) - (-10 - (-15)) % 20 = 10 - 5 = 5
+    expect(obj.position.y).toBeCloseTo(5);
+  });
+
+  it('wrap: wraps Z in both directions', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: 0, z: 25 };
+    applyBoundary(obj, bounds, 'wrap');
+    // z > max(10): z = min(-10) + (25 - 10) % 20 = -10 + 15 = 5
+    expect(obj.position.z).toBeCloseTo(5);
+
+    obj.position = { x: 0, y: 0, z: -25 };
+    applyBoundary(obj, bounds, 'wrap');
+    // z < min(-10): z = max(10) - (-10 - (-25)) % 20 = 10 - 15 % 20 = 10 - 15 = -5
+    expect(obj.position.z).toBeCloseTo(-5);
+  });
+
+  it('wrap: position inside bounds unchanged', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 5, y: -3, z: 8 };
+    applyBoundary(obj, bounds, 'wrap');
+    expect(obj.position).toEqual({ x: 5, y: -3, z: 8 });
+  });
+
+  // bounce mode
+  it('bounce: reverses velocity X when hitting max', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 15, y: 0, z: 0 };
+    const vel = { x: 5, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(obj.position.x).toBe(10);
+    expect(vel.x).toBe(-5);
+  });
+
+  it('bounce: reverses velocity Y when hitting min', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: -15, z: 0 };
+    const vel = { x: 0, y: -3, z: 0 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(obj.position.y).toBe(-10);
+    expect(vel.y).toBe(3);
+  });
+
+  it('bounce: position clamped to boundary on bounce', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 20, y: -20, z: 30 };
+    const vel = { x: 1, y: -1, z: 1 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(obj.position.x).toBe(10);
+    expect(obj.position.y).toBe(-10);
+    expect(obj.position.z).toBe(10);
+  });
+
+  it('bounce: velocity unchanged when inside bounds', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 5, y: 5, z: 5 };
+    const vel = { x: 3, y: -2, z: 1 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel).toEqual({ x: 3, y: -2, z: 1 });
+    expect(obj.position).toEqual({ x: 5, y: 5, z: 5 });
+  });
+
+  it('bounce: works without velocity parameter (no crash)', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 15, y: 0, z: 0 };
+    expect(() => applyBoundary(obj, bounds, 'bounce')).not.toThrow();
+    expect(obj.position.x).toBe(10);
+  });
+
+  // destroy mode
+  it('destroy: returns true for position inside bounds', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: 0, z: 0 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(true);
+  });
+
+  it('destroy: returns false for position outside bounds', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 50, y: 0, z: 0 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns false when any axis is outside', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 0, y: 0, z: -11 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: position exactly on boundary returns true', () => {
+    const obj = new SceneObject('test');
+    obj.position = { x: 10, y: -10, z: 10 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(true);
+  });
+});
+
+// ── applyBoundary — extensive ───────────────────────────────────────
+
+describe('applyBoundary — extensive', () => {
+  const bounds: SpaceBounds = {
+    min: { x: -10, y: -10, z: -10 },
+    max: { x: 10, y: 10, z: 10 },
+  };
+
+  // === CLAMP MODE ===
+
+  it('clamp: clamps all three axes when all exceed max', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 20, y: 30, z: 40 };
+    const result = applyBoundary(obj, bounds, 'clamp');
+    expect(result).toBe(true);
+    expect(obj.position).toEqual({ x: 10, y: 10, z: 10 });
+  });
+
+  it('clamp: clamps all three axes when all below min', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: -20, y: -30, z: -40 };
+    applyBoundary(obj, bounds, 'clamp');
+    expect(obj.position).toEqual({ x: -10, y: -10, z: -10 });
+  });
+
+  it('clamp: clamps only the axis that exceeds (others unchanged)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 5, y: 15, z: -3 };
+    applyBoundary(obj, bounds, 'clamp');
+    expect(obj.position).toEqual({ x: 5, y: 10, z: -3 });
+  });
+
+  it('clamp: position exactly on boundary remains unchanged', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 10, y: -10, z: 10 };
+    applyBoundary(obj, bounds, 'clamp');
+    expect(obj.position).toEqual({ x: 10, y: -10, z: 10 });
+  });
+
+  it('clamp: position at min boundary stays at min', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: -10, y: -10, z: -10 };
+    applyBoundary(obj, bounds, 'clamp');
+    expect(obj.position).toEqual({ x: -10, y: -10, z: -10 });
+  });
+
+  it('clamp: position at max boundary stays at max', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 10, y: 10, z: 10 };
+    applyBoundary(obj, bounds, 'clamp');
+    expect(obj.position).toEqual({ x: 10, y: 10, z: 10 });
+  });
+
+  it('clamp: handles negative bounds correctly', () => {
+    const negBounds: SpaceBounds = { min: { x: -50, y: -50, z: -50 }, max: { x: -10, y: -10, z: -10 } };
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: -100, z: -30 };
+    applyBoundary(obj, negBounds, 'clamp');
+    expect(obj.position).toEqual({ x: -10, y: -50, z: -30 });
+  });
+
+  it('clamp: returns true', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 999, y: 999, z: 999 };
+    expect(applyBoundary(obj, bounds, 'clamp')).toBe(true);
+  });
+
+  // === WRAP MODE ===
+
+  it('wrap: wraps X axis past max to min side', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // x > 10: x = -10 + (15-10)%20 = -10 + 5 = -5
+    expect(obj.position.x).toBeCloseTo(-5);
+  });
+
+  it('wrap: wraps X axis past min to max side', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: -15, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // x < -10: x = 10 - (-10-(-15))%20 = 10 - 5 = 5
+    expect(obj.position.x).toBeCloseTo(5);
+  });
+
+  it('wrap: wraps Y axis', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 18, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // y > 10: y = -10 + (18-10)%20 = -10 + 8 = -2
+    expect(obj.position.y).toBeCloseTo(-2);
+  });
+
+  it('wrap: wraps Z axis', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 0, z: -14 };
+    applyBoundary(obj, bounds, 'wrap');
+    // z < -10: z = 10 - (-10-(-14))%20 = 10 - 4 = 6
+    expect(obj.position.z).toBeCloseTo(6);
+  });
+
+  it('wrap: wraps all three axes at once', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: -18, z: 25 };
+    applyBoundary(obj, bounds, 'wrap');
+    expect(obj.position.x).toBeCloseTo(-5);
+    // y < -10: y = 10 - (-10-(-18))%20 = 10 - 8 = 2
+    expect(obj.position.y).toBeCloseTo(2);
+    // z > 10: z = -10 + (25-10)%20 = -10 + 15 = 5
+    expect(obj.position.z).toBeCloseTo(5);
+  });
+
+  it('wrap: wrapping by exactly one bounds-width lands at min', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 30, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // x > 10: x = -10 + (30-10)%20 = -10 + 0 = -10
+    expect(obj.position.x).toBeCloseTo(-10);
+  });
+
+  it('wrap: wrapping by fractional amount lands at correct position', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 12.5, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'wrap');
+    // x > 10: x = -10 + (12.5-10)%20 = -10 + 2.5 = -7.5
+    expect(obj.position.x).toBeCloseTo(-7.5);
+  });
+
+  it('wrap: position inside bounds unchanged', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 3, y: -7, z: 9 };
+    applyBoundary(obj, bounds, 'wrap');
+    expect(obj.position).toEqual({ x: 3, y: -7, z: 9 });
+  });
+
+  it('wrap: wrapping with asymmetric bounds', () => {
+    const asymBounds: SpaceBounds = { min: { x: 0, y: 0, z: 0 }, max: { x: 10, y: 20, z: 30 } };
+    const obj = new SceneObject('t');
+    obj.position = { x: 13, y: -5, z: 35 };
+    applyBoundary(obj, asymBounds, 'wrap');
+    // x > 10: x = 0 + (13-10)%10 = 3
+    expect(obj.position.x).toBeCloseTo(3);
+    // y < 0: y = 20 - (0-(-5))%20 = 20 - 5 = 15
+    expect(obj.position.y).toBeCloseTo(15);
+    // z > 30: z = 0 + (35-30)%30 = 5
+    expect(obj.position.z).toBeCloseTo(5);
+  });
+
+  it('wrap: returns true', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 999, y: 999, z: 999 };
+    expect(applyBoundary(obj, bounds, 'wrap')).toBe(true);
+  });
+
+  // === BOUNCE MODE ===
+
+  it('bounce: reverses velocity.x when hitting max X', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 12, y: 0, z: 0 };
+    const vel = { x: 4, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel.x).toBe(-4);
+    expect(obj.position.x).toBe(10);
+  });
+
+  it('bounce: reverses velocity.x when hitting min X (uses Math.abs)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: -12, y: 0, z: 0 };
+    const vel = { x: -4, y: 0, z: 0 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel.x).toBe(4);
+    expect(obj.position.x).toBe(-10);
+  });
+
+  it('bounce: reverses velocity.y when hitting max Y', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 15, z: 0 };
+    const vel = { x: 0, y: 7, z: 0 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel.y).toBe(-7);
+    expect(obj.position.y).toBe(10);
+  });
+
+  it('bounce: reverses velocity.z when hitting min Z', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 0, z: -15 };
+    const vel = { x: 0, y: 0, z: -6 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel.z).toBe(6);
+    expect(obj.position.z).toBe(-10);
+  });
+
+  it('bounce: clamps position to boundary on bounce', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 50, y: -50, z: 50 };
+    const vel = { x: 1, y: -1, z: 1 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(obj.position).toEqual({ x: 10, y: -10, z: 10 });
+  });
+
+  it('bounce: velocity magnitude preserved (only sign flips)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: 0, z: 0 };
+    const vel = { x: 7.5, y: 3.2, z: -1.1 };
+    const origMag = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
+    applyBoundary(obj, bounds, 'bounce', vel);
+    const newMag = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
+    expect(newMag).toBeCloseTo(origMag, 5);
+  });
+
+  it('bounce: velocity unchanged when position inside bounds', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 0, z: 0 };
+    const vel = { x: 5, y: -3, z: 2 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel).toEqual({ x: 5, y: -3, z: 2 });
+  });
+
+  it('bounce: handles zero velocity (no crash)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: 0, z: 0 };
+    const vel = { x: 0, y: 0, z: 0 };
+    expect(() => applyBoundary(obj, bounds, 'bounce', vel)).not.toThrow();
+    expect(vel.x).toBe(-0); // -Math.abs(0) === -0
+    expect(obj.position.x).toBe(10);
+  });
+
+  it('bounce: handles velocity=undefined (no crash)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: -15, z: 0 };
+    expect(() => applyBoundary(obj, bounds, 'bounce')).not.toThrow();
+    expect(obj.position.x).toBe(10);
+    expect(obj.position.y).toBe(-10);
+  });
+
+  it('bounce: bounces on multiple axes simultaneously', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 15, y: -15, z: 20 };
+    const vel = { x: 3, y: -4, z: 5 };
+    applyBoundary(obj, bounds, 'bounce', vel);
+    expect(vel.x).toBe(-3);
+    expect(vel.y).toBe(4);
+    expect(vel.z).toBe(-5);
+    expect(obj.position).toEqual({ x: 10, y: -10, z: 10 });
+  });
+
+  it('bounce: returns true', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 999, y: 999, z: 999 };
+    expect(applyBoundary(obj, bounds, 'bounce', { x: 1, y: 1, z: 1 })).toBe(true);
+  });
+
+  // === DESTROY MODE ===
+
+  it('destroy: returns true when position inside bounds', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 5, y: -5, z: 3 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(true);
+  });
+
+  it('destroy: returns false when X exceeds max', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 11, y: 0, z: 0 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns false when X below min', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: -11, y: 0, z: 0 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns false when Y exceeds max', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 11, z: 0 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns false when Z below min', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 0, y: 0, z: -11 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns false when multiple axes outside', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 50, y: -50, z: 50 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(false);
+  });
+
+  it('destroy: returns true when exactly on boundary', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 10, y: 10, z: 10 };
+    expect(applyBoundary(obj, bounds, 'destroy')).toBe(true);
+  });
+
+  it('destroy: position is NOT modified (unlike clamp)', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 50, y: -50, z: 30 };
+    applyBoundary(obj, bounds, 'destroy');
+    // destroy mode uses isInBounds, which does NOT mutate position
+    expect(obj.position).toEqual({ x: 50, y: -50, z: 30 });
+  });
+
+  // === NONE MODE ===
+
+  it('none: returns true', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 999, y: -999, z: 0 };
+    expect(applyBoundary(obj, bounds, 'none')).toBe(true);
+  });
+
+  it('none: position unchanged even if outside bounds', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 100, y: -200, z: 300 };
+    applyBoundary(obj, bounds, 'none');
+    expect(obj.position).toEqual({ x: 100, y: -200, z: 300 });
+  });
+
+  it('none: velocity unchanged', () => {
+    const obj = new SceneObject('t');
+    obj.position = { x: 100, y: 0, z: 0 };
+    const vel = { x: 5, y: -3, z: 2 };
+    applyBoundary(obj, bounds, 'none', vel);
+    expect(vel).toEqual({ x: 5, y: -3, z: 2 });
+  });
+});
+
+// ── Collision Detection ──────────────────────────────────────────────
+
+describe('collision detection', () => {
+  /** Helper: create a SceneObject with a unit box mesh at a given position */
+  function makeObj(id: string, pos: { x: number; y: number; z: number }, size = 2): SceneObject {
+    const obj = new SceneObject(id);
+    obj.position = pos;
+    obj.mesh = Mesh.createBox(size, size, size);
+    return obj;
+  }
+
+  // ── computeBoundingSphereRadius ──────────────────────────────────
+
+  describe('computeBoundingSphereRadius', () => {
+    it('returns 0 for object without mesh', () => {
+      const obj = new SceneObject('noMesh');
+      expect(computeBoundingSphereRadius(obj)).toBe(0);
+    });
+
+    it('computes radius from mesh vertices', () => {
+      const obj = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const r = computeBoundingSphereRadius(obj);
+      // Unit box vertices are at +/-1, so max distance from origin = sqrt(1+1+1)
+      expect(r).toBeCloseTo(Math.sqrt(3), 5);
+    });
+
+    it('accounts for scale', () => {
+      const obj = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      obj.scale = { x: 2, y: 2, z: 2 };
+      const r = computeBoundingSphereRadius(obj);
+      expect(r).toBeCloseTo(Math.sqrt(3) * 2, 5);
+    });
+  });
+
+  // ── computeAABB ─────────────────────────────────────────────────
+
+  describe('computeAABB', () => {
+    it('returns position for object without mesh', () => {
+      const obj = new SceneObject('noMesh');
+      obj.position = { x: 5, y: 6, z: 7 };
+      const aabb = computeAABB(obj);
+      expect(aabb.min).toEqual({ x: 5, y: 6, z: 7 });
+      expect(aabb.max).toEqual({ x: 5, y: 6, z: 7 });
+    });
+
+    it('computes correct min/max from mesh', () => {
+      const obj = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(-1, 5);
+      expect(aabb.min.y).toBeCloseTo(-1, 5);
+      expect(aabb.min.z).toBeCloseTo(-1, 5);
+      expect(aabb.max.x).toBeCloseTo(1, 5);
+      expect(aabb.max.y).toBeCloseTo(1, 5);
+      expect(aabb.max.z).toBeCloseTo(1, 5);
+    });
+
+    it('accounts for position offset', () => {
+      const obj = makeObj('a', { x: 10, y: 20, z: 30 }, 2);
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(9, 5);
+      expect(aabb.max.x).toBeCloseTo(11, 5);
+      expect(aabb.min.y).toBeCloseTo(19, 5);
+      expect(aabb.max.y).toBeCloseTo(21, 5);
+    });
+
+    it('accounts for scale', () => {
+      const obj = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      obj.scale = { x: 3, y: 1, z: 2 };
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(-3, 5);
+      expect(aabb.max.x).toBeCloseTo(3, 5);
+      expect(aabb.min.y).toBeCloseTo(-1, 5);
+      expect(aabb.max.y).toBeCloseTo(1, 5);
+      expect(aabb.min.z).toBeCloseTo(-2, 5);
+      expect(aabb.max.z).toBeCloseTo(2, 5);
+    });
+  });
+
+  // ── sphereSphereTest ────────────────────────────────────────────
+
+  describe('sphereSphereTest', () => {
+    it('returns null for non-overlapping spheres', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 10, y: 0, z: 0 }, 2);
+      expect(sphereSphereTest(a, b)).toBeNull();
+    });
+
+    it('returns CollisionInfo for overlapping spheres', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const info = sphereSphereTest(a, b);
+      expect(info).not.toBeNull();
+      expect(info!.objectA).toBe(a);
+      expect(info!.objectB).toBe(b);
+    });
+
+    it('overlap distance is correct', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const info = sphereSphereTest(a, b)!;
+      // Both radii = sqrt(3), distance = 1, overlap = 2*sqrt(3) - 1
+      expect(info.overlap).toBeCloseTo(2 * Math.sqrt(3) - 1, 5);
+    });
+
+    it('normal points from A to B', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 2, y: 0, z: 0 }, 2);
+      const info = sphereSphereTest(a, b)!;
+      expect(info.normal.x).toBeCloseTo(1, 5);
+      expect(info.normal.y).toBeCloseTo(0, 5);
+      expect(info.normal.z).toBeCloseTo(0, 5);
+    });
+
+    it('returns null for distant objects', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 100, y: 100, z: 100 }, 2);
+      expect(sphereSphereTest(a, b)).toBeNull();
+    });
+
+    it('handles coincident positions with fallback normal', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 0, y: 0, z: 0 }, 2);
+      const info = sphereSphereTest(a, b)!;
+      expect(info).not.toBeNull();
+      // Fallback normal is (0,1,0)
+      expect(info.normal).toEqual({ x: 0, y: 1, z: 0 });
+    });
+  });
+
+  // ── aabbTest ────────────────────────────────────────────────────
+
+  describe('aabbTest', () => {
+    it('returns null for non-overlapping boxes', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 10, y: 0, z: 0 }, 2);
+      expect(aabbTest(a, b)).toBeNull();
+    });
+
+    it('returns CollisionInfo for overlapping boxes', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b);
+      expect(info).not.toBeNull();
+      expect(info!.objectA).toBe(a);
+      expect(info!.objectB).toBe(b);
+    });
+
+    it('finds minimum overlap axis', () => {
+      // Overlap X=1, Y=2, Z=2 => min axis is X
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b)!;
+      // X overlap = min(1,2) - max(-1,0) = 1 - 0 = 1
+      // Y overlap = min(1,1) - max(-1,-1) = 1 - (-1) = 2
+      // Z overlap = min(1,1) - max(-1,-1) = 1 - (-1) = 2
+      expect(info.overlap).toBeCloseTo(1, 5);
+      expect(info.normal.x).toBe(1);
+      expect(info.normal.y).toBe(0);
+      expect(info.normal.z).toBe(0);
+    });
+
+    it('returns null when separated on one axis', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 0, y: 5, z: 0 }, 2);
+      expect(aabbTest(a, b)).toBeNull();
+    });
+
+    it('handles identical positions', () => {
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 0, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b)!;
+      expect(info).not.toBeNull();
+      expect(info.overlap).toBeCloseTo(2, 5);
+    });
+  });
+
+  // ── CollisionManager ───────────────────────────────────────────
+
+  describe('CollisionManager', () => {
+    it('update returns empty array for no collisions', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 100, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result).toEqual([]);
+    });
+
+    it('update detects sphere-sphere collision', () => {
+      const mgr = new CollisionManager({ colliderType: 'sphere' });
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+      expect(result[0]!.objectA).toBe(a);
+      expect(result[0]!.objectB).toBe(b);
+    });
+
+    it('update detects aabb collision', () => {
+      const mgr = new CollisionManager({ colliderType: 'aabb' });
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+    });
+
+    it('update calls response function', () => {
+      const hits: CollisionInfo[] = [];
+      const mgr = new CollisionManager({
+        colliderType: 'sphere',
+        response: (info) => hits.push(info),
+      });
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      expect(hits.length).toBe(1);
+    });
+
+    it('update skips invisible objects', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      b.visible = false;
+      const result = mgr.update([a, b]);
+      expect(result).toEqual([]);
+    });
+
+    it('update skips objects without mesh', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = new SceneObject('b');
+      b.position = { x: 0, y: 0, z: 0 };
+      const result = mgr.update([a, b]);
+      expect(result).toEqual([]);
+    });
+
+    it('setResponse updates the callback', () => {
+      const mgr = new CollisionManager();
+      const hits: CollisionInfo[] = [];
+      mgr.setResponse((info) => hits.push(info));
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      expect(hits.length).toBe(1);
+    });
+
+    it('setColliderType switches detection method', () => {
+      const mgr = new CollisionManager({ colliderType: 'sphere' });
+      mgr.setColliderType('aabb');
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+      // AABB test should produce overlap of 1 on x-axis
+      expect(result[0]!.overlap).toBeCloseTo(1, 5);
+    });
+
+    it('getActivePairs returns collision pair keys', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      const pairs = mgr.getActivePairs();
+      expect(pairs).toEqual(['a:b']);
+    });
+
+    it('getActivePairs is empty when no collisions', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 100, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      expect(mgr.getActivePairs()).toEqual([]);
+    });
+
+    it('clears pairs between updates', () => {
+      const mgr = new CollisionManager();
+      const a = makeObj('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeObj('b', { x: 1, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      expect(mgr.getActivePairs().length).toBe(1);
+      // Move b far away
+      b.position = { x: 100, y: 0, z: 0 };
+      mgr.update([a, b]);
+      expect(mgr.getActivePairs().length).toBe(0);
+    });
+  });
+});
+
+// ── collision detection — extensive ─────────────────────────────────
+
+describe('collision detection — extensive', () => {
+  /** Helper: create a SceneObject with a box mesh */
+  function makeBox(id: string, pos: { x: number; y: number; z: number }, size = 1): SceneObject {
+    const obj = new SceneObject(id);
+    obj.position = pos;
+    obj.mesh = Mesh.createBox(size, size, size);
+    return obj;
+  }
+
+  /** Helper: create a SceneObject with a sphere mesh */
+  function makeSphere(id: string, pos: { x: number; y: number; z: number }, radius = 1): SceneObject {
+    const obj = new SceneObject(id);
+    obj.position = pos;
+    obj.mesh = Mesh.createSphere(radius);
+    return obj;
+  }
+
+  // === computeBoundingSphereRadius ===
+
+  describe('computeBoundingSphereRadius — extensive', () => {
+    it('unit box has radius sqrt(0.75)', () => {
+      const obj = makeBox('b', { x: 0, y: 0, z: 0 }, 1);
+      const r = computeBoundingSphereRadius(obj);
+      // half-extents = 0.5, so max vertex distance = sqrt(0.25+0.25+0.25)
+      expect(r).toBeCloseTo(Math.sqrt(0.75), 5);
+    });
+
+    it('sphere mesh radius matches creation radius', () => {
+      const obj = makeSphere('s', { x: 0, y: 0, z: 0 }, 3);
+      const r = computeBoundingSphereRadius(obj);
+      expect(r).toBeCloseTo(3, 3);
+    });
+
+    it('scale of (2,1,1) uses max scale component', () => {
+      const obj = makeBox('b', { x: 0, y: 0, z: 0 }, 1);
+      obj.scale = { x: 2, y: 1, z: 1 };
+      const r = computeBoundingSphereRadius(obj);
+      // max(2,1,1) = 2, radius = sqrt(0.75) * 2
+      expect(r).toBeCloseTo(Math.sqrt(0.75) * 2, 5);
+    });
+
+    it('empty mesh (0 vertices) returns 0', () => {
+      const obj = new SceneObject('empty');
+      obj.mesh = new Mesh(new Float32Array(0), new Float32Array(0), new Uint32Array(0));
+      expect(computeBoundingSphereRadius(obj)).toBe(0);
+    });
+  });
+
+  // === computeAABB ===
+
+  describe('computeAABB — extensive', () => {
+    it('unit box at origin has min=(-0.5,-0.5,-0.5) max=(0.5,0.5,0.5)', () => {
+      const obj = makeBox('b', { x: 0, y: 0, z: 0 }, 1);
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(-0.5, 5);
+      expect(aabb.min.y).toBeCloseTo(-0.5, 5);
+      expect(aabb.min.z).toBeCloseTo(-0.5, 5);
+      expect(aabb.max.x).toBeCloseTo(0.5, 5);
+      expect(aabb.max.y).toBeCloseTo(0.5, 5);
+      expect(aabb.max.z).toBeCloseTo(0.5, 5);
+    });
+
+    it('box at position (10,0,0) shifts AABB', () => {
+      const obj = makeBox('b', { x: 10, y: 0, z: 0 }, 1);
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(9.5, 5);
+      expect(aabb.max.x).toBeCloseTo(10.5, 5);
+      expect(aabb.min.y).toBeCloseTo(-0.5, 5);
+      expect(aabb.max.y).toBeCloseTo(0.5, 5);
+    });
+
+    it('scaled box (2x) doubles AABB extents', () => {
+      const obj = makeBox('b', { x: 0, y: 0, z: 0 }, 1);
+      obj.scale = { x: 2, y: 2, z: 2 };
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(-1, 5);
+      expect(aabb.max.x).toBeCloseTo(1, 5);
+      expect(aabb.min.y).toBeCloseTo(-1, 5);
+      expect(aabb.max.y).toBeCloseTo(1, 5);
+      expect(aabb.min.z).toBeCloseTo(-1, 5);
+      expect(aabb.max.z).toBeCloseTo(1, 5);
+    });
+
+    it('sphere AABB is a cube enclosing the sphere', () => {
+      const obj = makeSphere('s', { x: 0, y: 0, z: 0 }, 2);
+      const aabb = computeAABB(obj);
+      expect(aabb.min.x).toBeCloseTo(-2, 1);
+      expect(aabb.max.x).toBeCloseTo(2, 1);
+      expect(aabb.min.y).toBeCloseTo(-2, 1);
+      expect(aabb.max.y).toBeCloseTo(2, 1);
+      expect(aabb.min.z).toBeCloseTo(-2, 1);
+      expect(aabb.max.z).toBeCloseTo(2, 1);
+    });
+  });
+
+  // === sphereSphereTest ===
+
+  describe('sphereSphereTest — extensive', () => {
+    it('two unit spheres at distance 3 — no collision', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeSphere('b', { x: 3, y: 0, z: 0 }, 1);
+      expect(sphereSphereTest(a, b)).toBeNull();
+    });
+
+    it('two unit spheres at distance 1 — collision with overlap ~1', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeSphere('b', { x: 1, y: 0, z: 0 }, 1);
+      const info = sphereSphereTest(a, b);
+      expect(info).not.toBeNull();
+      // rA ~ 1, rB ~ 1, dist = 1, overlap = 2 - 1 = 1
+      expect(info!.overlap).toBeCloseTo(1, 1);
+    });
+
+    it('two spheres just touching (overlap near 0)', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const rA = computeBoundingSphereRadius(a);
+      const b = makeSphere('b', { x: rA * 2, y: 0, z: 0 }, 1);
+      const info = sphereSphereTest(a, b);
+      // They should be right at the boundary — null or overlap ~0
+      if (info) {
+        expect(info.overlap).toBeCloseTo(0, 1);
+      }
+    });
+
+    it('identical positions — collision, normal defaults to (0,1,0)', () => {
+      const a = makeSphere('a', { x: 5, y: 5, z: 5 }, 1);
+      const b = makeSphere('b', { x: 5, y: 5, z: 5 }, 1);
+      const info = sphereSphereTest(a, b)!;
+      expect(info).not.toBeNull();
+      expect(info.normal).toEqual({ x: 0, y: 1, z: 0 });
+    });
+
+    it('large sphere containing small sphere — collision', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 10);
+      const b = makeSphere('b', { x: 1, y: 0, z: 0 }, 0.5);
+      const info = sphereSphereTest(a, b);
+      expect(info).not.toBeNull();
+      expect(info!.overlap).toBeGreaterThan(0);
+    });
+
+    it('one object without mesh — no collision (radius 0, positions must overlap)', () => {
+      const a = new SceneObject('a');
+      a.position = { x: 5, y: 0, z: 0 };
+      const b = makeSphere('b', { x: 6, y: 0, z: 0 }, 0.5);
+      // rA = 0, rB ~ 0.5, distance = 1, overlap = 0.5 - 1 < 0
+      expect(sphereSphereTest(a, b)).toBeNull();
+    });
+
+    it('normal is normalized (length near 1)', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeSphere('b', { x: 0.5, y: 0.3, z: 0.1 }, 1);
+      const info = sphereSphereTest(a, b)!;
+      expect(info).not.toBeNull();
+      const len = Math.sqrt(info.normal.x ** 2 + info.normal.y ** 2 + info.normal.z ** 2);
+      expect(len).toBeCloseTo(1, 5);
+    });
+
+    it('contact point is between the two objects', () => {
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeSphere('b', { x: 1, y: 0, z: 0 }, 1);
+      const info = sphereSphereTest(a, b)!;
+      expect(info).not.toBeNull();
+      // Contact point x should be between 0 and 1
+      expect(info.contactPoint.x).toBeGreaterThanOrEqual(0);
+      expect(info.contactPoint.x).toBeLessThanOrEqual(1);
+    });
+  });
+
+  // === aabbTest ===
+
+  describe('aabbTest — extensive', () => {
+    it('two non-overlapping boxes separated on X — null', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeBox('b', { x: 5, y: 0, z: 0 }, 1);
+      expect(aabbTest(a, b)).toBeNull();
+    });
+
+    it('two non-overlapping boxes separated on Y — null', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeBox('b', { x: 0, y: 5, z: 0 }, 1);
+      expect(aabbTest(a, b)).toBeNull();
+    });
+
+    it('two overlapping boxes — returns info', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 1, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b);
+      expect(info).not.toBeNull();
+      expect(info!.objectA).toBe(a);
+      expect(info!.objectB).toBe(b);
+    });
+
+    it('overlap axis is the minimum penetration axis', () => {
+      // a at origin size 2, b at (0.5, 0, 0) size 2
+      // X overlap = min(1, 1.5) - max(-1, -0.5) = 1 - (-0.5) = 1.5
+      // Y overlap = min(1, 1) - max(-1, -1) = 2
+      // Z overlap = min(1, 1) - max(-1, -1) = 2
+      // Min is X at 1.5
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b)!;
+      expect(info.overlap).toBeCloseTo(1.5, 5);
+      expect(Math.abs(info.normal.x)).toBe(1);
+    });
+
+    it('two boxes touching on one face (overlap near 0)', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 2, y: 0, z: 0 }, 2);
+      // X: min(1,3) - max(-1,1) = 1 - 1 = 0 => not overlapping
+      expect(aabbTest(a, b)).toBeNull();
+    });
+
+    it('one box fully inside another — collision', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 10);
+      const b = makeBox('b', { x: 0, y: 0, z: 0 }, 2);
+      const info = aabbTest(a, b)!;
+      expect(info).not.toBeNull();
+      expect(info.overlap).toBeGreaterThan(0);
+    });
+
+    it('two boxes at same position — collision', () => {
+      const a = makeBox('a', { x: 3, y: 3, z: 3 }, 2);
+      const b = makeBox('b', { x: 3, y: 3, z: 3 }, 2);
+      const info = aabbTest(a, b)!;
+      expect(info).not.toBeNull();
+      expect(info.overlap).toBeCloseTo(2, 5);
+    });
+
+    it('boxes separated on Z but overlapping on X,Y — null', () => {
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0.5, z: 10 }, 2);
+      expect(aabbTest(a, b)).toBeNull();
+    });
+  });
+
+  // === CollisionManager ===
+
+  describe('CollisionManager — extensive', () => {
+    it('constructor defaults to sphere collider', () => {
+      const mgr = new CollisionManager();
+      // Verify by checking it works with sphere-based objects
+      const a = makeSphere('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeSphere('b', { x: 0.5, y: 0, z: 0 }, 1);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+    });
+
+    it('constructor accepts aabb collider', () => {
+      const mgr = new CollisionManager({ colliderType: 'aabb' });
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 1, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+    });
+
+    it('update with 0 objects returns empty', () => {
+      const mgr = new CollisionManager();
+      const result = mgr.update([]);
+      expect(result).toEqual([]);
+    });
+
+    it('update with 1 object returns empty (need pairs)', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const result = mgr.update([a]);
+      expect(result).toEqual([]);
+    });
+
+    it('update with 2 colliding objects returns 1 collision', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b]);
+      expect(result.length).toBe(1);
+    });
+
+    it('update with 3 objects, 2 colliding returns 1 collision', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const c = makeBox('c', { x: 100, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b, c]);
+      expect(result.length).toBe(1);
+    });
+
+    it('update with 3 objects, all colliding returns 3 collisions (3 pairs)', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const c = makeBox('c', { x: 0.25, y: 0, z: 0 }, 2);
+      const result = mgr.update([a, b, c]);
+      expect(result.length).toBe(3);
+    });
+
+    it('response function called for each collision', () => {
+      const calls: CollisionInfo[] = [];
+      const mgr = new CollisionManager({
+        response: (info) => calls.push(info),
+      });
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const c = makeBox('c', { x: 0.25, y: 0, z: 0 }, 2);
+      mgr.update([a, b, c]);
+      expect(calls.length).toBe(3);
+    });
+
+    it('response function receives correct CollisionInfo', () => {
+      let received: CollisionInfo | null = null;
+      const mgr = new CollisionManager({
+        response: (info) => { received = info; },
+      });
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      mgr.update([a, b]);
+      expect(received).not.toBeNull();
+      expect(received!.objectA).toBe(a);
+      expect(received!.objectB).toBe(b);
+      expect(received!.overlap).toBeGreaterThan(0);
+      expect(received!.normal).toBeDefined();
+      expect(received!.contactPoint).toBeDefined();
+    });
+
+    it('skips invisible objects', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      a.visible = false;
+      const result = mgr.update([a, b]);
+      expect(result).toEqual([]);
+    });
+
+    it('skips objects without mesh', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = new SceneObject('b');
+      b.position = { x: 0, y: 0, z: 0 };
+      const result = mgr.update([a, b]);
+      expect(result).toEqual([]);
+    });
+
+    it('setColliderType switches from sphere to aabb mid-run', () => {
+      const mgr = new CollisionManager({ colliderType: 'sphere' });
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 1, y: 0, z: 0 }, 2);
+
+      // First update uses sphere
+      const r1 = mgr.update([a, b]);
+      expect(r1.length).toBe(1);
+
+      // Switch to AABB
+      mgr.setColliderType('aabb');
+      const r2 = mgr.update([a, b]);
+      expect(r2.length).toBe(1);
+      // AABB overlap on X = min(1,2) - max(-1,0) = 1
+      expect(r2[0]!.overlap).toBeCloseTo(1, 5);
+    });
+
+    it('getActivePairs returns correct pair keys after update', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+      const c = makeBox('c', { x: 100, y: 0, z: 0 }, 2);
+      mgr.update([a, b, c]);
+      const pairs = mgr.getActivePairs();
+      expect(pairs).toEqual(['a:b']);
+    });
+
+    it('getActivePairs clears between frames', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 2);
+      const b = makeBox('b', { x: 0.5, y: 0, z: 0 }, 2);
+
+      mgr.update([a, b]);
+      expect(mgr.getActivePairs().length).toBe(1);
+
+      // Second update with no collision
+      b.position = { x: 100, y: 0, z: 0 };
+      mgr.update([a, b]);
+      expect(mgr.getActivePairs().length).toBe(0);
+    });
+
+    it('update with non-colliding objects returns empty', () => {
+      const mgr = new CollisionManager();
+      const a = makeBox('a', { x: 0, y: 0, z: 0 }, 1);
+      const b = makeBox('b', { x: 10, y: 0, z: 0 }, 1);
+      const c = makeBox('c', { x: 20, y: 0, z: 0 }, 1);
+      const result = mgr.update([a, b, c]);
+      expect(result).toEqual([]);
+    });
   });
 });

@@ -25,6 +25,7 @@ import { ConwaysGameOfLife } from "./screens/conways-game-of-life";
 import { RadioPropagation } from "./screens/radio-propagation";
 import { WumpusWorld } from "./screens/wumpus-world";
 import { Space3DDemo } from "./screens/3d-space";
+import { Space3DWebGLDemo } from "./screens/3d-space-webgl";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -106,6 +107,11 @@ function AppContent() {
       path: "/wumpus",
       title: "Wumpus World",
       content: createElement(WumpusWorld, null),
+    },
+    {
+      path: "/3dSpaceWebGl",
+      title: "3D Space (WebGL)",
+      content: createElement(Space3DWebGLDemo, null),
     },
     {
       path: "/3dSpace",

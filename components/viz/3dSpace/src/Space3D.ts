@@ -10,6 +10,8 @@ import type { ObjectPicker, Color } from './types';
 import type { CameraControllerFn } from './camera-controller';
 import type { Light } from './light';
 import type { AnimationManager } from './animation';
+import type { BoundaryMode } from './bounds';
+import type { CollisionManager } from './collision';
 import { FlatShading } from './lighting-model';
 import { DefaultObjectPicker } from './types';
 import { Camera } from './camera';
@@ -54,6 +56,10 @@ export interface Space3DProps {
   cameraController?: CameraControllerFn;
   /** Animation manager for per-object animations */
   animations?: AnimationManager;
+  /** Boundary behavior mode. Default: 'none' */
+  boundaryMode?: BoundaryMode;
+  /** Collision manager for detecting object intersections */
+  collisions?: CollisionManager;
 }
 
 /**

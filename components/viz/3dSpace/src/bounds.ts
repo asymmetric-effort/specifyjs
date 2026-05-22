@@ -2,6 +2,12 @@
 // SPDX-License-Identifier: MIT
 
 import type { Vec3 } from '../../../math/src/vec';
+import type { SceneObject } from './scene-object';
+
+/**
+ * Boundary behavior when an object reaches the edge of finite space.
+ */
+export type BoundaryMode = 'none' | 'clamp' | 'wrap' | 'bounce' | 'destroy';
 
 /** Axis-aligned bounding box defined by min and max corners. */
 export interface SpaceBounds {
@@ -44,4 +50,64 @@ export function boundsSize(bounds: SpaceBounds): Vec3 {
     y: bounds.max.y - bounds.min.y,
     z: bounds.max.z - bounds.min.z,
   };
+}
+
+/**
+ * Apply boundary behavior to a scene object's position.
+ *
+ * @param obj - The scene object to check
+ * @param bounds - The space boundaries
+ * @param mode - The boundary behavior mode
+ * @param velocity - Object velocity (required for 'bounce' mode, modified in-place)
+ * @returns true if the object should remain in the scene, false if it should be destroyed
+ */
+export function applyBoundary(
+  obj: SceneObject,
+  bounds: SpaceBounds,
+  mode: BoundaryMode,
+  velocity?: { x: number; y: number; z: number },
+): boolean {
+  if (mode === 'none') return true;
+
+  const pos = obj.position;
+
+  switch (mode) {
+    case 'clamp':
+      obj.position = clampToBounds(pos, bounds);
+      return true;
+
+    case 'wrap': {
+      const size = boundsSize(bounds);
+      let { x, y, z } = pos;
+      if (x < bounds.min.x) x = bounds.max.x - ((bounds.min.x - x) % size.x);
+      if (x > bounds.max.x) x = bounds.min.x + ((x - bounds.max.x) % size.x);
+      if (y < bounds.min.y) y = bounds.max.y - ((bounds.min.y - y) % size.y);
+      if (y > bounds.max.y) y = bounds.min.y + ((y - bounds.max.y) % size.y);
+      if (z < bounds.min.z) z = bounds.max.z - ((bounds.min.z - z) % size.z);
+      if (z > bounds.max.z) z = bounds.min.z + ((z - bounds.max.z) % size.z);
+      obj.position = { x, y, z };
+      return true;
+    }
+
+    case 'bounce': {
+      let { x, y, z } = pos;
+      const vel = velocity ?? { x: 0, y: 0, z: 0 };
+      if (x < bounds.min.x) { x = bounds.min.x; vel.x = Math.abs(vel.x); }
+      if (x > bounds.max.x) { x = bounds.max.x; vel.x = -Math.abs(vel.x); }
+      if (y < bounds.min.y) { y = bounds.min.y; vel.y = Math.abs(vel.y); }
+      if (y > bounds.max.y) { y = bounds.max.y; vel.y = -Math.abs(vel.y); }
+      if (z < bounds.min.z) { z = bounds.min.z; vel.z = Math.abs(vel.z); }
+      if (z > bounds.max.z) { z = bounds.max.z; vel.z = -Math.abs(vel.z); }
+      obj.position = { x, y, z };
+      if (velocity) {
+        velocity.x = vel.x;
+        velocity.y = vel.y;
+        velocity.z = vel.z;
+      }
+      return true;
+    }
+
+    case 'destroy':
+      return isInBounds(pos, bounds);
+  }
 }

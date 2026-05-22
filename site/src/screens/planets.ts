@@ -5,7 +5,7 @@
  * Solar System Simulation — 3D rendering using the 3dSpace CpuPipeline.
  *
  * Two viewports on a single canvas:
- *   Left:  "View from Earth" — perspective camera near Earth looking at the Sun
+ *   Left:  "View from {Planet}" — rotates between planets every 30 seconds
  *   Right: "Oort Cloud view" — orthographic at 45° from orbital plane
  *
  * Planets orbit the Sun in the XZ plane with simplified circular orbits.
@@ -30,8 +30,9 @@ import {
 // AU_SCALE: 1 AU = 10 world units (linear, not logarithmic)
 const AU_SCALE = 10;
 // Planet sizes are exaggerated so they're visible (real scale would be invisible dots)
-const SIZE_EXAGGERATION = 0.003; // radiusKm * this = world units
+const SIZE_EXAGGERATION = 0.00005; // radiusKm * this = world units
 const MIN_PLANET_SIZE = 0.2;
+const CAMERA_SWITCH_INTERVAL = 30; // seconds between planet camera switches
 
 interface PlanetDef {
   id: string;
@@ -55,8 +56,7 @@ const PLANETS: PlanetDef[] = [
   { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distAU: 30.07,  radiusKm: 24622, orbitSpeed: 0.006 },
 ];
 
-const SUN_RADIUS_KM = 695700;
-const SUN_SIZE = Math.max(SUN_RADIUS_KM * SIZE_EXAGGERATION, 2);
+const SUN_SIZE = 4; // Fixed visual size (real Sun would dwarf all planets at any shared scale)
 
 function planetSize(radiusKm: number): number {
   return Math.max(radiusKm * SIZE_EXAGGERATION, MIN_PLANET_SIZE);
@@ -123,25 +123,27 @@ export function PlanetsScreen() {
       planetObjects.push(obj);
     }
 
-    // ── Camera 1: View from Earth (perspective) ──
-    const earthDist = planetDist(1.0); // 1 AU
-    const earthCam = new Camera({
-      position: { x: earthDist, y: 1, z: 3 },
+    // ── Camera 1: Rotating planet view (perspective) ──
+    const planetCam = new Camera({
+      position: { x: 10, y: 1, z: 3 },
       fov: Math.PI / 3,
       aspect: (VP_WIDTH - DIVIDER) / VP_HEIGHT,
       near: 0.01,
       far: 1000,
     });
-    earthCam.lookAt({ x: 0, y: 0, z: 0 });
+    planetCam.lookAt({ x: 0, y: 0, z: 0 });
 
-    const earthViewport = new Viewport({
+    const planetViewport = new Viewport({
       x: 0,
       y: 0,
       width: VP_WIDTH - DIVIDER,
       height: VP_HEIGHT,
-      camera: earthCam,
+      camera: planetCam,
       clearColor: { r: 0.02, g: 0.02, b: 0.06, a: 1 },
     });
+
+    let currentPlanetIdx = 0; // cycles 0..7 (Mercury..Neptune)
+    let planetSwitchTimer = 0;
 
     // ── Camera 2: Oort Cloud view at 45° from orbital plane ──
     const maxDist = planetDist(30.07); // Neptune in world units
@@ -200,19 +202,28 @@ export function PlanetsScreen() {
         };
       }
 
-      // Earth camera: follow Earth, look at Sun
-      const earthDef = PLANETS[2]!;
-      const earthObj = planetObjects[2]!;
-      earthCam.position = {
-        x: earthObj.position.x,
-        y: 2,
-        z: earthObj.position.z + 5,
-      };
-      earthCam.lookAt({ x: 0, y: 0, z: 0 });
+      // Rotate planet camera every 30 seconds
+      planetSwitchTimer += dt;
+      if (planetSwitchTimer >= CAMERA_SWITCH_INTERVAL) {
+        planetSwitchTimer = 0;
+        currentPlanetIdx = (currentPlanetIdx + 1) % PLANETS.length;
+      }
 
-      // ── Render left viewport (Earth view) ──
-      pipeline.render(scene, earthCam, earthViewport, lighting);
-      pipeline.renderEdges(scene, earthCam, earthViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.3 });
+      // Position camera at current planet — 10 units above planet radius, looking at sun
+      const curPlanet = PLANETS[currentPlanetIdx]!;
+      const curObj = planetObjects[currentPlanetIdx]!;
+      const curRadius = planetSize(curPlanet.radiusKm);
+      const camOffset = curRadius + 10;
+      planetCam.position = {
+        x: curObj.position.x,
+        y: camOffset,
+        z: curObj.position.z,
+      };
+      planetCam.lookAt({ x: 0, y: 0, z: 0 });
+
+      // ── Render left viewport (planet view) ──
+      pipeline.render(scene, planetCam, planetViewport, lighting);
+      pipeline.renderEdges(scene, planetCam, planetViewport, { color: '#ffffff', lineWidth: 0.5, opacity: 0.3 });
 
       // ── Draw divider ──
       const ctx = (pipeline as any).ctx as CanvasRenderingContext2D;
@@ -250,7 +261,7 @@ export function PlanetsScreen() {
         ctx.save();
         ctx.font = '11px sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText('View from Earth', 8, 16);
+        ctx.fillText(`View from ${PLANETS[currentPlanetIdx]!.label}`, 8, 16);
         ctx.fillText('Oort Cloud view', VP_WIDTH + DIVIDER + 8, 16);
         ctx.restore();
       }

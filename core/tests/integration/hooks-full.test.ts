@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Fragment } from '../../src/index';
 import {
   useState,
@@ -134,7 +126,7 @@ describe('useCallback full coverage', () => {
 
 describe('useMemo full coverage', () => {
   it('recomputes when deps change', () => {
-    const factory = fn((x: number) => x * 2);
+    const factory = vi.fn((x: number) => x * 2);
 
     function Comp(props: { x: number }) {
       const val = useMemo(() => factory(props.x), [props.x]);
@@ -177,7 +169,7 @@ describe('useRef full coverage', () => {
 
 describe('useEffect full coverage', () => {
   it('skips effect when deps unchanged on re-render', () => {
-    const effectFn = fn();
+    const effectFn = vi.fn();
 
     function Comp(props: { x: number; y: number }) {
       useEffect(effectFn, [props.x]);
@@ -217,7 +209,7 @@ describe('useEffect full coverage', () => {
   });
 
   it('runs effect without deps on every render', () => {
-    const effectFn = fn();
+    const effectFn = vi.fn();
 
     function Comp(props: { x: number }) {
       useEffect(effectFn);
@@ -254,7 +246,7 @@ describe('useLayoutEffect full coverage', () => {
 
 describe('useInsertionEffect full coverage', () => {
   it('runs insertion effect', () => {
-    const effectFn = fn();
+    const effectFn = vi.fn();
 
     function Comp() {
       useInsertionEffect(effectFn, []);
@@ -390,7 +382,7 @@ describe('useTransition full coverage', () => {
 
   it('startTransition executes callback', () => {
     let startFn: ((cb: () => void) => void) | undefined;
-    const callback = fn();
+    const callback = vi.fn();
 
     function Comp() {
       const [, startTransition] = useTransition();
@@ -474,7 +466,7 @@ describe('useId uniqueness', () => {
 
 describe('multiple hooks in one component', () => {
   it('handles useState + useEffect + useRef together', () => {
-    const effectFn = fn();
+    const effectFn = vi.fn();
 
     function Multi() {
       const [count] = useState(10);

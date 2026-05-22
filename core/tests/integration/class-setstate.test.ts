@@ -9,15 +9,7 @@
  * flushMicrotasks() to process pending updates before asserting.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Component, PureComponent } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 
@@ -154,7 +146,7 @@ describe('class component setState re-render (issue #35)', () => {
 
   it('setState callback is called after re-render', async () => {
     let instanceRef: Counter | null = null;
-    const callback = fn();
+    const callback = vi.fn();
 
     class Counter extends Component<object, { count: number }> {
       state = { count: 0 };

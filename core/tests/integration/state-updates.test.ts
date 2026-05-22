@@ -2,15 +2,7 @@
  * Tests for state updates (useState setState, useReducer dispatch)
  * that trigger re-renders through the work loop.
  */
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Fragment } from '../../src/index';
 import { useState, useReducer, useEffect } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';
@@ -193,7 +185,7 @@ describe('scheduleRender (async render path)', () => {
 
 describe('effect cleanup through tree deletion', () => {
   it('cleans up effects when component is removed from tree', () => {
-    const willUnmount = fn();
+    const willUnmount = vi.fn();
 
     function ChildWrapper() {
       useEffect(() => willUnmount, []);

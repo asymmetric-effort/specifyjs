@@ -1,4 +1,4 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { renderToPipeableStream } from '../../../src/server/render-to-pipeable-stream';
 import { renderToReadableStream } from '../../../src/server/render-to-readable-stream';
 import { createElement } from '../../../src/index';
@@ -21,7 +21,7 @@ describe('renderToPipeableStream', () => {
   });
 
   it('calls onShellReady', () => {
-    const onShellReady = fn();
+    const onShellReady = vi.fn();
     const writable = new Writable({
       write(_c, _e, cb) {
         cb();
@@ -35,7 +35,7 @@ describe('renderToPipeableStream', () => {
   });
 
   it('calls onAllReady', () => {
-    const onAllReady = fn();
+    const onAllReady = vi.fn();
     const writable = new Writable({
       write(_c, _e, cb) {
         cb();
@@ -65,15 +65,15 @@ describe('renderToPipeableStream', () => {
   });
 
   it('abort calls onError', () => {
-    const onError = fn();
+    const onError = vi.fn();
     const stream = renderToPipeableStream(createElement('div', null, 'err'), { onError });
     stream.abort(new Error('aborted'));
     expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
 
   it('handles render errors', () => {
-    const onShellError = fn();
-    const onError = fn();
+    const onShellError = vi.fn();
+    const onError = vi.fn();
     const writable = new Writable({
       write(_c, _e, cb) {
         cb();
@@ -106,7 +106,7 @@ describe('renderToReadableStream', () => {
   });
 
   it('handles render errors', async () => {
-    const onError = fn();
+    const onError = vi.fn();
     const Broken = () => {
       throw new Error('stream fail');
     };

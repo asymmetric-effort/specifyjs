@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { lazy } from '../../../src/index';
 import { SPEC_LAZY_TYPE } from '../../../src/shared/types';
 

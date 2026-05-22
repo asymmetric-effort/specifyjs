@@ -1,7 +1,7 @@
 /**
  * Tests for renderToPipeableStream chunked streaming.
  */
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { Writable } from 'stream';
 import { renderToPipeableStream } from '../../../src/server/render-to-pipeable-stream';
 import { createElement } from '../../../src/index';
@@ -31,8 +31,8 @@ describe('renderToPipeableStream', () => {
   });
 
   it('calls onShellReady and onAllReady', () => {
-    const onShellReady = fn();
-    const onAllReady = fn();
+    const onShellReady = vi.fn();
+    const onAllReady = vi.fn();
     const stream = renderToPipeableStream(createElement('div', null, 'test'), {
       onShellReady,
       onAllReady,
@@ -69,15 +69,15 @@ describe('renderToPipeableStream', () => {
   });
 
   it('calls onError when abort is called with reason', () => {
-    const onError = fn();
+    const onError = vi.fn();
     const stream = renderToPipeableStream(createElement('div', null, 'content'), { onError });
     stream.abort(new Error('cancelled'));
     expect(onError).toHaveBeenCalledWith(new Error('cancelled'));
   });
 
   it('calls onShellError and onError on render failure', () => {
-    const onShellError = fn();
-    const onError = fn();
+    const onShellError = vi.fn();
+    const onError = vi.fn();
     // Use a component that throws during render
     function BadComp(): any {
       throw new Error('render failure');

@@ -1,7 +1,7 @@
 /**
  * Additional metrics tests to close coverage gaps.
  */
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createMeterProvider,
   formatOtlpTraces,
@@ -83,8 +83,8 @@ describe('formatOtlpTraces — edge cases', () => {
 
 describe('exportToEndpoint', () => {
   it('sends POST request to endpoint', async () => {
-    const mockFetch = fn().mockResolvedValue({ ok: true });
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', mockFetch);
 
     await exportToEndpoint('https://example.com/api', { 'X-Key': 'abc' }, { data: 'test' });
 
@@ -98,19 +98,19 @@ describe('exportToEndpoint', () => {
         }),
       }),
     );
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 
   it('silently swallows fetch errors', async () => {
-    const mockFetch = fn().mockRejectedValue(new Error('network error'));
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockRejectedValue(new Error('network error'));
+    vi.stubGlobal('fetch', mockFetch);
 
     // Should not throw
     await expect(
       exportToEndpoint('https://example.com/api', {}, { data: 'test' }),
     ).resolves.toBeUndefined();
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 });
 
@@ -122,8 +122,8 @@ describe('createMeterProvider — flush', () => {
   });
 
   it('flush exports when endpoint configured', async () => {
-    const mockFetch = fn().mockResolvedValue({ ok: true });
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', mockFetch);
 
     const provider = createMeterProvider({
       serviceName: 'test',
@@ -135,6 +135,6 @@ describe('createMeterProvider — flush', () => {
     await provider.flush();
     expect(mockFetch).toHaveBeenCalled();
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 });

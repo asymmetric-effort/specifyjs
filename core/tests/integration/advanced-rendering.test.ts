@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Fragment, Component, createContext } from '../../src/index';
 import { useState, useEffect } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';
@@ -213,8 +205,8 @@ describe('reconciler edge cases', () => {
 
 describe('unmount with effects cleanup', () => {
   it('cleans up all effects on unmount', () => {
-    const cleanup1 = fn();
-    const cleanup2 = fn();
+    const cleanup1 = vi.fn();
+    const cleanup2 = vi.fn();
 
     function Child1() {
       useEffect(() => cleanup1, []);

@@ -6,7 +6,7 @@
  * Each test maps to a specific finding from the security audit.
  */
 
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { createElement } from '../../../src/core/create-element';
 import { cloneElement } from '../../../src/core/clone-element';
 import { renderToString, renderToStaticMarkup } from '../../../src/server/render-to-string';
@@ -124,7 +124,7 @@ describe('M-7: Protocol-relative URL blocking', () => {
 describe('M-11: Warning set bounds', () => {
   it('does not grow beyond 1000 entries', () => {
     resetWarnings();
-    const consoleSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     for (let i = 0; i < 1100; i++) {
       warn(`unique-warning-${i}`);
     }
@@ -173,7 +173,7 @@ describe('M-2: Scheduler queue bounds', () => {
   it('warns and trims when queue exceeds limit', async () => {
     const { scheduleUpdate, batchUpdates, flushPendingTasks } =
       await import('../../../src/core/scheduler');
-    const consoleSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const calls: number[] = [];
 
     batchUpdates(() => {
@@ -217,7 +217,7 @@ describe('M-7 additional: secure-fetch edge cases', () => {
 describe('M-8: gql metacharacter warning', () => {
   it('warns when interpolated value contains GraphQL metacharacters', async () => {
     const { gql } = await import('../../../src/client/graphql');
-    const consoleSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const query = gql`query { user(id: ${'{injected}'}) { name } }`;
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('GraphQL metacharacters'));
@@ -227,7 +227,7 @@ describe('M-8: gql metacharacter warning', () => {
 
   it('does not warn for safe interpolated values', async () => {
     const { gql } = await import('../../../src/client/graphql');
-    const consoleSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const frag = 'UserFields';
     gql`query { user { ...${frag} } }`;

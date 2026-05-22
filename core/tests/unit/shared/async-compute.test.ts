@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import {
   generateInputs,
   computeSync,
@@ -47,8 +47,8 @@ describe('generateInputs', () => {
 
 describe('computeSync', () => {
   it('evaluates a function for all inputs', () => {
-    const computeFn = (x: number) => x * 2;
-    const result = computeSync(computeFn, [1, 2, 3]);
+    const fn = (x: number) => x * 2;
+    const result = computeSync(fn, [1, 2, 3]);
     expect(result).toEqual([
       { input: 1, output: 2 },
       { input: 2, output: 4 },
@@ -57,8 +57,8 @@ describe('computeSync', () => {
   });
 
   it('skips non-finite results', () => {
-    const computeFn = (x: number) => (x === 0 ? Infinity : 1 / x);
-    const result = computeSync(computeFn, [0, 1, 2]);
+    const fn = (x: number) => (x === 0 ? Infinity : 1 / x);
+    const result = computeSync(fn, [0, 1, 2]);
     expect(result).toEqual([
       { input: 1, output: 1 },
       { input: 2, output: 0.5 },
@@ -72,11 +72,11 @@ describe('computeSync', () => {
 
 describe('computeAsync', () => {
   it('calls onProgress with all results when done', async () => {
-    const computeFn = (x: number) => x * x;
+    const fn = (x: number) => x * x;
     const inputs = [1, 2, 3, 4, 5];
 
     const result = await new Promise<{ input: number; output: number }[]>((resolve) => {
-      computeAsync(computeFn, inputs, 100, (results, done) => {
+      computeAsync(fn, inputs, 100, (results, done) => {
         if (done) resolve(results);
       });
     });
@@ -91,24 +91,24 @@ describe('computeAsync', () => {
   });
 
   it('can be cancelled', async () => {
-    const mockFn = fn((x: number) => x);
+    const fn = vi.fn((x: number) => x);
     const inputs = Array.from({ length: 1000 }, (_, i) => i);
-    const onProgress = fn();
+    const onProgress = vi.fn();
 
-    const cancel = computeAsync(mockFn, inputs, 10, onProgress);
+    const cancel = computeAsync(fn, inputs, 10, onProgress);
     cancel();
 
     // Wait a tick for potential async callback
     await new Promise((r) => setTimeout(r, 50));
 
     // Should have processed at most one batch before cancellation
-    expect(mockFn.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(fn.mock.calls.length).toBeLessThanOrEqual(10);
   });
 });
 
 describe('evaluateFunction', () => {
   it('computes synchronously when sync=true', () => {
-    const onResult = fn();
+    const onResult = vi.fn();
     const { points } = evaluateFunction(
       { fn: (x) => x + 1, range: { start: 0, end: 3, step: 1 }, sync: true },
       onResult,
@@ -123,7 +123,7 @@ describe('evaluateFunction', () => {
   });
 
   it('returns null initially in async mode', () => {
-    const onResult = fn();
+    const onResult = vi.fn();
     const { points, cancel } = evaluateFunction(
       { fn: (x) => x, range: { start: 0, end: 10, step: 1 } },
       onResult,
@@ -133,7 +133,7 @@ describe('evaluateFunction', () => {
   });
 
   it('completes async evaluation and calls onResult', async () => {
-    const onResult = fn();
+    const onResult = vi.fn();
     evaluateFunction(
       { fn: (x) => x * 3, range: { start: 0, end: 2, step: 1 }, batchSize: 10 },
       onResult,
@@ -150,12 +150,12 @@ describe('evaluateFunction', () => {
 
 describe('computeAsync progress', () => {
   it('calls onProgress with partial results during computation', async () => {
-    const computeFn = (x: number) => x;
+    const fn = (x: number) => x;
     const inputs = Array.from({ length: 50 }, (_, i) => i);
     const progressCalls: number[] = [];
 
     await new Promise<void>((resolve) => {
-      computeAsync(computeFn, inputs, 10, (results, done) => {
+      computeAsync(fn, inputs, 10, (results, done) => {
         progressCalls.push(results.length);
         if (done) resolve();
       });

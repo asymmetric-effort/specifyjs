@@ -1,15 +1,7 @@
 /**
  * Unit tests for src/hooks/dispatcher.ts — all hook implementations.
  */
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   useStateImpl,
   useReducerImpl,
@@ -145,7 +137,7 @@ describe('useStateImpl', () => {
   });
 
   it('setState calls scheduleUpdate when rerenderFiber is set', () => {
-    const rerenderer = fn();
+    const rerenderer = vi.fn();
     setRerenderCallback(rerenderer);
 
     const fiber = makeFiber();
@@ -204,7 +196,7 @@ describe('useReducerImpl', () => {
   });
 
   it('dispatch triggers rerenderFiber', () => {
-    const rerenderer = fn();
+    const rerenderer = vi.fn();
     setRerenderCallback(rerenderer);
 
     const fiber = makeFiber();
@@ -222,7 +214,7 @@ describe('useEffect variants', () => {
   it('useEffectDispatch pushes a Passive effect', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const create = fn();
+    const create = vi.fn();
     useEffectDispatch(create, [1]);
     const effects = getEffectList();
     expect(effects).not.toBeNull();
@@ -234,7 +226,7 @@ describe('useEffect variants', () => {
   it('useLayoutEffectDispatch pushes a Layout effect', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    useLayoutEffectDispatch(fn(), []);
+    useLayoutEffectDispatch(vi.fn(), []);
     const effects = getEffectList();
     expect(effects!.tag & 2).toBe(2); // Layout
     exitFiber();
@@ -243,7 +235,7 @@ describe('useEffect variants', () => {
   it('useInsertionEffectDispatch pushes an Insertion effect', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    useInsertionEffectDispatch(fn(), []);
+    useInsertionEffectDispatch(vi.fn(), []);
     const effects = getEffectList();
     expect(effects!.tag & 8).toBe(8); // Insertion
     exitFiber();
@@ -252,11 +244,11 @@ describe('useEffect variants', () => {
   it('skips effect when deps are equal on re-render', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    useEffectDispatch(fn(), [1, 2]);
+    useEffectDispatch(vi.fn(), [1, 2]);
     exitFiber();
 
     const f2 = rerender(fiber);
-    useEffectDispatch(fn(), [1, 2]);
+    useEffectDispatch(vi.fn(), [1, 2]);
     const effects = getEffectList();
     // Should have NoEffect tag (deps unchanged)
     expect(effects!.tag & 1).toBe(0); // No HasEffect
@@ -266,11 +258,11 @@ describe('useEffect variants', () => {
   it('runs effect when deps change on re-render', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    useEffectDispatch(fn(), [1]);
+    useEffectDispatch(vi.fn(), [1]);
     exitFiber();
 
     const f2 = rerender(fiber);
-    useEffectDispatch(fn(), [2]);
+    useEffectDispatch(vi.fn(), [2]);
     const effects = getEffectList();
     expect(effects!.tag & 1).toBe(1); // HasEffect
     exitFiber();
@@ -298,9 +290,9 @@ describe('useCallbackImpl', () => {
   it('returns the callback on mount', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const cb = () => {};
-    const result = useCallbackImpl(cb, [1]);
-    expect(result).toBe(cb);
+    const fn = () => {};
+    const result = useCallbackImpl(fn, [1]);
+    expect(result).toBe(fn);
     exitFiber();
   });
 
@@ -346,7 +338,7 @@ describe('useMemoImpl', () => {
   it('returns cached value when deps unchanged', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const factory = fn(() => ({ x: 1 }));
+    const factory = vi.fn(() => ({ x: 1 }));
     const v1 = useMemoImpl(factory, [1]);
     exitFiber();
 
@@ -360,7 +352,7 @@ describe('useMemoImpl', () => {
   it('recomputes when deps change', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const factory = fn(() => ({ x: 1 }));
+    const factory = vi.fn(() => ({ x: 1 }));
     const v1 = useMemoImpl(factory, [1]);
     exitFiber();
 
@@ -419,7 +411,7 @@ describe('useImperativeHandleImpl', () => {
   it('pushes a layout effect for callback ref', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const refFn = fn();
+    const refFn = vi.fn();
     useImperativeHandleImpl(refFn, () => ({ value: 1 }), []);
     const effects = getEffectList();
     expect(effects).not.toBeNull();
@@ -517,7 +509,7 @@ describe('useTransitionImpl', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
     const [, startTransition] = useTransitionImpl();
-    const cb = fn();
+    const cb = vi.fn();
     startTransition(cb);
     expect(cb).toHaveBeenCalledOnce();
     exitFiber();
@@ -529,7 +521,7 @@ describe('useSyncExternalStoreImpl', () => {
   it('returns the current snapshot', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const subscribe = fn(() => fn());
+    const subscribe = vi.fn(() => vi.fn());
     const getSnapshot = () => 42;
     const value = useSyncExternalStoreImpl(subscribe, getSnapshot);
     expect(value).toBe(42);
@@ -539,8 +531,8 @@ describe('useSyncExternalStoreImpl', () => {
   it('subscribes via effect', () => {
     const fiber = makeFiber();
     enterFiber(fiber);
-    const unsubscribe = fn();
-    const subscribe = fn(() => unsubscribe);
+    const unsubscribe = vi.fn();
+    const subscribe = vi.fn(() => unsubscribe);
     useSyncExternalStoreImpl(subscribe, () => 'v1');
     const effects = getEffectList();
     expect(effects).not.toBeNull();

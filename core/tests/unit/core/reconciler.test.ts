@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { reconcileChildren } from '../../../src/core/reconciler';
 import {
   createHostRootFiber,

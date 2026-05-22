@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { CpuBackend } from '../../../src/compute/cpu-backend';
 import type { KernelParams, KernelName } from '../../../src/compute/types';
 

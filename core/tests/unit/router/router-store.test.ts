@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   subscribe,
   getSnapshot,
@@ -33,7 +25,7 @@ describe('router-store', () => {
   });
 
   it('subscribe registers a listener', () => {
-    const listener = fn();
+    const listener = vi.fn();
     const unsub = subscribe(listener);
     navigate('/test');
     // Listener called via hashchange
@@ -42,7 +34,7 @@ describe('router-store', () => {
   });
 
   it('unsubscribe removes listener', () => {
-    const listener = fn();
+    const listener = vi.fn();
     const unsub = subscribe(listener);
     unsub();
     navigate('/after-unsub');
@@ -56,7 +48,7 @@ describe('router-store', () => {
   });
 
   it('navigate with replace uses replaceState', () => {
-    const spy = spyOn(window.history, 'replaceState');
+    const spy = vi.spyOn(window.history, 'replaceState');
     navigate('/replaced', { replace: true });
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();

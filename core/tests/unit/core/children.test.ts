@@ -1,4 +1,4 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { createElement, Children } from '../../../src/index';
 
 describe('Children', () => {
@@ -30,17 +30,17 @@ describe('Children', () => {
 
   describe('forEach', () => {
     it('iterates over children', () => {
-      const mockFn = fn();
-      Children.forEach(['a', 'b'], mockFn);
-      expect(mockFn).toHaveBeenCalledTimes(2);
-      expect(mockFn).toHaveBeenCalledWith('a', 0);
-      expect(mockFn).toHaveBeenCalledWith('b', 1);
+      const fn = vi.fn();
+      Children.forEach(['a', 'b'], fn);
+      expect(fn).toHaveBeenCalledTimes(2);
+      expect(fn).toHaveBeenCalledWith('a', 0);
+      expect(fn).toHaveBeenCalledWith('b', 1);
     });
 
     it('skips null and boolean', () => {
-      const mockFn = fn();
-      Children.forEach([null, false, 'x'], mockFn);
-      expect(mockFn).toHaveBeenCalledTimes(1);
+      const fn = vi.fn();
+      Children.forEach([null, false, 'x'], fn);
+      expect(fn).toHaveBeenCalledTimes(1);
     });
   });
 

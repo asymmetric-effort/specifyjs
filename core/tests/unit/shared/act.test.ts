@@ -1,11 +1,11 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { act } from '../../../src/shared/act';
 
 describe('act', () => {
   it('executes the callback synchronously', () => {
-    const mockFn = fn();
-    act(mockFn);
-    expect(mockFn).toHaveBeenCalledTimes(1);
+    const fn = vi.fn();
+    act(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it('flushes pending tasks after callback', () => {

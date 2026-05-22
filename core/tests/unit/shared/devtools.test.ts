@@ -1,13 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-  afterEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   connectDevTools,
   isDevToolsConnected,
@@ -34,7 +25,7 @@ describe('DevTools integration', () => {
   });
 
   it('notifyDevToolsOfCommit calls onCommitFiberRoot', () => {
-    const onCommit = fn();
+    const onCommit = vi.fn();
     (globalThis as unknown as Record<string, unknown>).__SPECIFY_DEVTOOLS_GLOBAL_HOOK__ = {
       onCommitFiberRoot: onCommit,
     };
@@ -45,7 +36,7 @@ describe('DevTools integration', () => {
   });
 
   it('notifyDevToolsOfUnmount calls onCommitFiberUnmount', () => {
-    const onUnmount = fn();
+    const onUnmount = vi.fn();
     (globalThis as unknown as Record<string, unknown>).__SPECIFY_DEVTOOLS_GLOBAL_HOOK__ = {
       onCommitFiberUnmount: onUnmount,
     };

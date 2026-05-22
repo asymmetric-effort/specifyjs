@@ -1,15 +1,7 @@
 /**
  * Test that setState triggers actual DOM re-renders.
  */
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement } from '../../src/index';
 import { useState } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';

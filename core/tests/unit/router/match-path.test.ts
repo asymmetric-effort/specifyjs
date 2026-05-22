@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { matchPath } from '../../../src/router/match-path';
 
 describe('matchPath', () => {

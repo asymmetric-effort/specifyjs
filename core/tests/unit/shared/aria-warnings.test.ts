@@ -1,25 +1,16 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-  afterEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { checkAriaCompliance } from '../../../src/shared/aria-warnings';
 import { resetWarnings } from '../../../src/shared/warnings';
 
 describe('checkAriaCompliance', () => {
-  let warnSpy: ReturnType<typeof spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     resetWarnings();
-    warnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {

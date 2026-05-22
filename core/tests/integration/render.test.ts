@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Fragment, Component, createContext } from '../../src/index';
 import {
   useState,
@@ -208,7 +200,7 @@ describe('hooks - useReducer', () => {
 
 describe('hooks - useMemo and useCallback', () => {
   it('useMemo computes and memoizes', () => {
-    const factory = fn(() => 42);
+    const factory = vi.fn(() => 42);
 
     function Comp() {
       const value = useMemo(factory, []);
@@ -225,8 +217,8 @@ describe('hooks - useMemo and useCallback', () => {
     let savedFn: unknown;
 
     function Comp() {
-      const cb = useCallback(() => 'hello', []);
-      savedFn = cb;
+      const fn = useCallback(() => 'hello', []);
+      savedFn = fn;
       return createElement('div', null, 'ok');
     }
 
@@ -295,7 +287,7 @@ describe('hooks - useId', () => {
 
 describe('hooks - useEffect', () => {
   it('runs effect after render', () => {
-    const effectFn = fn();
+    const effectFn = vi.fn();
 
     function Comp() {
       useEffect(effectFn, []);
@@ -308,8 +300,8 @@ describe('hooks - useEffect', () => {
   });
 
   it('runs cleanup on unmount', () => {
-    const cleanup = fn();
-    const effectFn = fn(() => cleanup);
+    const cleanup = vi.fn();
+    const effectFn = vi.fn(() => cleanup);
 
     function Comp() {
       useEffect(effectFn, []);
@@ -328,7 +320,7 @@ describe('hooks - useEffect', () => {
 
 describe('hooks - useLayoutEffect', () => {
   it('runs layout effect synchronously after render', () => {
-    const layoutFn = fn();
+    const layoutFn = vi.fn();
 
     function Comp() {
       useLayoutEffect(layoutFn, []);
@@ -343,7 +335,7 @@ describe('hooks - useLayoutEffect', () => {
 
 describe('event handling', () => {
   it('handles onClick', () => {
-    const handler = fn();
+    const handler = vi.fn();
 
     const root = createRoot(container);
     root.render(createElement('button', { onClick: handler }, 'Click'));
@@ -354,7 +346,7 @@ describe('event handling', () => {
   });
 
   it('handles onChange on input', () => {
-    const handler = fn();
+    const handler = vi.fn();
 
     const root = createRoot(container);
     root.render(createElement('input', { onChange: handler, type: 'text' }));
@@ -418,7 +410,7 @@ describe('updates and re-renders', () => {
 
 describe('memo', () => {
   it('renders a memo component', () => {
-    const renderFn = fn((props: { value: number }) =>
+    const renderFn = vi.fn((props: { value: number }) =>
       createElement('div', null, `Value: ${props.value}`),
     );
     const MemoComp = memo(renderFn);

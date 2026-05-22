@@ -1,4 +1,4 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getCurrentTime,
   shouldYieldToHost,
@@ -30,29 +30,29 @@ describe('shouldYieldToHost', () => {
 
 describe('scheduleCallback + flushAllWork', () => {
   it('schedules and executes a callback', () => {
-    const mockFn = fn(() => null);
-    scheduleCallback(mockFn);
+    const fn = vi.fn(() => null);
+    scheduleCallback(fn);
     expect(hasPendingWork()).toBe(true);
     flushAllWork();
-    expect(mockFn).toHaveBeenCalledOnce();
+    expect(fn).toHaveBeenCalledOnce();
     expect(hasPendingWork()).toBe(false);
   });
 
   it('handles continuation callbacks', () => {
     let callCount = 0;
-    const contFn = (): any => {
+    const fn = (): any => {
       callCount++;
-      if (callCount < 3) return contFn;
+      if (callCount < 3) return fn;
       return null;
     };
-    scheduleCallback(contFn);
+    scheduleCallback(fn);
     flushAllWork();
     expect(callCount).toBe(3);
   });
 
   it('clears state after flushing', () => {
-    const mockFn = fn(() => null);
-    scheduleCallback(mockFn);
+    const fn = vi.fn(() => null);
+    scheduleCallback(fn);
     flushAllWork();
     expect(hasPendingWork()).toBe(false);
   });
@@ -60,19 +60,19 @@ describe('scheduleCallback + flushAllWork', () => {
 
 describe('cancelCallback', () => {
   it('marks callback node as cancelled', () => {
-    const node = { callback: fn(() => null), cancelled: false };
+    const node = { callback: vi.fn(() => null), cancelled: false };
     cancelCallback(node);
     expect(node.cancelled).toBe(true);
   });
 
   it('clears active callback when cancelled node matches', () => {
-    const mockFn = fn(() => null);
-    const node = scheduleCallback(mockFn);
+    const fn = vi.fn(() => null);
+    const node = scheduleCallback(fn);
     cancelCallback(node);
     expect(node.cancelled).toBe(true);
     // Flush should be a no-op since callback was cancelled
     flushAllWork();
-    expect(mockFn).not.toHaveBeenCalled();
+    expect(fn).not.toHaveBeenCalled();
   });
 });
 

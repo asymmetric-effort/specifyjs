@@ -1,4 +1,4 @@
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { createContext } from '../../../src/index';
 import { SPEC_PROVIDER_TYPE, SPEC_CONSUMER_TYPE } from '../../../src/shared/types';
 

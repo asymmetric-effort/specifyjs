@@ -1,4 +1,4 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import {
   startTransition,
   isInTransition,
@@ -10,9 +10,9 @@ import { DefaultLane, SyncLane, TransitionLane1, TransitionLane2 } from '../../.
 
 describe('startTransition', () => {
   it('executes the callback synchronously', () => {
-    const mockFn = fn();
-    startTransition(mockFn);
-    expect(mockFn).toHaveBeenCalledTimes(1);
+    const fn = vi.fn();
+    startTransition(fn);
+    expect(fn).toHaveBeenCalledTimes(1);
   });
 
   it('marks isInTransition as true during callback', () => {

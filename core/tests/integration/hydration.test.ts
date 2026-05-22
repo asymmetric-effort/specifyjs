@@ -1,15 +1,7 @@
 /**
  * Integration tests for hydrateRoot — verifying DOM node reuse.
  */
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createElement } from '../../src/index';
 import { hydrateRoot } from '../../src/dom/create-root';
 import { renderToString } from '../../src/server/render-to-string';
@@ -76,7 +68,7 @@ describe('hydrateRoot — DOM reuse', () => {
   });
 
   it('attaches event handlers during hydration', () => {
-    const handler = fn();
+    const handler = vi.fn();
     const vdom = createElement('button', { onClick: handler }, 'Click me');
     container.innerHTML = renderToString(vdom);
 

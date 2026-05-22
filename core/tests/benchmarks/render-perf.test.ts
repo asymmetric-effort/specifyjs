@@ -7,7 +7,7 @@
  * rather than checking correctness (which unit tests cover).
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/index';
 

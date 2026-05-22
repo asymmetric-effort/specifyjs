@@ -1,13 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   createGraphQLClient,
   gql,
@@ -29,21 +20,21 @@ let container: HTMLDivElement;
 beforeEach(() => {
   container = document.createElement('div');
   document.body.appendChild(container);
-  mock.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 afterEach(() => {
   document.body.removeChild(container);
 });
 
-function mockFetch(body: unknown, status = 200): ReturnType<typeof fn> {
-  const mockFn = fn().mockResolvedValue({
+function mockFetch(body: unknown, status = 200): ReturnType<typeof vi.fn> {
+  const fn = vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(body),
   });
-  mock.stubGlobal('fetch', mockFn);
-  return mockFn;
+  vi.stubGlobal('fetch', fn);
+  return fn;
 }
 
 function flushPromises(): Promise<void> {
@@ -340,7 +331,7 @@ describe('network error handling', () => {
   });
 
   it('throws on network failure', async () => {
-    mock.stubGlobal('fetch', fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
     const client = createGraphQLClient({ url: 'https://api.example.com/graphql' });
 
     await expect(client.query('query { me { id } }')).rejects.toThrow('Failed to fetch');
@@ -414,7 +405,7 @@ describe('useQuery', () => {
   });
 
   it('handles fetch errors in useQuery', async () => {
-    mock.stubGlobal('fetch', fn().mockRejectedValue(new Error('Network down')));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network down')));
     const client = createGraphQLClient({ url: 'https://api.example.com/graphql' });
 
     const capturedErrors: unknown[] = [];
@@ -505,7 +496,7 @@ describe('useMutation', () => {
   });
 
   it('handles mutation errors', async () => {
-    mock.stubGlobal('fetch', fn().mockRejectedValue(new Error('Server error')));
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Server error')));
     const client = createGraphQLClient({ url: 'https://api.example.com/graphql' });
 
     let mutateFn: ((vars?: Record<string, unknown>) => Promise<GraphQLResponse<unknown>>) | null =

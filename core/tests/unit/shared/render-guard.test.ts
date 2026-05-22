@@ -1,15 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   beginRenderCycle,
   trackRender,
@@ -76,7 +68,7 @@ describe('Render loop detection', () => {
 
 describe('Effect cycle detection', () => {
   it('allows normal effect counts', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginCommitCycle();
     const fiber = {};
     for (let i = 0; i < 10; i++) {
@@ -87,7 +79,7 @@ describe('Effect cycle detection', () => {
   });
 
   it('warns when effect count exceeds limit', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginCommitCycle();
     const fiber = {};
     for (let i = 0; i < 26; i++) {
@@ -98,7 +90,7 @@ describe('Effect cycle detection', () => {
   });
 
   it('resets count on new commit cycle', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginCommitCycle();
     const fiber = {};
     for (let i = 0; i < 20; i++) {
@@ -115,7 +107,7 @@ describe('Effect cycle detection', () => {
 
 describe('Unstable dependency warnings', () => {
   it('does not warn for stable deps', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fiber = {};
     // Deps don't change — should not warn
     for (let i = 0; i < 10; i++) {
@@ -126,7 +118,7 @@ describe('Unstable dependency warnings', () => {
   });
 
   it('warns when deps change on consecutive renders', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fiber = {};
     // Deps change every render
     for (let i = 0; i < 6; i++) {
@@ -137,7 +129,7 @@ describe('Unstable dependency warnings', () => {
   });
 
   it('resets consecutive counter when deps stabilize', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fiber = {};
     // 3 changes, then stable, then 3 more — should not warn (never hits 5 consecutive)
     for (let i = 0; i < 3; i++) {
@@ -152,7 +144,7 @@ describe('Unstable dependency warnings', () => {
   });
 
   it('skips tracking when deps is undefined', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const fiber = {};
     for (let i = 0; i < 10; i++) {
       trackEffectDeps(fiber, 0, undefined, true, 'TestComponent');
@@ -164,7 +156,7 @@ describe('Unstable dependency warnings', () => {
 
 describe('setState flood detection', () => {
   it('allows normal setState frequency', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginFrame();
     const fiber = {};
     for (let i = 0; i < 50; i++) {
@@ -175,7 +167,7 @@ describe('setState flood detection', () => {
   });
 
   it('warns on rapid setState (100+ in one frame)', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginFrame();
     const fiber = {};
     for (let i = 0; i < 101; i++) {
@@ -186,7 +178,7 @@ describe('setState flood detection', () => {
   });
 
   it('resets count on new frame', () => {
-    const spy = spyOn(console, 'warn').mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     beginFrame();
     const fiber = {};
     for (let i = 0; i < 80; i++) {

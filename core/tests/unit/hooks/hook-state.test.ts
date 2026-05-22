@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   setCurrentFiber,
   getCurrentFiber,

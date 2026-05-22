@@ -2,32 +2,32 @@
  * Tests for uncovered paths in rest.ts: timeout+signal combo, interceptors,
  * network error wrapping.
  */
-import { describe, it, expect, fn, spyOn, mock, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createRestClient, RestError } from '../../../src/client/rest';
 
 afterEach(() => {
-  mock.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 describe('createRestClient — timeout + external signal', () => {
   it('aborts via timeout controller when timeout is set', async () => {
-    const mockFetch = fn().mockImplementation(
+    const mockFetch = vi.fn().mockImplementation(
       () =>
         new Promise((_, reject) => {
           setTimeout(() => reject(new DOMException('The operation was aborted.', 'AbortError')), 5);
         }),
     );
-    mock.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('fetch', mockFetch);
 
     const client = createRestClient({ baseURL: 'https://api.example.com', timeout: 10 });
     await expect(client.get('/slow')).rejects.toThrow('timeout');
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 
   it('aborts when external signal is already aborted', async () => {
-    const mockFetch = fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+    vi.stubGlobal('fetch', mockFetch);
 
     const abortController = new AbortController();
     abortController.abort();
@@ -35,17 +35,19 @@ describe('createRestClient — timeout + external signal', () => {
     const client = createRestClient({ baseURL: 'https://api.example.com', timeout: 5000 });
     await expect(client.get('/data', { signal: abortController.signal })).rejects.toThrow();
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 
   it('aborts when external signal fires during request with timeout', async () => {
-    const mockFetch = fn().mockImplementation(
-      () =>
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 50),
-        ),
-    );
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi
+      .fn()
+      .mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 50),
+          ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
 
     const abortController = new AbortController();
     const client = createRestClient({ baseURL: 'https://api.example.com', timeout: 5000 });
@@ -55,14 +57,14 @@ describe('createRestClient — timeout + external signal', () => {
     abortController.abort();
     await expect(promise).rejects.toThrow();
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 });
 
 describe('createRestClient — network errors', () => {
   it('wraps non-Error rejection in RestError', async () => {
-    const mockFetch = fn().mockRejectedValue('string error');
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockRejectedValue('string error');
+    vi.stubGlobal('fetch', mockFetch);
 
     const client = createRestClient({ baseURL: 'https://api.example.com' });
     try {
@@ -73,16 +75,16 @@ describe('createRestClient — network errors', () => {
       expect((err as RestError).message).toBe('Network error');
     }
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 });
 
 describe('createRestClient — error interceptors', () => {
   it('passes errors through error interceptors', async () => {
-    const mockFetch = fn().mockRejectedValue(new Error('boom'));
-    mock.stubGlobal('fetch', mockFetch);
+    const mockFetch = vi.fn().mockRejectedValue(new Error('boom'));
+    vi.stubGlobal('fetch', mockFetch);
 
-    const interceptor = fn(async (err: RestError) => {
+    const interceptor = vi.fn(async (err: RestError) => {
       return new RestError(
         'intercepted: ' + err.message,
         err.status,
@@ -107,6 +109,6 @@ describe('createRestClient — error interceptors', () => {
       expect((err as RestError).message).toContain('intercepted');
     }
 
-    mock.unstubAllGlobals();
+    vi.unstubAllGlobals();
   });
 });

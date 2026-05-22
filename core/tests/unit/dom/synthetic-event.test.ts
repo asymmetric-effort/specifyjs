@@ -1,4 +1,4 @@
-import { describe, it, expect, fn, spyOn, mock } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import {
   SyntheticEvent,
   SyntheticMouseEvent,
@@ -21,7 +21,7 @@ describe('SyntheticEvent', () => {
 
   it('preventDefault calls native preventDefault', () => {
     const native = new Event('click', { cancelable: true });
-    const spy = spyOn(native, 'preventDefault');
+    const spy = vi.spyOn(native, 'preventDefault');
     const synthetic = new SyntheticEvent(native);
     synthetic.preventDefault();
     expect(spy).toHaveBeenCalled();
@@ -30,7 +30,7 @@ describe('SyntheticEvent', () => {
 
   it('stopPropagation calls native stopPropagation', () => {
     const native = new Event('click');
-    const spy = spyOn(native, 'stopPropagation');
+    const spy = vi.spyOn(native, 'stopPropagation');
     const synthetic = new SyntheticEvent(native);
     synthetic.stopPropagation();
     expect(spy).toHaveBeenCalled();
@@ -39,7 +39,7 @@ describe('SyntheticEvent', () => {
 
   it('stopImmediatePropagation calls native', () => {
     const native = new Event('click');
-    const spy = spyOn(native, 'stopImmediatePropagation');
+    const spy = vi.spyOn(native, 'stopImmediatePropagation');
     const synthetic = new SyntheticEvent(native);
     synthetic.stopImmediatePropagation();
     expect(spy).toHaveBeenCalled();

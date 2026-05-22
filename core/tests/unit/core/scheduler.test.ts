@@ -1,12 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   scheduleUpdate,
   batchUpdates,
@@ -17,13 +9,13 @@ import {
 describe('scheduler', () => {
   describe('scheduleUpdate', () => {
     it('executes task immediately when not batching', () => {
-      const task = fn();
+      const task = vi.fn();
       scheduleUpdate(task);
       expect(task).toHaveBeenCalledTimes(1);
     });
 
     it('defers task when batching', () => {
-      const task = fn();
+      const task = vi.fn();
       batchUpdates(() => {
         scheduleUpdate(task);
         expect(task).not.toHaveBeenCalled();
@@ -68,7 +60,7 @@ describe('scheduler', () => {
     });
 
     it('flushes pending tasks even if callback throws', () => {
-      const task = fn();
+      const task = vi.fn();
       expect(() => {
         batchUpdates(() => {
           scheduleUpdate(task);

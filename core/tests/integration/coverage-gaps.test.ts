@@ -1,15 +1,7 @@
 /**
  * Tests specifically targeting remaining coverage gaps across all source files.
  */
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  fn,
-  spyOn,
-  mock,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createElement, Fragment, Component, createContext } from '../../src/index';
 import { useState, useEffect } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';
@@ -229,7 +221,7 @@ describe('synthetic-event.ts coverage gaps', () => {
 // ============================================================================
 describe('work-loop.ts coverage gaps', () => {
   it('removes event listener when prop is removed', () => {
-    const handler = fn();
+    const handler = vi.fn();
     const root = createRoot(container);
 
     root.render(createElement('button', { onClick: handler }, 'btn'));
@@ -259,7 +251,7 @@ describe('work-loop.ts coverage gaps', () => {
   });
 
   it('handles deletion of nested component subtrees', () => {
-    const cleanup = fn();
+    const cleanup = vi.fn();
 
     function Inner() {
       useEffect(() => cleanup, []);

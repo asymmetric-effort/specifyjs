@@ -5,15 +5,7 @@
  * - placeChild with existing alternate
  * - deleteRemainingChildren with multiple siblings
  */
-import {
-  describe,
-  it,
-  expect,
-  fn,
-  spyOn,
-  mock,
-  beforeEach,
-} from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createElement, Fragment } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { useState } from '../../../src/hooks/index';

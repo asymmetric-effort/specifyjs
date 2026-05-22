@@ -1,7 +1,7 @@
 /**
  * Tests for protobuf.ts decode paths: decodeFieldValue, skipField, defineMessage.decode.
  */
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import { defineMessage } from '../../../src/client/protobuf';
 import type { FieldMap } from '../../../src/client/protobuf';
 

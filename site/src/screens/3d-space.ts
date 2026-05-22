@@ -97,6 +97,7 @@ export function Space3DDemo() {
     terrainObj.position = { x: 0, y: -3, z: 0 };
     terrainObj.mesh = terrainMesh;
     terrainObj.material = createMaterial({ r: 0.3, g: 0.6, b: 0.2, a: 1 });
+    terrainObj.renderOrder = -1; // Draw terrain first (background) so objects render on top
     scene.register(terrainObj);
 
     // ── Collision detection + boundary ──

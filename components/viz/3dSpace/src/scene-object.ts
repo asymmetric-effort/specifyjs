@@ -20,6 +20,8 @@ export class SceneObject {
   children: SceneObject[];
   parent: SceneObject | null;
   visible: boolean;
+  /** Render order: lower values draw first (background). Default: 0. */
+  renderOrder: number;
 
   constructor(id: string) {
     this.id = id;
@@ -28,6 +30,7 @@ export class SceneObject {
     this.scale = { x: 1, y: 1, z: 1 };
     this.children = [];
     this.parent = null;
+    this.renderOrder = 0;
     this.visible = true;
   }
 

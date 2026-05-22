@@ -20,6 +20,8 @@ interface ProjectedTriangle {
   sx: [number, number, number];
   /** Screen-space y coordinates for the 3 vertices. */
   sy: [number, number, number];
+  /** Render order from SceneObject (lower = draw first). */
+  renderOrder: number;
   /** Object center depth in view space (for coarse sorting). */
   objectDepth: number;
   /** Average Z in clip space (for fine sorting within an object). */
@@ -226,6 +228,7 @@ export class CpuPipeline implements RenderPipeline {
         triangles.push({
           sx: [sx0, sx1, sx2],
           sy: [sy0, sy1, sy2],
+          renderOrder: obj.renderOrder,
           objectDepth: objCenterZ,
           avgZ,
           color,
@@ -234,9 +237,11 @@ export class CpuPipeline implements RenderPipeline {
     }
 
     // Painter's algorithm: sort back-to-front
-    // Primary key: object center depth (more negative = farther in view space, paint first)
-    // Secondary key: triangle average NDC Z (for triangles within the same object)
+    // 1st key: renderOrder (lower draws first — background objects like terrain)
+    // 2nd key: object center depth (more negative = farther in view space)
+    // 3rd key: triangle average NDC Z (within same object)
     triangles.sort((a, b) => {
+      if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
       const depthDiff = a.objectDepth - b.objectDepth;
       if (Math.abs(depthDiff) > 0.01) return depthDiff;
       return a.avgZ - b.avgZ;

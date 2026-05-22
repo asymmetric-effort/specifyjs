@@ -121,33 +121,48 @@ jobs:
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24'
-      - name: Build
+      - name: Build with relative base
         working-directory: site
         run: |
           npm install
-          npx vite build
+          npx vite build --base='./'
       - name: Verify banners
         working-directory: site/dist
         run: |
           head -1 assets/*.js | grep -q "Asymmetric Effort" || exit 1
           head -1 assets/*.css | grep -q "Asymmetric Effort" || exit 1
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          path: site/dist
+          name: site-build
+          path: site/dist/
+          retention-days: 1
 
-  # ── Stage 6: Deploy Site (not on PRs) ───────────────────────────────
+  # ── Stage 6: Deploy to /staging/ (blue-green) ───────────────────────
   deploy:
     name: Deploy Showcase Site
     needs: build-site
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: gh-pages
+          path: gh-pages
+      - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        with:
+          name: site-build
+          path: new-build
+      - name: Deploy new build to /staging/
+        run: |
+          cd gh-pages
+          rm -rf staging
+          cp -r ../new-build staging
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" || git commit -m "Deploy staging from ${{ github.sha }}"
+          git push origin gh-pages
 
-  # ── Stage 7: PDV (not on PRs) ──────────────────────────────────────
+  # ── Stage 7a: PDV against /staging/ ─────────────────────────────────
   pdv:
     name: Post-Deployment Verification
     needs: deploy
@@ -162,33 +177,84 @@ jobs:
         run: |
           npm install
           npx playwright install chromium --with-deps
-      - name: Wait for CDN
+      - name: Wait for staging deploy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html" | grep -q 'SpecifyJS'; then
+              echo "Staging content confirmed after ${i}0s"; exit 0
+            fi
+            echo "Attempt $i/30..."; sleep 10
+          done
+      - name: Run PDV against staging
+        working-directory: site
+        env:
+          SITE_URL: https://specifyjs.asymmetric-effort.com/staging/
+        run: npx playwright test --config=playwright.deploy.config.ts
+      - name: Upload staging PDV report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pdv-staging-report
+          path: site/playwright-report/
+          retention-days: 7
+
+  # ── Stage 7b: Promote staging to production ─────────────────────────
+  promote:
+    name: Promote to Production
+    needs: pdv
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: gh-pages
+          path: gh-pages
+      - name: Copy staging to root
+        run: |
+          cd gh-pages
+          # Preserve CNAME and .nojekyll
+          cp CNAME /tmp/CNAME.bak 2>/dev/null || true
+          cp .nojekyll /tmp/.nojekyll.bak 2>/dev/null || true
+          # Remove old root content (except staging/, .git/, CNAME, .nojekyll)
+          find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'staging' ! -name 'CNAME' ! -name '.nojekyll' -exec rm -rf {} +
+          # Copy staging content to root
+          cp -r staging/* .
+          # Restore CNAME and .nojekyll
+          cp /tmp/CNAME.bak CNAME 2>/dev/null || echo "specifyjs.asymmetric-effort.com" > CNAME
+          cp /tmp/.nojekyll.bak .nojekyll 2>/dev/null || touch .nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" || git commit -m "Promote staging to production from ${{ github.sha }}"
+          git push origin gh-pages
+      - name: Wait for production deploy
         run: |
           for i in $(seq 1 30); do
             JS=$(curl -sk "https://specifyjs.asymmetric-effort.com/?_cb=$(date +%s%N)" | grep -oP 'assets/index-[^"]+\.js' || true)
             if [ -n "$JS" ]; then
               if curl -sk "https://specifyjs.asymmetric-effort.com/$JS" | grep -q 'SpecifyJS'; then
-                echo "Fresh content confirmed after ${i}0s"; exit 0
+                echo "Production content confirmed after ${i}0s"; exit 0
               fi
             fi
             echo "Attempt $i/30..."; sleep 10
           done
-      - name: Run PDV E2E
-        id: e2e
+      - name: Run PDV against production
         working-directory: site
-        run: npx playwright test --config=playwright.deploy.config.ts
-      - name: Upload report
+        run: |
+          npm install
+          npx playwright install chromium --with-deps
+          npx playwright test --config=playwright.deploy.config.ts
+      - name: Upload production PDV report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: pdv-report
+          name: pdv-production-report
           path: site/playwright-report/
           retention-days: 7
 
   # ── Stage 8: Publish to npm (ONLY tagged builds, after PDV) ─────────
   publish:
     name: Publish to npm
-    needs: pdv
+    needs: promote
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: npm

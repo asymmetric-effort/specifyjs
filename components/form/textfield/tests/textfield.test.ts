@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { TextField } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -31,7 +31,7 @@ describe('TextField', () => {
     });
 
     it('fires onChange on input', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextField, { value: '', onChange: handler }));
       const input = el.querySelector('input') as HTMLInputElement;
       input.value = 'test';
@@ -97,7 +97,7 @@ describe('TextField', () => {
   // Interaction
   describe('interaction', () => {
     it('typing updates via onChange', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextField, { value: '', onChange: handler }));
       const input = el.querySelector('input') as HTMLInputElement;
       input.value = 'abc';
@@ -106,7 +106,7 @@ describe('TextField', () => {
     });
 
     it('fires onEnter on Enter key', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextField, { value: 'test', onEnter: handler }));
       const input = el.querySelector('input') as HTMLInputElement;
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
@@ -114,7 +114,7 @@ describe('TextField', () => {
     });
 
     it('fires onBlur when input loses focus', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextField, { value: 'val', onBlur: handler }));
       const input = el.querySelector('input') as HTMLInputElement;
       input.dispatchEvent(new Event('blur', { bubbles: true }));

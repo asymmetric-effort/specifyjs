@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { TimePicker } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -17,13 +17,13 @@ function render(vnode: unknown): HTMLElement {
 describe('TimePicker', () => {
   describe('happy paths', () => {
     it('renders with defaults', () => {
-      const el = render(createElement(TimePicker, { value: '12:00', onChange: fn() }));
+      const el = render(createElement(TimePicker, { value: '12:00', onChange: vi.fn() }));
       const inputs = el.querySelectorAll('input');
       expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
 
     it('renders controlled value', () => {
-      const el = render(createElement(TimePicker, { value: '14:30', onChange: fn() }));
+      const el = render(createElement(TimePicker, { value: '14:30', onChange: vi.fn() }));
       const inputs = el.querySelectorAll('input');
       // Hour and minute inputs
       expect((inputs[0] as HTMLInputElement).value).toBe('14');
@@ -31,7 +31,7 @@ describe('TimePicker', () => {
     });
 
     it('fires onChange on hour change', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:00', onChange: handler }));
       // Click hour increment button
       const buttons = el.querySelectorAll('button');
@@ -40,12 +40,12 @@ describe('TimePicker', () => {
     });
 
     it('displays label', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), label: 'Start Time' }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), label: 'Start Time' }));
       expect(el.textContent).toContain('Start Time');
     });
 
     it('displays error message', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), error: 'Invalid time' }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), error: 'Invalid time' }));
       const error = el.querySelector('.form-field__error');
       expect(error).toBeTruthy();
       expect(error!.textContent).toBe('Invalid time');
@@ -54,7 +54,7 @@ describe('TimePicker', () => {
 
   describe('sad paths', () => {
     it('applies disabled state', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), disabled: true }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), disabled: true }));
       const inputs = el.querySelectorAll('input');
       inputs.forEach((input) => {
         expect((input as HTMLInputElement).disabled).toBe(true);
@@ -62,19 +62,19 @@ describe('TimePicker', () => {
     });
 
     it('renders with empty value gracefully', () => {
-      const el = render(createElement(TimePicker, { value: '', onChange: fn() }));
+      const el = render(createElement(TimePicker, { value: '', onChange: vi.fn() }));
       const inputs = el.querySelectorAll('input');
       expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
 
     it('handles invalid time string', () => {
-      const el = render(createElement(TimePicker, { value: 'not:time', onChange: fn() }));
+      const el = render(createElement(TimePicker, { value: 'not:time', onChange: vi.fn() }));
       const inputs = el.querySelectorAll('input');
       expect(inputs.length).toBeGreaterThanOrEqual(2);
     });
 
     it('disables buttons when disabled', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:00', onChange: handler, disabled: true }));
       const buttons = el.querySelectorAll('button');
       buttons.forEach((btn) => {
@@ -85,7 +85,7 @@ describe('TimePicker', () => {
 
   describe('interaction', () => {
     it('increment hour button updates time', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '09:30', onChange: handler }));
       const buttons = el.querySelectorAll('button');
       // First button should be hour increment
@@ -94,7 +94,7 @@ describe('TimePicker', () => {
     });
 
     it('decrement minute button updates time', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '09:30', onChange: handler }));
       const buttons = el.querySelectorAll('button');
       // Last button should be minute decrement
@@ -104,21 +104,21 @@ describe('TimePicker', () => {
     });
 
     it('shows AM/PM toggle in 12h format', () => {
-      const el = render(createElement(TimePicker, { value: '14:00', onChange: fn(), format: '12h' }));
+      const el = render(createElement(TimePicker, { value: '14:00', onChange: vi.fn(), format: '12h' }));
       expect(el.textContent).toContain('PM');
     });
   });
 
   describe('seconds support', () => {
     it('shows seconds spinner when showSeconds=true', () => {
-      const el = render(createElement(TimePicker, { value: '10:30:45', onChange: fn(), showSeconds: true }));
+      const el = render(createElement(TimePicker, { value: '10:30:45', onChange: vi.fn(), showSeconds: true }));
       const inputs = el.querySelectorAll('input');
       // Should have 3 inputs: hour, minute, second
       expect(inputs.length).toBe(3);
     });
 
     it('emits HH:MM:SS format when showSeconds=true', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:30:45', onChange: handler, showSeconds: true }));
       const buttons = el.querySelectorAll('button');
       // Click hour increment (first button)
@@ -127,7 +127,7 @@ describe('TimePicker', () => {
     });
 
     it('increment second button works', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:30:20', onChange: handler, showSeconds: true }));
       const buttons = el.querySelectorAll('button');
       // Buttons order: hour-up, hour-down, minute-up, minute-down, second-up, second-down
@@ -137,7 +137,7 @@ describe('TimePicker', () => {
     });
 
     it('decrement second button works', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:30:20', onChange: handler, showSeconds: true }));
       const buttons = el.querySelectorAll('button');
       // Second decrement is buttons[5]
@@ -146,14 +146,14 @@ describe('TimePicker', () => {
     });
 
     it('second input has aria-label Second', () => {
-      const el = render(createElement(TimePicker, { value: '10:30:45', onChange: fn(), showSeconds: true }));
+      const el = render(createElement(TimePicker, { value: '10:30:45', onChange: vi.fn(), showSeconds: true }));
       const inputs = el.querySelectorAll('input');
       const secondInput = inputs[2] as HTMLInputElement;
       expect(secondInput.getAttribute('aria-label')).toBe('Second');
     });
 
     it('preserves seconds when changing hour', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:30:55', onChange: handler, showSeconds: true }));
       const buttons = el.querySelectorAll('button');
       // Click hour increment
@@ -162,7 +162,7 @@ describe('TimePicker', () => {
     });
 
     it('preserves seconds when changing minute', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, { value: '10:30:55', onChange: handler, showSeconds: true }));
       const buttons = el.querySelectorAll('button');
       // Click minute increment (buttons[2])
@@ -173,12 +173,12 @@ describe('TimePicker', () => {
 
   describe('timezone label', () => {
     it('displays timezone label when timezone is provided without showTimezone', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), timezone: 'America/New_York' }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), timezone: 'America/New_York' }));
       expect(el.textContent).toContain('America/New_York');
     });
 
     it('does not show timezone label when timezone is not provided', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn() }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn() }));
       expect(el.textContent).not.toContain('UTC');
       expect(el.textContent).not.toContain('America');
     });
@@ -186,13 +186,13 @@ describe('TimePicker', () => {
 
   describe('timezone selector', () => {
     it('shows timezone dropdown when showTimezone=true', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), showTimezone: true }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), showTimezone: true }));
       const select = el.querySelector('select');
       expect(select).toBeTruthy();
     });
 
     it('populates dropdown with default timezones', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), showTimezone: true }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), showTimezone: true }));
       const options = el.querySelectorAll('option');
       expect(options.length).toBe(8);
       expect((options[0] as HTMLOptionElement).value).toBe('UTC');
@@ -203,7 +203,7 @@ describe('TimePicker', () => {
       const customTzs = ['US/Eastern', 'US/Central', 'US/Pacific'];
       const el = render(createElement(TimePicker, {
         value: '10:00',
-        onChange: fn(),
+        onChange: vi.fn(),
         showTimezone: true,
         timezones: customTzs,
       }));
@@ -215,10 +215,10 @@ describe('TimePicker', () => {
     });
 
     it('calls onTimezoneChange when timezone is selected', () => {
-      const tzHandler = fn();
+      const tzHandler = vi.fn();
       const el = render(createElement(TimePicker, {
         value: '10:00',
-        onChange: fn(),
+        onChange: vi.fn(),
         showTimezone: true,
         onTimezoneChange: tzHandler,
       }));
@@ -232,7 +232,7 @@ describe('TimePicker', () => {
     });
 
     it('dropdown has aria-label Timezone', () => {
-      const el = render(createElement(TimePicker, { value: '10:00', onChange: fn(), showTimezone: true }));
+      const el = render(createElement(TimePicker, { value: '10:00', onChange: vi.fn(), showTimezone: true }));
       const select = el.querySelector('select') as HTMLSelectElement;
       expect(select.getAttribute('aria-label')).toBe('Timezone');
     });
@@ -240,7 +240,7 @@ describe('TimePicker', () => {
     it('dropdown is disabled when component is disabled', () => {
       const el = render(createElement(TimePicker, {
         value: '10:00',
-        onChange: fn(),
+        onChange: vi.fn(),
         showTimezone: true,
         disabled: true,
       }));
@@ -251,7 +251,7 @@ describe('TimePicker', () => {
 
   describe('AM/PM with seconds', () => {
     it('AM/PM toggle preserves seconds', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TimePicker, {
         value: '10:30:45',
         onChange: handler,
@@ -272,7 +272,7 @@ describe('TimePicker', () => {
     it('shows correct display for 12h format with seconds', () => {
       const el = render(createElement(TimePicker, {
         value: '14:30:15',
-        onChange: fn(),
+        onChange: vi.fn(),
         format: '12h',
         showSeconds: true,
       }));

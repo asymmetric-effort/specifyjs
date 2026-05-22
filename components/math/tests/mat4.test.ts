@@ -1,7 +1,8 @@
+// @vitest-environment node
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect } from 'vitest';
 import {
   mat4Identity,
   mat4Multiply,

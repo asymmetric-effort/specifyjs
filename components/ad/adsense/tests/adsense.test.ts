@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
 import { AdSense } from '../src/AdSense';

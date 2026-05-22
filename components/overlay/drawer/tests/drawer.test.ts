@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from '../../../../core/src/index';
 import { Drawer } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
@@ -12,7 +12,7 @@ afterEach(() => teardownMockDispatcher());
 function renderDrawer(overrides: Record<string, unknown> = {}) {
   const defaults = {
     open: true,
-    onClose: fn(),
+    onClose: vi.fn(),
     title: 'Test Drawer',
     children: createElement('p', null, 'Drawer content'),
   };
@@ -100,14 +100,14 @@ describe('Drawer', () => {
       // useEffect is not executed in vnode-only tests.
       // Drawer starts with visible=false (useState mock returns initial value),
       // so it returns null. Verify component does not throw.
-      const onClose = fn();
+      const onClose = vi.fn();
       const { vnode } = renderDrawer({ open: true, onClose, closeOnEscape: true });
       // visible defaults to false in mock mode, so vnode is null
       expect(vnode).toBeNull();
     });
 
     it('does not call onClose on Escape when closeOnEscape is false', () => {
-      const onClose = fn();
+      const onClose = vi.fn();
       const { vnode } = renderDrawer({ open: true, onClose, closeOnEscape: false });
       expect(vnode).toBeNull();
     });

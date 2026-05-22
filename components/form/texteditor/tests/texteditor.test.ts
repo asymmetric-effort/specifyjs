@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { TextEditor } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -31,7 +31,7 @@ describe('TextEditor', () => {
     });
 
     it('fires onChange on content input', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextEditor, { onChange: handler }));
       const editor = el.querySelector('[contenteditable]') as HTMLElement;
       editor.innerHTML = '<p>Hello</p>';
@@ -91,7 +91,7 @@ describe('TextEditor', () => {
 
   describe('interaction', () => {
     it('fires onBlur when editor loses focus', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(TextEditor, { onBlur: handler }));
       const editor = el.querySelector('[contenteditable]') as HTMLElement;
       editor.dispatchEvent(new Event('blur', { bubbles: true }));

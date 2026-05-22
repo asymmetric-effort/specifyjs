@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from '../../../../core/src/index';
 import { Popover } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
@@ -48,7 +48,7 @@ describe('Popover', () => {
     });
 
     it('supports controlled mode with onOpenChange', () => {
-      const onOpenChange = fn();
+      const onOpenChange = vi.fn();
       const { vnode } = renderPopover({ open: true, onOpenChange });
       expect(vnode).not.toBeNull();
     });

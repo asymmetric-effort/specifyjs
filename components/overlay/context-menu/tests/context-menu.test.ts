@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createElement } from '../../../../core/src/index';
 import { ContextMenu } from '../src/index';
 import type { ContextMenuItem } from '../src/index';
@@ -12,10 +12,10 @@ afterEach(() => teardownMockDispatcher());
 
 function renderContextMenu(overrides: Record<string, unknown> = {}) {
   const defaultItems: ContextMenuItem[] = [
-    { label: 'Cut', icon: 'X', onClick: fn() },
-    { label: 'Copy', icon: 'C', onClick: fn() },
+    { label: 'Cut', icon: 'X', onClick: vi.fn() },
+    { label: 'Copy', icon: 'C', onClick: vi.fn() },
     { divider: true },
-    { label: 'Paste', icon: 'V', onClick: fn() },
+    { label: 'Paste', icon: 'V', onClick: vi.fn() },
   ];
   const defaults = {
     items: defaultItems,
@@ -47,14 +47,14 @@ describe('ContextMenu', () => {
 
     it('accepts items with labels', () => {
       const { vnode } = renderContextMenu({
-        items: [{ label: 'Delete', onClick: fn() }],
+        items: [{ label: 'Delete', onClick: vi.fn() }],
       });
       expect(vnode).not.toBeNull();
     });
 
     it('accepts items with icons', () => {
       const { vnode } = renderContextMenu({
-        items: [{ label: 'Save', icon: 'S', onClick: fn() }],
+        items: [{ label: 'Save', icon: 'S', onClick: vi.fn() }],
       });
       expect(vnode).not.toBeNull();
     });
@@ -81,7 +81,7 @@ describe('ContextMenu', () => {
 
     it('handles disabled items', () => {
       const { vnode } = renderContextMenu({
-        items: [{ label: 'Disabled', disabled: true, onClick: fn() }],
+        items: [{ label: 'Disabled', disabled: true, onClick: vi.fn() }],
       });
       expect(vnode).not.toBeNull();
     });
@@ -108,8 +108,8 @@ describe('ContextMenu', () => {
         {
           label: 'Share',
           children: [
-            { label: 'Email', onClick: fn() },
-            { label: 'Slack', onClick: fn() },
+            { label: 'Email', onClick: vi.fn() },
+            { label: 'Slack', onClick: vi.fn() },
           ],
         },
       ];
@@ -118,7 +118,7 @@ describe('ContextMenu', () => {
     });
 
     it('items have click handlers', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: ContextMenuItem[] = [
         { label: 'Action', onClick },
       ];
@@ -136,11 +136,11 @@ describe('ContextMenu', () => {
 
     it('accepts items with mixed dividers and actions', () => {
       const items: ContextMenuItem[] = [
-        { label: 'Cut', onClick: fn() },
+        { label: 'Cut', onClick: vi.fn() },
         { divider: true },
-        { label: 'Copy', onClick: fn() },
+        { label: 'Copy', onClick: vi.fn() },
         { divider: true },
-        { label: 'Paste', onClick: fn() },
+        { label: 'Paste', onClick: vi.fn() },
       ];
       const { vnode } = renderContextMenu({ items });
       expect(vnode).not.toBeNull();
@@ -154,7 +154,7 @@ describe('ContextMenu', () => {
             {
               label: 'Level 2',
               children: [
-                { label: 'Level 3', onClick: fn() },
+                { label: 'Level 3', onClick: vi.fn() },
               ],
             },
           ],

@@ -1,7 +1,8 @@
+// @vitest-environment node
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { CpuPipeline } from '../src/cpu-pipeline';
 import { SceneGraph } from '../src/scene-graph';
 import { SceneObject } from '../src/scene-object';
@@ -14,17 +15,17 @@ import { createMaterial } from '../src/material';
 /** Create a mock CanvasRenderingContext2D with all needed methods. */
 function createMockCtx() {
   return {
-    save: fn(),
-    restore: fn(),
-    beginPath: fn(),
-    rect: fn(),
-    clip: fn(),
-    fillRect: fn(),
-    moveTo: fn(),
-    lineTo: fn(),
-    closePath: fn(),
-    fill: fn(),
-    stroke: fn(),
+    save: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    rect: vi.fn(),
+    clip: vi.fn(),
+    fillRect: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    fill: vi.fn(),
+    stroke: vi.fn(),
     fillStyle: '',
     strokeStyle: '',
     lineWidth: 1,
@@ -35,7 +36,7 @@ function createMockCtx() {
 /** Create a mock canvas that returns the given ctx from getContext('2d'). */
 function createMockCanvas(ctx: ReturnType<typeof createMockCtx>) {
   return {
-    getContext: fn((type: string) => {
+    getContext: vi.fn((type: string) => {
       if (type === '2d') return ctx;
       return null;
     }),
@@ -108,7 +109,7 @@ describe('CpuPipeline', () => {
 
     it('handles canvas returning null context gracefully', () => {
       const canvas = {
-        getContext: fn().mockReturnValue(null),
+        getContext: vi.fn().mockReturnValue(null),
       } as unknown as HTMLCanvasElement;
       const pipeline = new CpuPipeline();
       // initialize with null ctx should not throw

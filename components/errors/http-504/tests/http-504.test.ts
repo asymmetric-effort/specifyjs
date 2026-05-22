@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Http504 } from "../src/index";
 import { HttpErrorPage } from "../../_shared/src/index";
 import {
@@ -62,7 +62,7 @@ describe("Http504 -- overrides", () => {
   });
 
   it("passes custom onAction handler", () => {
-    const onAction = fn();
+    const onAction = vi.fn();
     const vnode = Http504({ onAction });
     expect(vnode.props.onAction).toBe(onAction);
   });
@@ -149,7 +149,7 @@ describe("Http504 -- rendered output", () => {
   });
 
   it("calls onAction when primary button is clicked", () => {
-    const onAction = fn();
+    const onAction = vi.fn();
     const vnode = Http504({ onAction });
     const rendered = vnode.type(vnode.props);
     const children = Array.isArray(rendered.props.children)

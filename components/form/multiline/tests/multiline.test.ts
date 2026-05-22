@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { MultilineField } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -29,7 +29,7 @@ describe('MultilineField', () => {
     });
 
     it('fires onChange on input', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(MultilineField, { value: '', onChange: handler }));
       const textarea = el.querySelector('textarea') as HTMLTextAreaElement;
       textarea.value = 'updated';
@@ -87,7 +87,7 @@ describe('MultilineField', () => {
 
   describe('interaction', () => {
     it('typing updates via onChange', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(MultilineField, { value: '', onChange: handler }));
       const textarea = el.querySelector('textarea') as HTMLTextAreaElement;
       textarea.value = 'new content';
@@ -96,7 +96,7 @@ describe('MultilineField', () => {
     });
 
     it('fires onBlur when textarea loses focus', () => {
-      const handler = fn();
+      const handler = vi.fn();
       const el = render(createElement(MultilineField, { value: 'val', onBlur: handler }));
       const textarea = el.querySelector('textarea') as HTMLTextAreaElement;
       textarea.dispatchEvent(new Event('blur', { bubbles: true }));

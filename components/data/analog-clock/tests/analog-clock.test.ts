@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, spyOn, useFakeTimers, useRealTimers, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AnalogClock } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -56,54 +56,54 @@ describe('AnalogClock', () => {
     });
 
     it('shows second hand when showSeconds=true (default)', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 30, 15));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 30, 15));
       const { container } = render(createElement(AnalogClock, {}));
       // Count line elements: 12 ticks + hour hand + minute hand + second hand = 15
       const lines = container.querySelectorAll('line');
       // 12 tick marks + 3 hands (hour, minute, second)
       expect(lines.length).toBe(15);
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('hides second hand when showSeconds=false', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 30, 15));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 30, 15));
       const { container } = render(createElement(AnalogClock, { showSeconds: false }));
       const lines = container.querySelectorAll('line');
       // 12 tick marks + 2 hands (hour, minute) = 14
       expect(lines.length).toBe(14);
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('shows date when showDate=true with short format', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
       const { container } = render(createElement(AnalogClock, { showDate: true, dateFormat: 'short' }));
       expect(container.textContent).toContain('04/25/2026');
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('shows date when showDate=true with long format', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
       const { container } = render(createElement(AnalogClock, { showDate: true, dateFormat: 'long' }));
       expect(container.textContent).toContain('April');
       expect(container.textContent).toContain('2026');
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('shows date when showDate=true with iso format', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 0, 0));
       const { container } = render(createElement(AnalogClock, { showDate: true, dateFormat: 'iso' }));
       expect(container.textContent).toContain('2026-04-25');
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('renders with custom className', () => {
@@ -133,27 +133,27 @@ describe('AnalogClock', () => {
 
   describe('interaction', () => {
     it('sets up a 1-second interval for updates', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 30, 0));
-      const setIntervalSpy = spyOn(globalThis, 'setInterval');
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 30, 0));
+      const setIntervalSpy = vi.spyOn(globalThis, 'setInterval');
       const { root } = render(createElement(AnalogClock, { showSeconds: true }));
       expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 1000);
       setIntervalSpy.mockRestore();
       root.unmount();
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
 
     it('cleans up interval on unmount', () => {
-      const clock = useFakeTimers({ shouldAdvanceTime: true });
-      clock.setSystemTime(new Date(2026, 3, 25, 10, 30, 0));
-      const clearIntervalSpy = spyOn(globalThis, 'clearInterval');
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2026, 3, 25, 10, 30, 0));
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
       const { root } = render(createElement(AnalogClock, {}));
       root.unmount();
       expect(clearIntervalSpy).toHaveBeenCalled();
       clearIntervalSpy.mockRestore();
-      
-      useRealTimers();
+      vi.clearAllTimers();
+      vi.useRealTimers();
     });
   });
 });

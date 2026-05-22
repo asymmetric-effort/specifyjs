@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, spyOn, useFakeTimers, useRealTimers, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SystemTray } from '../src/index';
 import type { SystemTrayProps, SystemTrayIndicator, SystemTrayUser } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -43,29 +43,27 @@ const sampleUser: SystemTrayUser = {
 };
 
 const sampleIndicators: SystemTrayIndicator[] = [
-  { id: 'volume', icon: '\uD83D\uDD0A', label: '75%', onClick: fn() },
-  { id: 'wifi', icon: '\uD83D\uDCF6', onClick: fn() },
-  { id: 'battery', icon: '\uD83D\uDD0B', label: '80%', onClick: fn() },
+  { id: 'volume', icon: '\uD83D\uDD0A', label: '75%', onClick: vi.fn() },
+  { id: 'wifi', icon: '\uD83D\uDCF6', onClick: vi.fn() },
+  { id: 'battery', icon: '\uD83D\uDD0B', label: '80%', onClick: vi.fn() },
 ];
 
 const sampleMenuItems: SystemTrayProps['userMenuItems'] = [
-  { label: 'Settings', icon: '\u2699\uFE0F', onClick: fn() },
-  { label: 'divider', divider: true, onClick: fn() },
-  { label: 'Log Out', icon: '\uD83D\uDEAA', onClick: fn() },
+  { label: 'Settings', icon: '\u2699\uFE0F', onClick: vi.fn() },
+  { label: 'divider', divider: true, onClick: vi.fn() },
+  { label: 'Log Out', icon: '\uD83D\uDEAA', onClick: vi.fn() },
 ];
 
 // -- Happy path tests -------------------------------------------------------
 
 describe('SystemTray', () => {
-  let clock: ReturnType<typeof useFakeTimers>;
-
   beforeEach(() => {
-    clock = useFakeTimers();
-    clock.setSystemTime(new Date(2026, 4, 17, 15, 42, 3)); // Sat May 17 2026 15:42:03
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 17, 15, 42, 3)); // Sat May 17 2026 15:42:03
   });
 
   afterEach(() => {
-    useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('happy path', () => {
@@ -115,7 +113,7 @@ describe('SystemTray', () => {
     });
 
     it('renders activities button when provided', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const container = renderToContainer(
         createElement(SystemTray, {
           activitiesButton: { label: 'Activities', onClick },
@@ -293,7 +291,7 @@ describe('SystemTray', () => {
     });
 
     it('renders full system tray with all props', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const container = renderToContainer(
         createElement(SystemTray, {
           activeAppName: 'Terminal',
@@ -405,7 +403,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 12h format at midnight (0:00)', () => {
-      clock.setSystemTime(new Date(2026, 4, 17, 0, 0, 0)); // midnight
+      vi.setSystemTime(new Date(2026, 4, 17, 0, 0, 0)); // midnight
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '12h' }),
       );
@@ -414,7 +412,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 12h format at noon (12:00)', () => {
-      clock.setSystemTime(new Date(2026, 4, 17, 12, 0, 0));
+      vi.setSystemTime(new Date(2026, 4, 17, 12, 0, 0));
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '12h' }),
       );
@@ -423,7 +421,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 24h format at midnight', () => {
-      clock.setSystemTime(new Date(2026, 4, 17, 0, 5, 9));
+      vi.setSystemTime(new Date(2026, 4, 17, 0, 5, 9));
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '24h' }),
       );
@@ -436,7 +434,7 @@ describe('SystemTray', () => {
 
   describe('interaction', () => {
     it('calls activities button onClick', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const container = renderToContainer(
         createElement(SystemTray, {
           activitiesButton: { label: 'Activities', onClick },
@@ -450,7 +448,7 @@ describe('SystemTray', () => {
     });
 
     it('calls indicator onClick when clicked', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const indicators: SystemTrayIndicator[] = [
         { id: 'vol', icon: '\uD83D\uDD0A', label: 'Volume', onClick },
       ];
@@ -504,7 +502,7 @@ describe('SystemTray', () => {
     });
 
     it('calls menu item onClick and closes dropdown on item click', async () => {
-      const onSettings = fn();
+      const onSettings = vi.fn();
       const items: SystemTrayProps['userMenuItems'] = [
         { label: 'Settings', onClick: onSettings },
       ];
@@ -547,9 +545,9 @@ describe('SystemTray', () => {
 
     it('renders divider in user menu items', async () => {
       const items: SystemTrayProps['userMenuItems'] = [
-        { label: 'Item1', onClick: fn() },
-        { label: 'sep', divider: true, onClick: fn() },
-        { label: 'Item2', onClick: fn() },
+        { label: 'Item1', onClick: vi.fn() },
+        { label: 'sep', divider: true, onClick: vi.fn() },
+        { label: 'Item2', onClick: vi.fn() },
       ];
       const container = renderToContainer(
         createElement(SystemTray, {
@@ -571,18 +569,18 @@ describe('SystemTray', () => {
       );
       expect(container.textContent).toContain('15:42:03');
       // Advance by 1 second
-      clock.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       await tick();
       expect(container.textContent).toContain('15:42:04');
       // Advance by another second
-      clock.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       await tick();
       expect(container.textContent).toContain('15:42:05');
       cleanup(container);
     });
 
     it('cleans up clock interval on unmount', () => {
-      const clearIntervalSpy = spyOn(globalThis, 'clearInterval');
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
       const container = renderToContainer(
         createElement(SystemTray, {}),
       );
@@ -593,7 +591,7 @@ describe('SystemTray', () => {
     });
 
     it('activities button responds to Enter key', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const container = renderToContainer(
         createElement(SystemTray, {
           activitiesButton: { label: 'Activities', onClick },
@@ -607,7 +605,7 @@ describe('SystemTray', () => {
     });
 
     it('activities button responds to Space key', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const container = renderToContainer(
         createElement(SystemTray, {
           activitiesButton: { label: 'Activities', onClick },
@@ -621,7 +619,7 @@ describe('SystemTray', () => {
     });
 
     it('indicator button responds to Enter key', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const indicators: SystemTrayIndicator[] = [
         { id: 'vol', icon: '\uD83D\uDD0A', label: 'Volume', onClick },
       ];
@@ -636,7 +634,7 @@ describe('SystemTray', () => {
     });
 
     it('indicator button responds to Space key', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const indicators: SystemTrayIndicator[] = [
         { id: 'vol', icon: '\uD83D\uDD0A', label: 'Volume', onClick },
       ];
@@ -700,7 +698,7 @@ describe('SystemTray', () => {
 
     it('menu item icon is rendered when provided', async () => {
       const items: SystemTrayProps['userMenuItems'] = [
-        { label: 'Settings', icon: '\u2699\uFE0F', onClick: fn() },
+        { label: 'Settings', icon: '\u2699\uFE0F', onClick: vi.fn() },
       ];
       const container = renderToContainer(
         createElement(SystemTray, {
@@ -716,7 +714,7 @@ describe('SystemTray', () => {
     });
 
     it('menu item responds to Enter key', async () => {
-      const onSettings = fn();
+      const onSettings = vi.fn();
       const items: SystemTrayProps['userMenuItems'] = [
         { label: 'Settings', onClick: onSettings },
       ];
@@ -738,7 +736,7 @@ describe('SystemTray', () => {
     });
 
     it('menu item responds to Space key', async () => {
-      const onSettings = fn();
+      const onSettings = vi.fn();
       const items: SystemTrayProps['userMenuItems'] = [
         { label: 'Settings', onClick: onSettings },
       ];
@@ -791,7 +789,7 @@ describe('SystemTray', () => {
 
     it('indicators have tabindex="0" for keyboard focus', () => {
       const indicators: SystemTrayIndicator[] = [
-        { id: 'vol', icon: '\uD83D\uDD0A', label: 'Volume', onClick: fn() },
+        { id: 'vol', icon: '\uD83D\uDD0A', label: 'Volume', onClick: vi.fn() },
       ];
       const container = renderToContainer(
         createElement(SystemTray, { indicators }),
@@ -804,7 +802,7 @@ describe('SystemTray', () => {
     it('activities button has tabindex="0" for keyboard focus', () => {
       const container = renderToContainer(
         createElement(SystemTray, {
-          activitiesButton: { label: 'Activities', onClick: fn() },
+          activitiesButton: { label: 'Activities', onClick: vi.fn() },
         }),
       );
       const btn = container.querySelector('[aria-label="Activities"]') as HTMLElement;

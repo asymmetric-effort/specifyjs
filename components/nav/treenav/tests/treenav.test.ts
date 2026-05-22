@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { TreeNav, TreeNode } from '../src/index';
 import type { TreeNodeData, TreeNavProps } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -154,7 +154,7 @@ describe('TreeNav', () => {
     });
 
     it('calls onNodeClick callback', () => {
-      const onNodeClick = fn();
+      const onNodeClick = vi.fn();
       const container = renderToContainer(
         createElement(TreeNav, { root: sampleTree, onNodeClick }),
       );
@@ -165,7 +165,7 @@ describe('TreeNav', () => {
     });
 
     it('calls onNodeExpand when node is expanded', () => {
-      const onNodeExpand = fn();
+      const onNodeExpand = vi.fn();
       const container = renderToContainer(
         createElement(TreeNav, { root: sampleTree, onNodeExpand }),
       );

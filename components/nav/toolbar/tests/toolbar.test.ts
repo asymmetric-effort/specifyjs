@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { Toolbar } from '../src/index';
 import type { ToolbarProps, ToolbarItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -20,10 +20,10 @@ function cleanup(container: HTMLElement) {
 }
 
 const sampleItems: ToolbarItem[] = [
-  { id: 'bold', label: 'Bold', icon: 'B', type: 'button', onClick: fn() },
-  { id: 'italic', label: 'Italic', icon: 'I', type: 'button', onClick: fn() },
+  { id: 'bold', label: 'Bold', icon: 'B', type: 'button', onClick: vi.fn() },
+  { id: 'italic', label: 'Italic', icon: 'I', type: 'button', onClick: vi.fn() },
   { id: 'sep1', type: 'separator', id: 'sep1' } as ToolbarItem,
-  { id: 'underline', label: 'Underline', icon: 'U', type: 'button', onClick: fn() },
+  { id: 'underline', label: 'Underline', icon: 'U', type: 'button', onClick: vi.fn() },
 ];
 
 // -- Happy path tests -------------------------------------------------------
@@ -107,7 +107,7 @@ describe('Toolbar', () => {
     });
 
     it('renders disabled buttons', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: ToolbarItem[] = [
         { id: 'dis', label: 'Disabled', type: 'button', disabled: true, onClick },
       ];
@@ -136,7 +136,7 @@ describe('Toolbar', () => {
 
   describe('interaction', () => {
     it('calls onClick when button is clicked', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: ToolbarItem[] = [
         { id: 'clickable', label: 'Click', type: 'button', onClick },
       ];

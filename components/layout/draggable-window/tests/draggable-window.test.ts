@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DraggableWindow } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';
@@ -119,7 +119,7 @@ describe('DraggableWindow', () => {
     });
 
     it('calls onClose when close button is clicked', async () => {
-      const onClose = fn();
+      const onClose = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', onClose }));
       const btn = container.querySelector('.draggable-window__btn-close') as HTMLElement;
       btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -128,7 +128,7 @@ describe('DraggableWindow', () => {
     });
 
     it('calls onMinimize when minimize button is clicked', async () => {
-      const onMinimize = fn();
+      const onMinimize = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', onMinimize }));
       const btn = container.querySelector('.draggable-window__btn-minimize') as HTMLElement;
       btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -137,7 +137,7 @@ describe('DraggableWindow', () => {
     });
 
     it('calls onMaximize when maximize button is clicked', async () => {
-      const onMaximize = fn();
+      const onMaximize = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', onMaximize }));
       const btn = container.querySelector('.draggable-window__btn-maximize') as HTMLElement;
       btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -338,7 +338,7 @@ describe('DraggableWindow', () => {
     });
 
     it('calls onFocus when window is clicked', async () => {
-      const onFocus = fn();
+      const onFocus = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', onFocus }));
       const el = container.querySelector('.draggable-window') as HTMLElement;
       el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -439,7 +439,7 @@ describe('DraggableWindow', () => {
 
   describe('escape key', () => {
     it('fires onClose when Escape is pressed and window is focused', async () => {
-      const onClose = fn();
+      const onClose = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', focused: true, onClose }));
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await new Promise((r) => setTimeout(r, 20));
@@ -447,7 +447,7 @@ describe('DraggableWindow', () => {
     });
 
     it('does not fire onClose when Escape is pressed and window is unfocused', async () => {
-      const onClose = fn();
+      const onClose = vi.fn();
       render(
         createElement(DraggableWindow, { id: 'w', title: 'T', focused: false, onClose }),
       );
@@ -463,7 +463,7 @@ describe('DraggableWindow', () => {
 
   describe('double-click title bar', () => {
     it('calls onMaximize on double-click', async () => {
-      const onMaximize = fn();
+      const onMaximize = vi.fn();
       render(createElement(DraggableWindow, { id: 'w', title: 'T', onMaximize }));
       const bar = container.querySelector('.draggable-window__title-bar') as HTMLElement;
       bar.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
@@ -544,12 +544,12 @@ describe('DraggableWindow', () => {
             windowState: 'normal',
             focused: true,
             zIndex: 10,
-            onClose: fn(),
-            onMinimize: fn(),
-            onMaximize: fn(),
-            onFocus: fn(),
-            onMove: fn(),
-            onResize: fn(),
+            onClose: vi.fn(),
+            onMinimize: vi.fn(),
+            onMaximize: vi.fn(),
+            onFocus: vi.fn(),
+            onMove: vi.fn(),
+            onResize: vi.fn(),
           },
           createElement('div', null, 'full content'),
         ),

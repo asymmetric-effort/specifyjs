@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Dropdown } from '../src/index';
 import type { DropdownProps, DropdownItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -24,9 +24,9 @@ async function tick() {
 }
 
 const sampleItems: DropdownItem[] = [
-  { id: 'a', label: 'Alpha', onClick: fn() },
-  { id: 'b', label: 'Beta', onClick: fn() },
-  { id: 'c', label: 'Gamma', onClick: fn() },
+  { id: 'a', label: 'Alpha', onClick: vi.fn() },
+  { id: 'b', label: 'Beta', onClick: vi.fn() },
+  { id: 'c', label: 'Gamma', onClick: vi.fn() },
 ];
 
 // -- Happy path tests -------------------------------------------------------
@@ -118,7 +118,7 @@ describe('Dropdown', () => {
     });
 
     it('renders disabled items as non-interactive', async () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: DropdownItem[] = [
         { id: 'dis', label: 'Disabled', disabled: true, onClick },
       ];
@@ -180,7 +180,7 @@ describe('Dropdown', () => {
     });
 
     it('calls onClick when item is clicked', async () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: DropdownItem[] = [
         { id: 'click-me', label: 'Click Me', onClick },
       ];

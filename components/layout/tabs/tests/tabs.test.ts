@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Tabs } from '../src/index';
 import type { TabDefinition } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -85,7 +85,7 @@ describe('Tabs', () => {
     });
 
     it('calls onChange on tab switch', () => {
-      const onChange = fn();
+      const onChange = vi.fn();
       render(createElement(Tabs, { tabs: makeTabs(), onChange }));
       const buttons = container.querySelectorAll('[role="tab"]');
       (buttons[2] as HTMLElement).click();
@@ -156,7 +156,7 @@ describe('Tabs', () => {
     });
 
     it('renders with all props set', () => {
-      const onChange = fn();
+      const onChange = vi.fn();
       render(createElement(Tabs, {
         tabs: makeTabs(),
         activeTab: 'tab3',

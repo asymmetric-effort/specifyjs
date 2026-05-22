@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { VideoPlayer } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -125,19 +125,19 @@ describe('VideoPlayer — interaction', () => {
   });
 
   it('calls onPlay callback', () => {
-    const onPlay = fn();
+    const onPlay = vi.fn();
     const el = VideoPlayer({ src: 'video.mp4', onPlay });
     expect(el).not.toBeNull();
   });
 
   it('calls onPause callback', () => {
-    const onPause = fn();
+    const onPause = vi.fn();
     const el = VideoPlayer({ src: 'video.mp4', onPause });
     expect(el).not.toBeNull();
   });
 
   it('calls onEnded callback', () => {
-    const onEnded = fn();
+    const onEnded = vi.fn();
     const el = VideoPlayer({ src: 'video.mp4', onEnded });
     expect(el).not.toBeNull();
   });

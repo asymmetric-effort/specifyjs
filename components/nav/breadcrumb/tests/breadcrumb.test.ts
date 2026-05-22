@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi } from 'vitest';
 import { Breadcrumb } from '../src/index';
 import type { BreadcrumbProps, BreadcrumbItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';
@@ -136,7 +136,7 @@ describe('Breadcrumb', () => {
 
   describe('interaction', () => {
     it('calls onClick when breadcrumb item is clicked', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: BreadcrumbItem[] = [
         { label: 'Clickable', onClick },
         { label: 'Current' },
@@ -190,7 +190,7 @@ describe('Breadcrumb', () => {
     });
 
     it('prevents default on link with onClick', () => {
-      const onClick = fn();
+      const onClick = vi.fn();
       const items: BreadcrumbItem[] = [
         { label: 'Link', href: '/test', onClick },
         { label: 'Current' },

@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, fn, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Alert } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -65,7 +65,7 @@ describe('Alert — happy path', () => {
   });
 
   it('renders with action button', () => {
-    const onClick = fn();
+    const onClick = vi.fn();
     const el = Alert({ message: 'Action', action: { label: 'Retry', onClick } });
     expect(el).not.toBeNull();
   });
@@ -103,7 +103,7 @@ describe('Alert — sad path', () => {
 
 describe('Alert — interaction', () => {
   it('renders close button when closable', () => {
-    const onClose = fn();
+    const onClose = vi.fn();
     const el = Alert({ closable: true, onClose, message: 'Closable' });
     expect(el).not.toBeNull();
     // Close button should be present as last child
@@ -122,7 +122,7 @@ describe('Alert — interaction', () => {
   });
 
   it('renders action button with correct label', () => {
-    const onClick = fn();
+    const onClick = vi.fn();
     const el = Alert({ message: 'Act', action: { label: 'Do it', onClick } });
     expect(el).not.toBeNull();
   });

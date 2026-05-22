@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, beforeEach, afterEach, fn } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PolarGraph2D } from '../src/index';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
@@ -92,7 +92,7 @@ describe('PolarGraph2D — happy path', () => {
 
 describe('PolarGraph2D — interaction', () => {
   it('fires onPointClick', () => {
-    const handler = fn();
+    const handler = vi.fn();
     const el = PolarGraph2D({
       points: [{ r: 1, theta: 0 }],
       onPointClick: handler,
@@ -109,7 +109,7 @@ describe('PolarGraph2D — interaction', () => {
   });
 
   it('fires onPointHover on mouseenter', () => {
-    const handler = fn();
+    const handler = vi.fn();
     const el = PolarGraph2D({
       points: [{ r: 2, theta: Math.PI }],
       onPointHover: handler,

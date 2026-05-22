@@ -27,29 +27,44 @@ import {
 
 // ── Planet data ────────────────────────────────────────────────────────
 
+// AU_SCALE: 1 AU = 10 world units (linear, not logarithmic)
+const AU_SCALE = 10;
+// Planet sizes are exaggerated so they're visible (real scale would be invisible dots)
+const SIZE_EXAGGERATION = 0.003; // radiusKm * this = world units
+const MIN_PLANET_SIZE = 0.2;
+
 interface PlanetDef {
   id: string;
   label: string;
   r: number;
   g: number;
   b: number;
-  distance: number;   // distance from sun in scene units
-  size: number;        // box half-extent scale
-  orbitSpeed: number;  // relative to Earth = 1
+  distAU: number;      // real distance from sun in AU
+  radiusKm: number;    // real radius in km
+  orbitSpeed: number;  // relative to Earth = 1 (derived from real periods)
 }
 
 const PLANETS: PlanetDef[] = [
-  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, distance: 4,  size: 0.3, orbitSpeed: 4.0  },
-  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, distance: 7,  size: 0.6, orbitSpeed: 1.6  },
-  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, distance: 10, size: 0.6, orbitSpeed: 1.0  },
-  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, distance: 15, size: 0.4, orbitSpeed: 0.53 },
-  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, distance: 25, size: 1.8, orbitSpeed: 0.4  },
-  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, distance: 35, size: 1.5, orbitSpeed: 0.32 },
-  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, distance: 45, size: 1.0, orbitSpeed: 0.18 },
-  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distance: 55, size: 1.0, orbitSpeed: 0.1  },
+  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, distAU: 0.387,  radiusKm: 2440,  orbitSpeed: 4.15  },
+  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, distAU: 0.723,  radiusKm: 6052,  orbitSpeed: 1.63  },
+  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, distAU: 1.0,    radiusKm: 6371,  orbitSpeed: 1.0   },
+  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, distAU: 1.524,  radiusKm: 3390,  orbitSpeed: 0.531 },
+  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, distAU: 5.203,  radiusKm: 69911, orbitSpeed: 0.084 },
+  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, distAU: 9.537,  radiusKm: 58232, orbitSpeed: 0.034 },
+  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, distAU: 19.19,  radiusKm: 25362, orbitSpeed: 0.012 },
+  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distAU: 30.07,  radiusKm: 24622, orbitSpeed: 0.006 },
 ];
 
-const SUN_SIZE = 3;
+const SUN_RADIUS_KM = 695700;
+const SUN_SIZE = Math.max(SUN_RADIUS_KM * SIZE_EXAGGERATION, 2);
+
+function planetSize(radiusKm: number): number {
+  return Math.max(radiusKm * SIZE_EXAGGERATION, MIN_PLANET_SIZE);
+}
+
+function planetDist(distAU: number): number {
+  return distAU * AU_SCALE;
+}
 
 // ── Canvas & viewport dimensions ───────────────────────────────────────
 
@@ -88,19 +103,20 @@ export function PlanetsScreen() {
     const scene = new SceneGraph();
 
     // Sun at origin
-    const sunMesh = Mesh.createSphere(SUN_SIZE / 2, 20, 30);
+    const sunMesh = Mesh.createSphere(SUN_SIZE, 20, 30);
     const sunObj = new SceneObject('sun');
     sunObj.position = { x: 0, y: 0, z: 0 };
     sunObj.mesh = sunMesh;
-    sunObj.material = createMaterial({ r: 0.98, g: 0.75, b: 0.15, a: 1 });
+    sunObj.material = createMaterial({ r: 0.98, g: 0.85, b: 0.15, a: 1 });
     scene.register(sunObj);
 
     // Planet scene objects
     const planetObjects: SceneObject[] = [];
     for (const p of PLANETS) {
-      const mesh = Mesh.createSphere(p.size / 2, 12, 18);
+      const radius = planetSize(p.radiusKm);
+      const mesh = Mesh.createSphere(radius, 12, 18);
       const obj = new SceneObject(p.id);
-      obj.position = { x: p.distance, y: 0, z: 0 };
+      obj.position = { x: planetDist(p.distAU), y: 0, z: 0 };
       obj.mesh = mesh;
       obj.material = createMaterial({ r: p.r, g: p.g, b: p.b, a: 1 });
       scene.register(obj);
@@ -108,12 +124,13 @@ export function PlanetsScreen() {
     }
 
     // ── Camera 1: View from Earth (perspective) ──
+    const earthDist = planetDist(1.0); // 1 AU
     const earthCam = new Camera({
-      position: { x: 10, y: 2, z: 5 },
+      position: { x: earthDist, y: 1, z: 3 },
       fov: Math.PI / 3,
       aspect: (VP_WIDTH - DIVIDER) / VP_HEIGHT,
-      near: 0.1,
-      far: 500,
+      near: 0.01,
+      far: 1000,
     });
     earthCam.lookAt({ x: 0, y: 0, z: 0 });
 
@@ -127,8 +144,10 @@ export function PlanetsScreen() {
     });
 
     // ── Camera 2: Oort Cloud view at 45° from orbital plane ──
-    const oortDist = 200;
-    const oortAngle = Math.PI / 4; // 45 degrees from horizontal
+    const maxDist = planetDist(30.07); // Neptune in world units
+    const oortBounds = maxDist * 1.2;  // 20% margin
+    const oortDist = oortBounds * 2;
+    const oortAngle = Math.PI / 4;
     const oortCam = new Camera({
       projectionMode: 'orthographic',
       position: {
@@ -136,12 +155,12 @@ export function PlanetsScreen() {
         y: oortDist * Math.sin(oortAngle),
         z: oortDist * Math.cos(oortAngle),
       },
-      left: -70,
-      right: 70,
-      top: 70,
-      bottom: -70,
+      left: -oortBounds,
+      right: oortBounds,
+      top: oortBounds,
+      bottom: -oortBounds,
       near: 0.1,
-      far: 500,
+      far: oortDist * 3,
     });
     oortCam.lookAt({ x: 0, y: 0, z: 0 });
 
@@ -175,9 +194,9 @@ export function PlanetsScreen() {
         const obj = planetObjects[i]!;
         const angle = totalTime * p.orbitSpeed * 0.5;
         obj.position = {
-          x: Math.cos(angle) * p.distance,
+          x: Math.cos(angle) * planetDist(p.distAU),
           y: 0,
-          z: Math.sin(angle) * p.distance,
+          z: Math.sin(angle) * planetDist(p.distAU),
         };
       }
 
@@ -219,7 +238,7 @@ export function PlanetsScreen() {
         ctx.lineWidth = 0.5;
         for (const p of PLANETS) {
           ctx.beginPath();
-          ctx.arc(ocx, ocy, p.distance * scale, 0, Math.PI * 2);
+          ctx.arc(ocx, ocy, planetDist(p.distAU) * scale, 0, Math.PI * 2);
           ctx.stroke();
         }
 
@@ -288,8 +307,8 @@ export function PlanetsScreen() {
         createElement('thead', null,
           createElement('tr', null,
             createElement('th', { style: { textAlign: 'left', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Planet'),
-            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Dist'),
-            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Size'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Distance'),
+            createElement('th', { style: { textAlign: 'right', padding: '2px 6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' } }, 'Radius'),
           ),
         ),
         createElement('tbody', null,
@@ -307,8 +326,8 @@ export function PlanetsScreen() {
                   style: { color: `rgb(${Math.round(p.r * 255)},${Math.round(p.g * 255)},${Math.round(p.b * 255)})`, fontWeight: '600' },
                 }, p.label),
               ),
-              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(p.distance)),
-              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, String(p.size)),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.distAU} AU`),
+              createElement('td', { style: { textAlign: 'right', padding: '2px 6px' } }, `${p.radiusKm} km`),
             ),
           ),
         ),

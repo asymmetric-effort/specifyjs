@@ -213,12 +213,15 @@ export function PlanetsScreen() {
       const curPlanet = PLANETS[currentPlanetIdx]!;
       const curObj = planetObjects[currentPlanetIdx]!;
       const curRadius = planetSize(curPlanet.radiusKm);
-      const camOffset = curRadius + 10;
+      // Camera at 3x planet radius or minimum 5 units above surface
+      const camAlt = Math.max(curRadius * 3, curRadius + 5);
       planetCam.position = {
         x: curObj.position.x,
-        y: camOffset,
+        y: camAlt,
         z: curObj.position.z,
       };
+      // Near plane must be > 0 and far enough to avoid z-fighting with planet surface
+      planetCam.near = Math.max(0.1, curRadius * 0.5);
       planetCam.lookAt({ x: 0, y: 0, z: 0 });
 
       // ── Render left viewport (planet view) ──

@@ -93,7 +93,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@asymmetric-effort/nogginlessdom": "^0.0.5",
+    "@asymmetric-effort/nogginlessdom": "^0.0.12",
     "@playwright/test": "^1.59.0",
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-terser": "^1.0.0",

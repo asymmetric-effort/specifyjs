@@ -5,7 +5,7 @@
     "": {
       "name": "@asymmetric-effort/specifyjs",
       "devDependencies": {
-        "@asymmetric-effort/nogginlessdom": "^0.0.5",
+        "@asymmetric-effort/nogginlessdom": "^0.0.12",
         "@playwright/test": "^1.59.0",
         "@rollup/plugin-node-resolve": "^16.0.0",
         "@rollup/plugin-terser": "^1.0.0",
@@ -36,7 +36,7 @@
 
     "@asamuzakjp/nwsapi": ["@asamuzakjp/nwsapi@2.3.9", "", {}, "sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q=="],
 
-    "@asymmetric-effort/nogginlessdom": ["@asymmetric-effort/nogginlessdom@0.0.5", "", {}, "sha512-NAO2vY5T0vdPGl8b21+z8nB5aJy4cYngCwsnhjjMl7+iwYbeMGXSpqMZVISd6D+uSCdYpphtYshLpUguTFLfQA=="],
+    "@asymmetric-effort/nogginlessdom": ["@asymmetric-effort/nogginlessdom@0.0.12", "", {}, "sha512-ORUzleRBPFSdNsWzXdgt5GU6rIriBEa187uOpyqJD1L5onDk+nqu6NLpHdIrPSWCOWixVIZTviqHIfNrJUJ+eA=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, ""],
 

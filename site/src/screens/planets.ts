@@ -27,11 +27,11 @@ import {
 
 // ── Planet data ────────────────────────────────────────────────────────
 
-// AU_SCALE: 1 AU = 10 world units (linear, not logarithmic)
-const AU_SCALE = 10;
+// AU_SCALE: 1 AU = 30 world units (linear, not logarithmic)
+const AU_SCALE = 30;
 // Planet sizes are exaggerated so they're visible (real scale would be invisible dots)
-const SIZE_EXAGGERATION = 0.00005; // radiusKm * this = world units
-const MIN_PLANET_SIZE = 0.2;
+const SIZE_EXAGGERATION = 0.00002; // radiusKm * this = world units
+const MIN_PLANET_SIZE = 0.15;
 const CAMERA_SWITCH_INTERVAL = 30; // seconds between planet camera switches
 
 interface PlanetDef {
@@ -56,7 +56,7 @@ const PLANETS: PlanetDef[] = [
   { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, distAU: 30.07,  radiusKm: 24622, orbitSpeed: 0.006 },
 ];
 
-const SUN_SIZE = 4; // Fixed visual size (real Sun would dwarf all planets at any shared scale)
+const SUN_SIZE = 2; // Fixed visual size — must be smaller than Mercury's orbit (11.6 units)
 
 function planetSize(radiusKm: number): number {
   return Math.max(radiusKm * SIZE_EXAGGERATION, MIN_PLANET_SIZE);
@@ -125,11 +125,11 @@ export function PlanetsScreen() {
 
     // ── Camera 1: Rotating planet view (perspective) ──
     const planetCam = new Camera({
-      position: { x: 10, y: 1, z: 3 },
+      position: { x: 30, y: 5, z: 10 },
       fov: Math.PI / 3,
       aspect: (VP_WIDTH - DIVIDER) / VP_HEIGHT,
       near: 0.01,
-      far: 1000,
+      far: 3000,
     });
     planetCam.lookAt({ x: 0, y: 0, z: 0 });
 

@@ -1,0 +1,25 @@
+{
+  "source": "samcaldwell.info — US Economy analysis (FRED, BEA, BLS)",
+  "updated": "2026-04-24",
+  "snapshot2026": {
+    "realGdpGrowth": 2.11,
+    "unemploymentRate": 4.33,
+    "cpiInflation": 2.9,
+    "sp500Ytd": 4.0,
+    "fedFundsRate": 3.64,
+    "treasury10y": 4.22,
+    "vixAvg": 20
+  },
+  "historicalRanges": {
+    "unemployment": { "min": 3.62, "max": 9.61 },
+    "fedFunds": { "min": 0.07, "max": 6.40 },
+    "treasury10y": { "min": 0.89, "max": 6.28 },
+    "sp500Return": { "min": -37, "max": 32.4 },
+    "vix": { "min": 11, "max": 33 }
+  },
+  "recessions": [
+    { "start": "2001-03", "end": "2001-11", "label": "Dot-com" },
+    { "start": "2007-12", "end": "2009-06", "label": "Great Recession" },
+    { "start": "2020-02", "end": "2020-04", "label": "COVID-19" }
+  ]
+}

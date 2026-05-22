@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpecifyJS — Declarative TypeScript UI Framework</title>
+  <meta name="description" content="SpecifyJS — A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity.">
+  <meta property="og:site_name" content="SpecifyJS">
+  <meta property="og:title" content="SpecifyJS — Declarative TypeScript UI Framework">
+  <meta property="og:description" content="Zero-dependency TypeScript UI framework with concurrent rendering, 80+ components, and GPU compute abstraction.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://specifyjs.asymmetric-effort.com">
+  <link rel="icon" href="./favicon.ico" sizes="32x32">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script type="module" crossorigin src="./assets/index-C9yfbYLJ.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/ui-components-BJeVp_Lk.js">
+  <link rel="modulepreload" crossorigin href="./assets/page-components-fgTKsZS5.js">
+  <link rel="modulepreload" crossorigin href="./assets/viz-components-DSPnGxzZ.js">
+  <link rel="modulepreload" crossorigin href="./assets/docs-data-CWgOt__D.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-CUx2DqsN.css">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"SpecifyJS","url":"https://specifyjs.asymmetric-effort.com","applicationCategory":"DeveloperApplication","operatingSystem":"Web","description":"A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity. Zero runtime dependencies.","license":"https://opensource.org/licenses/MIT","author":{"@type":"Organization","name":"Asymmetric Effort, LLC","url":"https://asymmetric-effort.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+  </head>
+<body>
+  <div id="root"></div>
+
+    <noscript>
+      <style>
+        .ns-container {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 20px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          line-height: 1.6;
+          color: #1f2937;
+        }
+        .ns-title {
+          font-size: 2rem;
+          margin-bottom: 0.5rem;
+          color: #0f172a;
+        }
+        .ns-desc {
+          font-size: 1.1rem;
+          color: #64748b;
+          margin-bottom: 1.5rem;
+        }
+        .ns-nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 12px 0;
+          border-bottom: 1px solid #e2e8f0;
+          margin-bottom: 2rem;
+          position: sticky;
+          top: 0;
+          background: white;
+          z-index: 10;
+        }
+        .ns-nav-link {
+          padding: 6px 14px;
+          border-radius: 6px;
+          background: #f1f5f9;
+          color: #3b82f6;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .ns-nav-link:hover {
+          background: #3b82f6;
+          color: white;
+        }
+        .ns-section {
+          margin-bottom: 3rem;
+          padding-bottom: 2rem;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .ns-section-title {
+          font-size: 1.5rem;
+          color: #1e293b;
+          margin-bottom: 1rem;
+          padding-top: 1rem;
+        }
+        .ns-section-content h3 {
+          font-size: 1.2rem;
+          margin-top: 1.5rem;
+          color: #334155;
+        }
+        .ns-section-content p {
+          margin: 0.5rem 0;
+        }
+        .ns-section-content pre {
+          background: #1e293b;
+          color: #e2e8f0;
+          padding: 12px 16px;
+          border-radius: 6px;
+          overflow-x: auto;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .ns-section-content code {
+          background: #f1f5f9;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 0.9em;
+        }
+        .ns-section-content pre code {
+          background: none;
+          padding: 0;
+        }
+        .ns-section-content table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 1rem 0;
+        }
+        .ns-section-content th,
+        .ns-section-content td {
+          padding: 8px 12px;
+          border: 1px solid #e2e8f0;
+          text-align: left;
+        }
+        .ns-section-content th {
+          background: #f8fafc;
+          font-weight: 600;
+        }
+        .ns-section-content img {
+          max-width: 100%;
+          height: auto;
+        }
+        .ns-back-to-top {
+          font-size: 13px;
+          margin-top: 1.5rem;
+        }
+        .ns-back-to-top a {
+          color: #3b82f6;
+          text-decoration: none;
+        }
+        .ns-footer {
+          margin-top: 3rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e2e8f0;
+          color: #94a3b8;
+          font-size: 13px;
+          text-align: center;
+        }
+        .ns-js-notice {
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 6px;
+          padding: 12px 16px;
+          margin-bottom: 1.5rem;
+          font-size: 14px;
+          color: #92400e;
+        }
+      </style>
+      <div id="ns-top" class="ns-container">
+        <h1 class="ns-title">SpecifyJS</h1>
+        <p class="ns-desc">A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity.</p>
+        <div class="ns-js-notice">
+          This page works best with JavaScript enabled. You are viewing a
+          static version of the content.
+        </div>
+        <nav class="ns-nav" aria-label="Section navigation">
+          <a href="#home" class="ns-nav-link">Home</a>
+          <a href="#components" class="ns-nav-link">Components</a>
+          <a href="#docs" class="ns-nav-link">Documentation</a>
+          <a href="#concurrent" class="ns-nav-link">Concurrent Rendering</a>
+          <a href="#api" class="ns-nav-link">API Integration</a>
+        </nav>
+        
+      <section id="home" class="ns-section">
+        <h2 class="ns-section-title">Home</h2>
+        <div class="ns-section-content">
+          
+      <h3>SpecifyJS</h3>
+      <p>A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity.</p>
+      <ul>
+        <li><strong>Zero runtime dependencies</strong> — every algorithm implemented from scratch</li>
+        <li><strong>TypeScript-first</strong> — full type definitions, strict mode</li>
+        <li><strong>React API parity</strong> — familiar hooks, components, and patterns</li>
+        <li><strong>Concurrent rendering</strong> — lane-based priority system</li>
+        <li><strong>ARIA compliant</strong> — development-time accessibility warnings</li>
+      </ul>
+      <h3>Getting Started</h3>
+      <pre><code>npm install @asymmetric-effort/specifyjs</code></pre>
+      <pre><code>import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
+
+function App() {
+  return createElement('h1', null, 'Hello, SpecifyJS!');
+}
+
+createRoot(document.getElementById('root')).render(createElement(App, null));</code></pre>
+    
+        </div>
+        <p class="ns-back-to-top"><a href="#ns-top">Back to top</a></p>
+      </section>
+
+      <section id="components" class="ns-section">
+        <h2 class="ns-section-title">Components</h2>
+        <div class="ns-section-content">
+          
+      <p>SpecifyJS includes 80+ reusable components organized into categories:</p>
+      <h3>Form Components</h3>
+      <p>Button, Toggle, TextField, Checkbox, RadioGroup, Select, Slider, NumberSpinner, ColorPicker, DatePicker, TimePicker, FileUpload, MultilineField, TextEditor</p>
+      <h3>Data Display</h3>
+      <p>Badge, Tag, DataGrid, Avatar, ListView, VirtualScroll, DigitalClock, AnalogClock</p>
+      <h3>Feedback</h3>
+      <p>Alert, ProgressBar, Spinner, Skeleton, EmptyState</p>
+      <h3>Navigation</h3>
+      <p>Tabs, Breadcrumb, Pagination, Dropdown, Menubar, Sidebar, Stepper, Toolbar, TreeNav, Accordion</p>
+      <h3>Layout</h3>
+      <p>Card, FlexContainer, Grid, Panel, ScrollContainer, Splitter, Footer</p>
+      <h3>Overlay</h3>
+      <p>Modal, Tooltip, Toast, Drawer, Popover, ContextMenu</p>
+      <h3>Visualization (25+ charts)</h3>
+      <p>BarGraph, LineGraph, PieGraph, Histogram, BoxPlot, BubbleChart, RadarChart, HeatMap, GanttChart, TreeMap, Sunburst, SankeyDiagram, ChordDiagram, ForceGraph, Gauge, BigNumber, WordCloud, and more.</p>
+    
+        </div>
+        <p class="ns-back-to-top"><a href="#ns-top">Back to top</a></p>
+      </section>
+
+      <section id="docs" class="ns-section">
+        <h2 class="ns-section-title">Documentation</h2>
+        <div class="ns-section-content">
+          <p>Complete documentation covering guides, API reference, and architecture.</p><h3>Guides</h3><ul><li><strong>3D Space Demo Guide</strong>: &lt;!-- (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE --&gt;</li><li><strong>Accessibility</strong>: Building accessible applications ensures that all users -- including those who rely on assistive technologies, keyboard navigation, or alternative input devices -- can interact with your UI. SpecifyJS renders standard DOM elements, so all native accessibility features of HTML and ARIA are available through `createElement`.</li><li><strong>Async Function Evaluation</strong>: &lt;!-- (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE --&gt;</li><li><strong>Browser Support</strong>: SpecifyJS targets modern browsers with ES2020+ support. The framework has zero runtime dependencies, so browser compatibility is determined solely by the JavaScript and DOM APIs it uses.</li><li><strong>Building Single-Page Applications</strong>: SpecifyJS is designed for building SPAs that compile to minified JavaScript for high-performance browser execution.</li><li><strong>Code Splitting</strong>: Code splitting lets you break your application into smaller chunks that are loaded on demand. SpecifyJS supports this through `lazy()` for dynamic imports and `Suspense` for rendering fallback UI while chunks load.</li><li><strong>Concurrent Rendering</strong>: Concurrent rendering allows SpecifyJS to work on multiple state updates simultaneously, prioritizing urgent interactions (like typing) over less critical updates (like filtering a large list). This keeps the UI responsive even during expensive renders.</li><li><strong>Core Concepts</strong>: SpecifyJS elements are lightweight objects describing what to render:</li><li><strong>Custom Hooks</strong>: Custom hooks let you extract reusable stateful logic from components. They are regular functions that call built-in hooks internally.</li><li><strong>Deployment</strong>: This guide covers building SpecifyJS applications for production and deploying them to common hosting platforms.</li><li><strong>Error Handling</strong>: Errors in a UI tree can leave the entire application in a broken state. SpecifyJS provides **error boundaries** -- class components that catch errors during rendering, lifecycle methods, and constructors of any component below them in the tree.</li><li><strong>Feature Flags</strong>: SpecifyJS includes a built-in feature flag system based on the Context API. It allows you to gate UI features behind boolean flags, load flag configuration from static JSON, and toggle flags at runtime.</li><li><strong>Forms and Validation</strong>: This guide covers building forms in SpecifyJS, from basic inputs to complex multi-step wizards with async validation.</li><li><strong>Getting Started</strong>: - Node.js 24+</li><li><strong>Meta Tags</strong>: The `useHead` hook lets components declaratively manage document `&lt;head&gt;` meta tags. Tags are applied when the component mounts and cleaned up when it unmounts, preventing stale metadata from persisting across route changes.</li><li><strong>Migrating from React</strong>: SpecifyJS is designed with React API parity. Most React code works with minimal changes.</li><li><strong>Performance Optimization</strong>: This guide explains how SpecifyJS renders, why unnecessary work happens, and the tools available to eliminate it.</li><li><strong>Production Builds</strong>: Build the SpecifyJS library for distribution:</li><li><strong>Render Safety — Render Guard System</strong>: &lt;!-- (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE --&gt;</li><li><strong>Routing</strong>: SpecifyJS includes a built-in hash-based router for single-page applications. The router listens to changes in the URL hash (`window.location.hash`) and renders components conditionally based on the current path. No server configuration is required -- the router works on any static file host, including GitHub Pages, S3, and Netlify.</li><li><strong>SEO — Sitemap, Robots, LLMs, and Noscript Fallback</strong>: &lt;!-- (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE --&gt;</li><li><strong>State Management</strong>: SpecifyJS provides a layered approach to state management. Simple components use `useState`, components with complex transitions use `useReducer`, and cross-component state is shared through the Context API. For integration with external stores, `useSyncExternalStore` provides tear-free reads with automatic re-rendering.</li><li><strong>Styling</strong>: SpecifyJS supports multiple approaches to styling components, from inline styles to CSS classes, CSS modules, and dynamic theming via the Context API.</li><li><strong>Testing</strong>: SpecifyJS applications use three levels of testing.</li><li><strong>Troubleshooting</strong>: Common questions and solutions when working with SpecifyJS.</li><li><strong>TypeScript Patterns</strong>: SpecifyJS is a **TypeScript-first** framework. The entire codebase is written in strict mode (`"strict": true`), and all public APIs ship with full type definitions. This guide covers common typing patterns you will encounter when building SpecifyJS applications.</li><li><strong>Wumpus World Demo</strong>: A 2D demonstration of the classic AI problem from Russell and Norvig's "Artificial Intelligence: A Modern Approach," implemented as a SpecifyJS showcase application. The demo is available at `/#/wumpus` on the showcase site.</li></ul><h3>API Reference</h3><ul><li>API Reference</li><li>Components API</li><li>Compute — GPU Compute Abstraction</li><li>DOM API</li><li>Hooks API</li><li>Math — Linear Algebra Library</li><li>Static Pre-rendering API</li><li>TypeScript Types</li></ul>
+        </div>
+        <p class="ns-back-to-top"><a href="#ns-top">Back to top</a></p>
+      </section>
+
+      <section id="concurrent" class="ns-section">
+        <h2 class="ns-section-title">Concurrent Rendering</h2>
+        <div class="ns-section-content">
+          
+      <p>SpecifyJS implements lane-based concurrent rendering with the same priority levels as React 18:</p>
+      <ul>
+        <li><strong>SyncLane</strong> — highest priority, used by flushSync and discrete events</li>
+        <li><strong>DefaultLane</strong> — normal state updates and event handlers</li>
+        <li><strong>TransitionLane</strong> — lower priority, used with startTransition/useTransition</li>
+      </ul>
+      <h3>useTransition</h3>
+      <p>Mark state updates as non-urgent so they can be interrupted by higher-priority work.</p>
+      <h3>useDeferredValue</h3>
+      <p>Returns a deferred copy of a value that lags behind during urgent updates.</p>
+      <h3>startTransition</h3>
+      <p>Standalone function for marking updates as transitions outside of components.</p>
+    
+        </div>
+        <p class="ns-back-to-top"><a href="#ns-top">Back to top</a></p>
+      </section>
+
+      <section id="api" class="ns-section">
+        <h2 class="ns-section-title">API Integration</h2>
+        <div class="ns-section-content">
+          
+      <p>SpecifyJS applications fetch data via HTTPS from API endpoints. The framework provides:</p>
+      <ul>
+        <li><strong>secureFetch</strong> — HTTPS-only fetch wrapper that blocks insecure requests</li>
+        <li><strong>useFetch hook pattern</strong> — custom hook for data loading with loading/error states</li>
+        <li><strong>Feature flags</strong> — FeatureFlagProvider for feature gating with remote JSON config</li>
+      </ul>
+    
+        </div>
+        <p class="ns-back-to-top"><a href="#ns-top">Back to top</a></p>
+      </section>
+        <footer class="ns-footer"><p>© 2025-2026 Asymmetric Effort, LLC. MIT License.</p></footer>
+      </div>
+    </noscript>
+</body>
+</html>

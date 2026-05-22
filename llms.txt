@@ -1,0 +1,57 @@
+# SpecifyJS
+
+> A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity. Zero runtime dependencies. 4KB gzipped core.
+
+## Website: https://specifyjs.asymmetric-effort.com
+## Repository: https://github.com/asymmetric-effort/specifyjs
+## npm: https://www.npmjs.com/package/@asymmetric-effort/specifyjs
+
+## Documentation
+
+- 3d-space-demo: https://specifyjs.asymmetric-effort.com/#/docs/guides/3d-space-demo
+- accessibility: https://specifyjs.asymmetric-effort.com/#/docs/guides/accessibility
+- async-computation: https://specifyjs.asymmetric-effort.com/#/docs/guides/async-computation
+- browser-support: https://specifyjs.asymmetric-effort.com/#/docs/guides/browser-support
+- building-spas: https://specifyjs.asymmetric-effort.com/#/docs/guides/building-spas
+- code-splitting: https://specifyjs.asymmetric-effort.com/#/docs/guides/code-splitting
+- concurrent-rendering: https://specifyjs.asymmetric-effort.com/#/docs/guides/concurrent-rendering
+- core-concepts: https://specifyjs.asymmetric-effort.com/#/docs/guides/core-concepts
+- custom-hooks: https://specifyjs.asymmetric-effort.com/#/docs/guides/custom-hooks
+- deployment: https://specifyjs.asymmetric-effort.com/#/docs/guides/deployment
+- error-handling: https://specifyjs.asymmetric-effort.com/#/docs/guides/error-handling
+- feature-flags: https://specifyjs.asymmetric-effort.com/#/docs/guides/feature-flags
+- forms-and-validation: https://specifyjs.asymmetric-effort.com/#/docs/guides/forms-and-validation
+- getting-started: https://specifyjs.asymmetric-effort.com/#/docs/guides/getting-started
+- meta-tags: https://specifyjs.asymmetric-effort.com/#/docs/guides/meta-tags
+- migrating-from-react: https://specifyjs.asymmetric-effort.com/#/docs/guides/migrating-from-react
+- performance: https://specifyjs.asymmetric-effort.com/#/docs/guides/performance
+- production-builds: https://specifyjs.asymmetric-effort.com/#/docs/guides/production-builds
+- render-safety: https://specifyjs.asymmetric-effort.com/#/docs/guides/render-safety
+- routing: https://specifyjs.asymmetric-effort.com/#/docs/guides/routing
+- seo: https://specifyjs.asymmetric-effort.com/#/docs/guides/seo
+- state-management: https://specifyjs.asymmetric-effort.com/#/docs/guides/state-management
+- styling: https://specifyjs.asymmetric-effort.com/#/docs/guides/styling
+- testing: https://specifyjs.asymmetric-effort.com/#/docs/guides/testing
+- troubleshooting: https://specifyjs.asymmetric-effort.com/#/docs/guides/troubleshooting
+- typescript: https://specifyjs.asymmetric-effort.com/#/docs/guides/typescript
+- wumpus-world: https://specifyjs.asymmetric-effort.com/#/docs/guides/wumpus-world
+
+## API Reference
+
+- README: https://specifyjs.asymmetric-effort.com/#/docs/api/README
+- components: https://specifyjs.asymmetric-effort.com/#/docs/api/components
+- compute: https://specifyjs.asymmetric-effort.com/#/docs/api/compute
+- dom: https://specifyjs.asymmetric-effort.com/#/docs/api/dom
+- hooks: https://specifyjs.asymmetric-effort.com/#/docs/api/hooks
+- math: https://specifyjs.asymmetric-effort.com/#/docs/api/math
+- server: https://specifyjs.asymmetric-effort.com/#/docs/api/server
+- types: https://specifyjs.asymmetric-effort.com/#/docs/api/types
+
+## Install
+
+```
+npm install @asymmetric-effort/specifyjs
+```
+
+## License: MIT
+## Author: Asymmetric Effort, LLC

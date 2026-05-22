@@ -148,21 +148,25 @@ specifyjs/
 
 ## Testing Requirements
 
-### Coverage Targets
-- **Minimum 98% test coverage** across all modules
-- Every public API must have both happy-path and sad-path (error case) tests
+### Coverage Targets — HARD REQUIREMENT
+- **>=98% test coverage** (ideally 100%) across statements, branches, functions, and lines
+- This is a **non-negotiable gate** — no feature or fix may be merged without meeting this threshold
+- Every public API must have both **happy-path** and **sad-path** (error case) tests
 - Edge cases must be explicitly tested (null children, deeply nested trees, rapid state updates, etc.)
 
-### Test Categories
+### Test Categories — ALL FOUR REQUIRED
 
 1. **Unit tests** — Isolate individual functions and hooks
-2. **Integration tests** — Test component trees, reconciliation, event handling with jsdom
-3. **E2E tests (Playwright)** — Full browser rendering, user interaction flows, pre-rendering validation
+2. **Integration tests** — Test component trees, reconciliation, event handling
+3. **E2E tests (Playwright)** — Full browser rendering, user interaction flows across chromium, firefox, and webkit
+4. **Post-Deployment Verification (PDV)** — Playwright tests that run against the deployed production site to verify features work after deployment. PDV tests must verify visual output (pixel checks for canvas/3D), interactive behavior, and absence of JavaScript errors.
 
 ### Test-Driven Development Process
-- Write failing tests before implementation
+- Write failing tests BEFORE implementation (TDD)
 - Tests define the expected API contract
-- No feature is considered complete without passing tests at all three levels
+- No feature is considered complete without passing tests at all four levels (unit, integration, E2E, PDV)
+- Never push a fix without a corresponding test that would have caught the bug
+- PDV tests must detect the same failures a user would see in their browser
 
 ---
 
@@ -255,11 +259,12 @@ Project-specific conventions:
 
 All feature work must meet the following criteria before it is considered complete:
 
-1. **Test Coverage** — >=97.9% unit/integration/e2e test coverage across statements, branches, functions, and lines. Ideally 100%.
-2. **Demo Project** — Each component must have a demo project (SPA) that demonstrates the component's entire feature set, with Playwright E2E tests to validate the demo.
-3. **Documentation** — Complete documentation covering design/architecture, implementation details, testing strategy, and usage examples.
-4. **Linters Pass** — All linting checks (TypeScript strict, ESLint, Prettier) must pass with zero errors.
-5. **All Tests Pass** — All unit, integration, and E2E tests must pass with zero failures.
+1. **Test Coverage** — >=98% unit/integration/e2e/PDV test coverage across statements, branches, functions, and lines. Ideally 100%. This is a **hard requirement**.
+2. **PDV Tests** — Post-deployment verification tests must exist for every user-facing feature, verifying the deployed site works as expected (pixel checks, interactive behavior, no JS errors).
+3. **Demo Project** — Each component must have a demo project (SPA) that demonstrates the component's entire feature set, with Playwright E2E tests to validate the demo.
+4. **Documentation** — Complete documentation covering design/architecture, implementation details, testing strategy, and usage examples.
+5. **Linters Pass** — All linting checks (TypeScript strict, ESLint, Prettier) must pass with zero errors.
+6. **All Tests Pass** — All unit, integration, E2E, and PDV tests must pass with zero failures across staging AND production.
 
 ### Git Workflow
 - Conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `perf:`, `chore:`)

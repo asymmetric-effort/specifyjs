@@ -6,7 +6,7 @@
  * Each test maps to a specific finding from the security audit.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../src/core/create-element';
 import { cloneElement } from '../../../src/core/clone-element';
 import { renderToString, renderToStaticMarkup } from '../../../src/server/render-to-string';

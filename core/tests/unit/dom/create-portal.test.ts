@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { createPortal } from '../../../src/dom/create-portal';
 import { createElement } from '../../../src/index';
 import { SPEC_ELEMENT_TYPE, SPEC_PORTAL_TYPE } from '../../../src/shared/types';

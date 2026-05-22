@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { forwardRef } from '../../../src/index';
 import { SPEC_FORWARD_REF_TYPE } from '../../../src/shared/types';
 

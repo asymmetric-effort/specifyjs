@@ -2,7 +2,7 @@
 // Protobuf / gRPC-Web client tests
 // ============================================================================
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import {
   defineMessage,
   encodeVarint,

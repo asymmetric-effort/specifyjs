@@ -2,7 +2,7 @@
  * Full coverage tests for concurrent rendering, hydration, SVG,
  * StrictMode, Web Components, and other new work-loop paths.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment, StrictMode, createFactory } from '../../src/index';
 import { createRoot, hydrateRoot } from '../../src/dom/create-root';
 import { useState, useEffect } from '../../src/hooks/index';

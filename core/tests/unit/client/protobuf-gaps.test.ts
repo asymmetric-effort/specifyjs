@@ -3,7 +3,7 @@
 // and 390-438 (useProto hook)
 // ============================================================================
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import {
   createGrpcWebClient,
   defineMessage,

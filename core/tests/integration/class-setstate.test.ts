@@ -9,7 +9,7 @@
  * flushMicrotasks() to process pending updates before asserting.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Component, PureComponent } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 

@@ -2,7 +2,7 @@
  * Tests for uncovered paths in rest.ts: timeout+signal combo, interceptors,
  * network error wrapping.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { createRestClient, RestError } from '../../../src/client/rest';
 
 afterEach(() => {

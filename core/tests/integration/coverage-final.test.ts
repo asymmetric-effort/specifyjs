@@ -4,7 +4,7 @@
  * reconciler.ts edge cases, work-loop.ts getHostSibling,
  * synthetic-event.ts InputEvent/TouchEvent paths.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 import { useState, useEffect, useCallback, useRef } from '../../src/hooks/index';

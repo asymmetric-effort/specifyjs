@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { Dropdown } from '../src/index';
 import type { DropdownProps, DropdownItem } from '../src/index';
 import { createElement } from '../../../../core/src/index';

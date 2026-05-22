@@ -1,7 +1,7 @@
 /**
  * Tests specifically targeting remaining coverage gaps across all source files.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment, Component, createContext } from '../../src/index';
 import { useState, useEffect } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';

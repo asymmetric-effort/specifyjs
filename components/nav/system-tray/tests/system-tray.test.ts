@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { SystemTray } from '../src/index';
 import type { SystemTrayProps, SystemTrayIndicator, SystemTrayUser } from '../src/index';
 import { createElement } from '../../../../core/src/index';

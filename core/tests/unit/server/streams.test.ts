@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { renderToPipeableStream } from '../../../src/server/render-to-pipeable-stream';
 import { renderToReadableStream } from '../../../src/server/render-to-readable-stream';
 import { createElement } from '../../../src/index';

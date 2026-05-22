@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { FileUpload } from '../src/index';
 import { createElement } from '../../../../core/src/index';
 import { createRoot } from '../../../../core/src/dom/create-root';

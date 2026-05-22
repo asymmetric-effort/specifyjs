@@ -6,7 +6,7 @@
  * This test will FAIL if strict: true is removed or set to false.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 

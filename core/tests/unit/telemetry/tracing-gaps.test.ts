@@ -1,7 +1,7 @@
 /**
  * Additional tracing tests to close coverage gaps.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { createTracer, startSpan, endSpan } from '../../../src/telemetry/tracing';
 
 describe('createTracer — advanced', () => {

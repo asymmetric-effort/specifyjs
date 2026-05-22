@@ -1,7 +1,7 @@
 /**
  * Tests for createFactory (legacy API).
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { createFactory, createElement } from '../../../src/core/create-element';
 import { SPEC_ELEMENT_TYPE } from '../../../src/shared/types';
 

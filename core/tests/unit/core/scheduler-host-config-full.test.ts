@@ -2,7 +2,7 @@
  * Full coverage tests for scheduler-host-config.ts.
  * Tests the MessageChannel-based scheduling, yielding, and edge cases.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import {
   getCurrentTime,
   shouldYieldToHost,

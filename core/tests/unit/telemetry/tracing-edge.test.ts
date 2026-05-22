@@ -2,7 +2,7 @@
  * Tests for tracing.ts remaining uncovered paths:
  * crypto fallback, auto-flush timer with unref.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { createTracer, generateTraceId, generateSpanId } from '../../../src/telemetry/tracing';
 
 afterEach(() => {

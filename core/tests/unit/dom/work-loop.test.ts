@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { updateDOMProperties } from '../../../src/dom/work-loop';
 
 describe('updateDOMProperties', () => {

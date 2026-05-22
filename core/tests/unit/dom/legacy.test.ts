@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { render, hydrate, unmountComponentAtNode } from '../../../src/dom/legacy';
 import { createElement } from '../../../src/index';
 

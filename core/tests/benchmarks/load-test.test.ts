@@ -8,7 +8,7 @@
  * microbenchmarks.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment, createContext } from '../../src/index';
 import { useState, useEffect, useMemo, useCallback, useContext } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/index';

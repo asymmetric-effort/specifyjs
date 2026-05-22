@@ -42,7 +42,7 @@ Welcome to the SpecifyJS documentation — a comprehensive guide to building dec
 
 - [Production Builds](guides/production-builds.md) — Minification, tree-shaking, bundle size
 - [Deployment](guides/deployment.md) — GitHub Pages, Netlify, Vercel, custom domains
-- [Testing](guides/testing.md) — Unit (Vitest), integration (jsdom), E2E (Playwright)
+- [Testing](guides/testing.md) — Unit (NogginLessDom), integration (jsdom), E2E (Playwright)
 - [Browser Support](guides/browser-support.md) — Compatibility matrix, polyfills
 - [Migrating from React](guides/migrating-from-react.md) — API mapping, key differences
 
@@ -3081,12 +3081,12 @@ const [isDark, setIsDark] = useState(() =>
 
 SpecifyJS applications use three levels of testing.
 
-## Unit Tests (Vitest + jsdom)
+## Unit Tests (NogginLessDom)
 
 Test individual components and hooks in isolation:
 
 \`\`\`typescript
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from 'specifyjs';
 import { useState } from 'specifyjs/hooks';
 import { createRoot } from 'specifyjs/dom';
@@ -3105,7 +3105,7 @@ describe('Counter', () => {
 });
 \`\`\`
 
-## Integration Tests (Vitest + jsdom)
+## Integration Tests (NogginLessDom)
 
 Test component trees and interactions:
 
@@ -6169,7 +6169,7 @@ The CI pipeline (\`.github/workflows/ci.yml\`) runs on every push and PR to \`ma
 | Job | What it does | Duration |
 |-----|-------------|----------|
 | **lint** | TypeScript type check + Prettier format check | ~10s |
-| **test** | 465 Vitest tests with coverage thresholds | ~15s |
+| **test** | 465 NogginLessDom tests with coverage thresholds | ~15s |
 | **build** | Rollup build + verify outputs + bundle size check (< 512KB) | ~15s |
 | **e2e** | Install Playwright + run 27 browser tests | ~30s |
 

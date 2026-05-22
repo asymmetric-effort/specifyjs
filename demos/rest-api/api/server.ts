@@ -3,10 +3,28 @@
 
 /**
  * REST API Demo Server — Bookmarks CRUD
- * Zero dependencies, uses Node.js built-in http module.
+ * Zero dependencies, uses Node.js built-in https module with self-signed certs.
  */
 
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { createServer } from 'node:https';
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { execSync } from 'node:child_process';
+import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+// ── Self-signed certificate generation ───────────────────────────────
+
+const certDir = join(import.meta.dirname ?? '.', '.certs');
+const keyPath = join(certDir, 'key.pem');
+const certPath = join(certDir, 'cert.pem');
+
+if (!existsSync(keyPath) || !existsSync(certPath)) {
+  if (!existsSync(certDir)) mkdirSync(certDir, { recursive: true });
+  execSync(
+    `openssl req -x509 -newkey rsa:2048 -keyout ${keyPath} -out ${certPath} -days 365 -nodes -subj "/CN=localhost"`,
+    { stdio: 'pipe' },
+  );
+}
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -150,12 +168,15 @@ async function handler(req: IncomingMessage, res: ServerResponse): Promise<void>
 // ── Start server ──────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT ?? '4001', 10);
-const server = createServer((req, res) => {
-  handler(req, res).catch(() => {
-    json(res, 500, { error: 'Internal server error' });
-  });
-});
+const server = createServer(
+  { key: readFileSync(keyPath), cert: readFileSync(certPath) },
+  (req, res) => {
+    handler(req, res).catch(() => {
+      json(res, 500, { error: 'Internal server error' });
+    });
+  },
+);
 
 server.listen(PORT, () => {
-  console.log(`REST API server listening on http://localhost:${PORT}`);
+  console.log(`REST API server listening on https://localhost:${PORT}`);
 });

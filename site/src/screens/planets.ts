@@ -49,14 +49,14 @@ interface PlanetDef {
 }
 
 const PLANETS: PlanetDef[] = [
-  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, semiMajorAU: 0.387098,  eccentricity: 0.205630, meanRadiusKm: 2439.7,  periodDays: 87.97,   axialTiltDeg: 0.03,   rotPeriodDays: 58.65  },
-  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, semiMajorAU: 0.723332,  eccentricity: 0.006772, meanRadiusKm: 6051.8,  periodDays: 224.7,   axialTiltDeg: 177.4,  rotPeriodDays: 243.02 },
-  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, semiMajorAU: 1.000000,  eccentricity: 0.016709, meanRadiusKm: 6371.0,  periodDays: 365.25,  axialTiltDeg: 23.44,  rotPeriodDays: 1.0    },
-  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, semiMajorAU: 1.523681,  eccentricity: 0.093400, meanRadiusKm: 3389.5,  periodDays: 687.0,   axialTiltDeg: 25.19,  rotPeriodDays: 1.026  },
-  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, semiMajorAU: 5.203800,  eccentricity: 0.048900, meanRadiusKm: 69886,   periodDays: 4332.6,  axialTiltDeg: 3.13,   rotPeriodDays: 0.414  },
-  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, semiMajorAU: 9.582600,  eccentricity: 0.056500, meanRadiusKm: 58232,   periodDays: 10759,   axialTiltDeg: 26.73,  rotPeriodDays: 0.444  },
-  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, semiMajorAU: 19.19126,  eccentricity: 0.047170, meanRadiusKm: 25362,   periodDays: 30688,   axialTiltDeg: 82.23,  rotPeriodDays: 0.718  },
-  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, semiMajorAU: 30.07000,  eccentricity: 0.008678, meanRadiusKm: 24622,   periodDays: 60182,   axialTiltDeg: 28.32,  rotPeriodDays: 0.671  },
+  { id: 'mercury',  label: 'Mercury',  r: 0.58, g: 0.64, b: 0.72, semiMajorAU: 0.387098,  eccentricity: 0.205630, meanRadiusKm: 2439.7,  periodDays: 87.97,   axialTiltDeg: 0.03,   rotPeriodDays: 58.646   }, // 58.646 Earth days
+  { id: 'venus',    label: 'Venus',    r: 0.96, g: 0.62, b: 0.04, semiMajorAU: 0.723332,  eccentricity: 0.006772, meanRadiusKm: 6051.8,  periodDays: 224.7,   axialTiltDeg: 177.4,  rotPeriodDays: 243.018  }, // 243.018 days, retrograde (tilt>90°)
+  { id: 'earth',    label: 'Earth',    r: 0.23, g: 0.51, b: 0.96, semiMajorAU: 1.000000,  eccentricity: 0.016709, meanRadiusKm: 6371.0,  periodDays: 365.25,  axialTiltDeg: 23.44,  rotPeriodDays: 0.99727  }, // 23h 56m 4s
+  { id: 'mars',     label: 'Mars',     r: 0.94, g: 0.27, b: 0.27, semiMajorAU: 1.523681,  eccentricity: 0.093400, meanRadiusKm: 3389.5,  periodDays: 687.0,   axialTiltDeg: 25.19,  rotPeriodDays: 1.02595  }, // 24h 37m 22s
+  { id: 'jupiter',  label: 'Jupiter',  r: 0.80, g: 0.52, b: 0.20, semiMajorAU: 5.203800,  eccentricity: 0.048900, meanRadiusKm: 69886,   periodDays: 4332.6,  axialTiltDeg: 3.13,   rotPeriodDays: 0.41354  }, // 9h 55m 30s
+  { id: 'saturn',   label: 'Saturn',   r: 0.92, g: 0.78, b: 0.20, semiMajorAU: 9.582600,  eccentricity: 0.056500, meanRadiusKm: 58232,   periodDays: 10759,   axialTiltDeg: 26.73,  rotPeriodDays: 0.44002  }, // 10h 33m 38s
+  { id: 'uranus',   label: 'Uranus',   r: 0.02, g: 0.71, b: 0.82, semiMajorAU: 19.19126,  eccentricity: 0.047170, meanRadiusKm: 25362,   periodDays: 30688,   axialTiltDeg: 82.23,  rotPeriodDays: 0.71833  }, // 17h 14m 24s, retrograde (tilt>90°)
+  { id: 'neptune',  label: 'Neptune',  r: 0.39, g: 0.40, b: 0.94, semiMajorAU: 30.07000,  eccentricity: 0.008678, meanRadiusKm: 24622,   periodDays: 60182,   axialTiltDeg: 28.32,  rotPeriodDays: 0.67125  }, // 16h 6m 36s
 ];
 
 const SUN_MEAN_RADIUS_KM = 695700;

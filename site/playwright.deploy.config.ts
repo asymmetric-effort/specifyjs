@@ -14,8 +14,11 @@ export default defineConfig({
   use: {
     baseURL: process.env.SITE_URL || 'https://specifyjs.asymmetric-effort.com',
     trace: 'on-first-retry',
-    // Ignore HTTPS errors during PDV (cert may still be provisioning)
     ignoreHTTPSErrors: true,
+    // Add cache-busting query param to bypass CDN cache on every navigation
+    extraHTTPHeaders: {
+      'Cache-Control': 'no-cache',
+    },
   },
   // No webServer — tests run against the already-deployed site
 });

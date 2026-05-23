@@ -19,21 +19,22 @@ test.describe('Mobile Responsive Design', () => {
   let versionMatch = false;
 
   test.beforeEach(async ({ page }) => {
-    // Check if staging has the expected version before running feature tests
-    if (!versionMatch) {
-      const baseURL = process.env.SITE_URL || 'https://specifyjs.asymmetric-effort.com';
-      const resp = await page.request.get(`${baseURL}/version.txt`);
-      const deployed = (await resp.text()).trim();
-      versionMatch = deployed === `v${expectedVersion}`;
-    }
     await page.goto(`/?cb=${Date.now()}`);
+    // Check the rendered footer version (not version.txt which propagates independently)
+    if (!versionMatch) {
+      try {
+        const footer = await page.locator('footer').innerText({ timeout: 5000 });
+        versionMatch = footer.includes(`v${expectedVersion}`);
+      } catch {
+        versionMatch = false;
+      }
+    }
   });
 
   test('deployed version matches package.json', async ({ page }) => {
-    const baseURL = process.env.SITE_URL || 'https://specifyjs.asymmetric-effort.com';
-    const resp = await page.request.get(`${baseURL}/version.txt`);
-    const deployed = (await resp.text()).trim();
-    expect(deployed, `Staging should be running v${expectedVersion}`).toBe(`v${expectedVersion}`);
+    // Use rendered footer which reflects the actual loaded JS version
+    const footer = await page.locator('footer').innerText();
+    expect(footer, `Staging should be running v${expectedVersion}`).toContain(`v${expectedVersion}`);
   });
 
   test('page loads without errors', async ({ page }) => {

@@ -1,0 +1,1 @@
+../skills/file-bug/SKILL.md

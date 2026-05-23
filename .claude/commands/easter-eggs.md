@@ -1,0 +1,1 @@
+../skills/easter-eggs/SKILL.md

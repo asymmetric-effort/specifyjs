@@ -1,0 +1,1 @@
+../skills/code-humor/SKILL.md

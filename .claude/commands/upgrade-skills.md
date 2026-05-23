@@ -1,0 +1,1 @@
+../skills/upgrade-skills/SKILL.md

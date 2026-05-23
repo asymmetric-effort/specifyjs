@@ -1,0 +1,1 @@
+../skills/storytelling/SKILL.md

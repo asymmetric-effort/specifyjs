@@ -1,0 +1,1 @@
+../skills/check-coverage/SKILL.md

@@ -2,6 +2,7 @@
 import {
   createWindow,
   Document,
+  DocumentFragment,
   Element,
   Node,
   Event,
@@ -20,7 +21,7 @@ if (!doc.body) {
 (globalThis as any).window = win;
 (globalThis as any).document = doc;
 (globalThis as any).Document = Document;
-(globalThis as any).DocumentFragment = class DocumentFragment {};
+(globalThis as any).DocumentFragment = DocumentFragment;
 (globalThis as any).Element = Element;
 (globalThis as any).HTMLElement = Element;
 (globalThis as any).HTMLDivElement = Element;

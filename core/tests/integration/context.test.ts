@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement, createContext, Fragment } from '../../src/index';
 import { useContext } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';

@@ -2,7 +2,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { CpuPipeline } from '../src/cpu-pipeline';
 import { SceneGraph } from '../src/scene-graph';
 import { SceneObject } from '../src/scene-object';

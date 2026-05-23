@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { createElement, isValidElement } from '../../../src/index';
 
 describe('isValidElement', () => {

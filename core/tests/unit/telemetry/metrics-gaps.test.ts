@@ -1,7 +1,7 @@
 /**
  * Additional metrics tests to close coverage gaps.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import {
   createMeterProvider,
   formatOtlpTraces,

@@ -3,7 +3,7 @@
  * Exercises: reconciler edge cases, work-loop commit paths, synthetic events,
  * and scheduler edge cases through full render cycles.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { createRoot } from '../../src/dom/create-root';
 import {

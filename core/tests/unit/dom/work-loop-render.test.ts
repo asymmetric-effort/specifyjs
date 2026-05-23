@@ -2,7 +2,7 @@
  * Tests for the work-loop render/commit pipeline — covers the rendering,
  * reconciliation, and DOM commit phases that work-loop.ts orchestrates.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { useState, useEffect, useLayoutEffect, useRef } from '../../../src/hooks/index';

@@ -1,5 +1,5 @@
-// Vitest test setup
-// jsdom environment is configured in vitest.config.ts
+// Test setup
+// DOM environment is configured in setup-nogginlessdom.ts
 
 // Disable component ID assignment by default in tests to avoid
 // breaking existing innerHTML assertions. Tests that specifically

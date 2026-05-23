@@ -1,7 +1,7 @@
 /**
  * Tests for renderToPipeableStream chunked streaming.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { Writable } from 'stream';
 import { renderToPipeableStream } from '../../../src/server/render-to-pipeable-stream';
 import { createElement } from '../../../src/index';

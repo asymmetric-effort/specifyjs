@@ -2,7 +2,7 @@
  * Tests for state updates (useState setState, useReducer dispatch)
  * that trigger re-renders through the work loop.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../src/index';
 import { useState, useReducer, useEffect } from '../../src/hooks/index';
 import { createRoot } from '../../src/dom/create-root';

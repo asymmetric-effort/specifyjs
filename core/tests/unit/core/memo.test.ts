@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { memo } from '../../../src/index';
 import { SPEC_MEMO_TYPE } from '../../../src/shared/types';
 

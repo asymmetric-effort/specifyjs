@@ -1,7 +1,7 @@
 /**
  * Unit tests for src/hooks/dispatcher.ts — all hook implementations.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import {
   useStateImpl,
   useReducerImpl,

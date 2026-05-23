@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { createRestClient, RestError, useRest } from '../../../src/client/rest';
 import type {
   RestClient,

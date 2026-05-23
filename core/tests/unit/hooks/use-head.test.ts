@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { useHead } from '../../../src/hooks/use-head';

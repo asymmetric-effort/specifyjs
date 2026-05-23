@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Mobile viewport — explicit dimensions for CI compatibility
 test.use({
@@ -10,6 +16,14 @@ test.use({
 test.describe('Mobile Responsive Design', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+  });
+
+  test('deployed version matches package.json', async ({ page }) => {
+    const pkgPath = resolve(__dirname, '../../core/package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+    const expected = pkg.version as string;
+    const footer = await page.locator('footer').innerText();
+    expect(footer, `Staging should be running v${expected}`).toContain(`v${expected}`);
   });
 
   test('page loads without errors', async ({ page }) => {

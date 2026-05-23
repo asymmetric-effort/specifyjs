@@ -183,20 +183,36 @@ export function Space3DDemo() {
 
     const lighting = new LambertianShading();
 
-    // Red point light that orbits behind the camera
+    // Stationary red point light — high above one corner of the terrain
     const redLight = new Light({
       type: 'point',
+      position: { x: -18, y: 12, z: -18 },
       color: { r: 1.0, g: 0.2, b: 0.1, a: 1 },
       intensity: 1,
-      range: 50,
+      range: 60,
     });
 
-    // Small red sphere to visualize the light position
-    const lightSphere = new SceneObject('light-indicator');
-    lightSphere.mesh = Mesh.createSphere(0.3, 8, 12);
-    lightSphere.material = createMaterial({ r: 1.0, g: 0.2, b: 0.1, a: 1 });
-    lightSphere.scale = { x: 1, y: 1, z: 1 };
-    scene.register(lightSphere);
+    // Stationary green point light — high above the diagonally opposing corner
+    const greenLight = new Light({
+      type: 'point',
+      position: { x: 18, y: 12, z: 18 },
+      color: { r: 0.1, g: 1.0, b: 0.2, a: 1 },
+      intensity: 1,
+      range: 60,
+    });
+
+    // Small spheres to visualize the light positions
+    const redLightSphere = new SceneObject('light-red');
+    redLightSphere.mesh = Mesh.createSphere(0.3, 8, 12);
+    redLightSphere.material = createMaterial({ r: 1.0, g: 0.2, b: 0.1, a: 1 });
+    redLightSphere.position = { x: -18, y: 12, z: -18 };
+    scene.register(redLightSphere);
+
+    const greenLightSphere = new SceneObject('light-green');
+    greenLightSphere.mesh = Mesh.createSphere(0.3, 8, 12);
+    greenLightSphere.material = createMaterial({ r: 0.1, g: 1.0, b: 0.2, a: 1 });
+    greenLightSphere.position = { x: 18, y: 12, z: 18 };
+    scene.register(greenLightSphere);
 
     // Animation loop
     let totalTime = 0;
@@ -224,24 +240,19 @@ export function Space3DDemo() {
       lastTime = now;
       totalTime += dt;
 
-      // Orbit camera 1
+      // Orbit camera at fixed height (below lights at y=12, above terrain)
       const radius = 15;
       const camAngle = totalTime * 0.3;
       const cx = Math.cos(camAngle) * radius;
       const cz = Math.sin(camAngle) * radius;
-      let cy = Math.sin(totalTime * 0.2) * 4 + 1;
-
-      // Ensure camera stays above terrain surface + clearance
-      const terrainH = terrainHeightFn(cx, cz) + terrainY;
-      const minCamY = terrainH + 2; // 2 units above terrain surface
-      if (cy < minCamY) cy = minCamY;
+      const cy = 8;
 
       orbitCam.position = { x: cx, y: cy, z: cz };
       orbitCam.lookAt({ x: 0, y: 0, z: 0 });
 
       // Apply boundary bounce to scene objects (excluding terrain and light)
       const bounceable = scene.getVisibleObjects().filter(
-        (o) => o.id !== 'terrain' && o.id !== 'light-indicator',
+        (o) => o.id !== 'terrain' && o.id !== 'light-red' && o.id !== 'light-green',
       );
       for (const obj of bounceable) {
         const vel = velocities.get(obj.id);
@@ -251,17 +262,8 @@ export function Space3DDemo() {
       // Run collision detection
       collisionMgr.update(bounceable);
 
-      // Position the red point light 30 degrees behind the camera
-      const lightAngle = camAngle - Math.PI / 6;
-      const lx = Math.cos(lightAngle) * radius;
-      const lz = Math.sin(lightAngle) * radius;
-      let ly = Math.sin(totalTime * 0.2) * 4 + 1;
-      const lightTerrainH = terrainHeightFn(lx, lz) + terrainY;
-      if (ly < lightTerrainH + 1) ly = lightTerrainH + 1;
-      redLight.position = { x: lx, y: ly, z: lz };
-      lightSphere.position = { x: lx, y: ly, z: lz };
-
-      const sceneLights = [redLight];
+      // Lights are stationary — no position updates needed
+      const sceneLights = [redLight, greenLight];
 
       // Render viewport 1 (orbit perspective)
       pipeline.render(scene, orbitCam, orbitViewport, lighting, sceneLights);
@@ -283,19 +285,24 @@ export function Space3DDemo() {
       // Draw camera position indicator on top-down view
       if (ctx) drawCamIndicator(ctx);
 
-      // Draw light position indicator on top-down view
+      // Draw light position indicators on top-down view
       if (ctx) {
-        const lpos = redLight.position;
-        const lvpX = topViewport.x + ((lpos.x + 15) / 30) * topViewport.width;
-        const lvpY = topViewport.y + ((lpos.z + 15) / 30) * topViewport.height;
-        ctx.save();
-        ctx.fillStyle = '#ff3322';
-        ctx.beginPath();
-        ctx.arc(lvpX, lvpY, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '10px sans-serif';
-        ctx.fillText('LIGHT', lvpX + 6, lvpY + 3);
-        ctx.restore();
+        for (const [light, label, color] of [
+          [redLight, 'RED', '#ff3322'],
+          [greenLight, 'GRN', '#22ff44'],
+        ] as [Light, string, string][]) {
+          const lpos = light.position;
+          const lvpX = topViewport.x + ((lpos.x + 15) / 30) * topViewport.width;
+          const lvpY = topViewport.y + ((lpos.z + 15) / 30) * topViewport.height;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(lvpX, lvpY, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.font = '10px sans-serif';
+          ctx.fillText(label, lvpX + 6, lvpY + 3);
+          ctx.restore();
+        }
       }
 
       // Viewport labels
@@ -343,7 +350,7 @@ export function Space3DDemo() {
       ),
       createElement('p', {
         style: { fontSize: '11px', color: 'var(--color-text-muted, #94a3b8)', marginTop: '8px' },
-      }, 'Left: orbiting perspective camera. Right: fixed top-down view with camera (yellow) and light (red) indicators.'),
+      }, 'Left: orbiting perspective camera. Right: top-down view with camera (yellow), red light, and green light indicators.'),
     ),
     // Right: sidebar
     createElement('div', {
@@ -361,7 +368,7 @@ export function Space3DDemo() {
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Viewport 1 — Perspective'),
       createElement('p', null,
-        'Orbiting camera at radius 15, sinusoidal height, looking at origin. Perspective projection (45\u00b0 FOV).',
+        'Orbiting camera at radius 15, fixed height (y=8), looking at origin. Perspective projection (45\u00b0 FOV). Two stationary colored lights at opposing corners.',
       ),
       createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Viewport 2 — Top-Down'),
       createElement('p', null,
@@ -376,8 +383,8 @@ export function Space3DDemo() {
           ),
         ),
       ),
-      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Rendering'),
-      createElement('p', null, 'CPU pipeline with Lambertian diffuse shading, a red orbiting point light, grid overlay, and wireframe edges.'),
+      createElement('h4', { style: { fontSize: '13px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' } }, 'Lighting'),
+      createElement('p', null, 'Two stationary point lights: red at corner (-18, 12, -18) and green at corner (18, 12, 12). Lambertian diffuse shading, grid overlay, and wireframe edges.'),
     ),
   );
 }

@@ -109,12 +109,10 @@ export class CpuPipeline implements RenderPipeline {
         clipW[v] = mvp[3]! * vx + mvp[7]! * vy + mvp[11]! * vz + mvp[15]!;
       }
 
-      // Determine light source: use provided lights or fall back to default direction
-      const activeLight = lights && lights.length > 0 ? lights[0]! : null;
+      // Light sources: use provided array or fall back to default directional
+      const activeLights = lights && lights.length > 0 ? lights : null;
       const defaultLightDir: Vec3 = vec3Normalize(vec3(0.5, 1.0, 0.3));
-      const lightColor: Color = activeLight
-        ? activeLight.color
-        : { r: 1, g: 1, b: 1, a: 1 };
+      const defaultLightColor: Color = { r: 1, g: 1, b: 1, a: 1 };
 
       // View direction approximation (camera forward)
       const viewDir: Vec3 = vec3Normalize(vec3(
@@ -173,19 +171,23 @@ export class CpuPipeline implements RenderPipeline {
         const edge2 = vec3Sub(p2, p0);
         const faceNormal = vec3Normalize(vec3Cross(edge1, edge2));
 
-        // Compute light direction: for point lights use direction from triangle center to light
+        // Triangle center in world space (for point light direction calculation)
+        const cx = (p0.x + p1.x + p2.x) / 3;
+        const cy = (p0.y + p1.y + p2.y) / 3;
+        const cz = (p0.z + p1.z + p2.z) / 3;
+        const wcx = modelMat[0]! * cx + modelMat[4]! * cy + modelMat[8]! * cz + modelMat[12]!;
+        const wcy = modelMat[1]! * cx + modelMat[5]! * cy + modelMat[9]! * cz + modelMat[13]!;
+        const wcz = modelMat[2]! * cx + modelMat[6]! * cy + modelMat[10]! * cz + modelMat[14]!;
+
+        // Compute light direction from first light (for shade() call)
         let lightDir: Vec3;
-        if (activeLight) {
-          // Transform triangle center to world space using model matrix
-          const cx = (p0.x + p1.x + p2.x) / 3;
-          const cy = (p0.y + p1.y + p2.y) / 3;
-          const cz = (p0.z + p1.z + p2.z) / 3;
-          const wcx = modelMat[0]! * cx + modelMat[4]! * cy + modelMat[8]! * cz + modelMat[12]!;
-          const wcy = modelMat[1]! * cx + modelMat[5]! * cy + modelMat[9]! * cz + modelMat[13]!;
-          const wcz = modelMat[2]! * cx + modelMat[6]! * cy + modelMat[10]! * cz + modelMat[14]!;
-          lightDir = vec3Normalize(vec3Sub(activeLight.position, vec3(wcx, wcy, wcz)));
+        let lightColor: Color;
+        if (activeLights) {
+          lightDir = vec3Normalize(vec3Sub(activeLights[0]!.position, vec3(wcx, wcy, wcz)));
+          lightColor = activeLights[0]!.color;
         } else {
           lightDir = defaultLightDir;
+          lightColor = defaultLightColor;
         }
 
         // Determine material color: texture > per-vertex colors > material.color
@@ -212,15 +214,43 @@ export class CpuPipeline implements RenderPipeline {
           materialColor = material.color;
         }
 
-        // Shade the triangle
-        const color = lighting.shade({
-          normal: faceNormal,
-          lightDir,
-          viewDir,
-          lightColor,
-          materialColor,
-          ambientStrength: 0.2,
-        });
+        // Shade the triangle — accumulate contributions from all lights
+        let color: Color;
+        if (activeLights && activeLights.length > 1) {
+          // Multi-light: accumulate diffuse from each light, single ambient pass
+          const ambient = 0.15;
+          let totalR = materialColor.r * ambient;
+          let totalG = materialColor.g * ambient;
+          let totalB = materialColor.b * ambient;
+
+          const worldCenter = vec3(wcx, wcy, wcz);
+          for (let li = 0; li < activeLights.length; li++) {
+            const lt = activeLights[li]!;
+            const ld = vec3Normalize(vec3Sub(lt.position, worldCenter));
+            const NdotL = Math.max(
+              faceNormal.x * ld.x + faceNormal.y * ld.y + faceNormal.z * ld.z,
+              0,
+            );
+            totalR += materialColor.r * lt.color.r * NdotL * lt.intensity;
+            totalG += materialColor.g * lt.color.g * NdotL * lt.intensity;
+            totalB += materialColor.b * lt.color.b * NdotL * lt.intensity;
+          }
+          color = {
+            r: Math.min(1, totalR),
+            g: Math.min(1, totalG),
+            b: Math.min(1, totalB),
+            a: materialColor.a,
+          };
+        } else {
+          color = lighting.shade({
+            normal: faceNormal,
+            lightDir,
+            viewDir,
+            lightColor,
+            materialColor,
+            ambientStrength: 0.2,
+          });
+        }
 
         // Average Z for painter's algorithm (more negative = farther)
         const avgZ = (ndcZ0 + ndcZ1 + ndcZ2) / 3;

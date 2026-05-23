@@ -179,12 +179,17 @@ jobs:
           npx playwright install chromium --with-deps
       - name: Wait for staging deploy
         run: |
-          for i in $(seq 1 30); do
-            if curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html" | grep -q 'SpecifyJS'; then
-              echo "Staging content confirmed after ${i}0s"; exit 0
+          EXPECTED=$(node -p "require('./core/package.json').version")
+          echo "Waiting for staging to serve v${EXPECTED}..."
+          for i in $(seq 1 60); do
+            DEPLOYED=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt" 2>/dev/null | tr -d '[:space:]')
+            if [ "$DEPLOYED" = "v${EXPECTED}" ]; then
+              echo "Staging version confirmed: $DEPLOYED after ${i}0s"; exit 0
             fi
-            echo "Attempt $i/30..."; sleep 10
+            echo "Attempt $i/60: deployed=$DEPLOYED expected=v${EXPECTED}"; sleep 10
           done
+          echo "WARNING: staging version mismatch after 10 minutes"
+          exit 1
       - name: Run PDV against staging
         working-directory: site
         env:

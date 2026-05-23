@@ -4,6 +4,8 @@ import fs from 'fs';
 import { specifyJsSeoPlugin, specifyJsNoscriptPlugin, type NoscriptSection } from '../core/src/build/index';
 
 const corePkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../core/package.json'), 'utf-8'));
+// Write version.txt to public/ so it's included in every build (used by staging deploy verification)
+fs.writeFileSync(path.resolve(__dirname, 'public/version.txt'), `v${corePkg.version}\n`);
 const JS_BANNER = '/* (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE */';
 const CSS_BANNER = '/* (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE */';
 

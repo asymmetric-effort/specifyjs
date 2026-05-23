@@ -182,18 +182,20 @@ jobs:
           EXPECTED=$(node -p "require('./core/package.json').version")
           echo "Waiting for staging to serve v${EXPECTED}..."
           for i in $(seq 1 60); do
-            # Check version.txt (fast propagation) AND that the JS bundle contains the version
-            VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt" 2>/dev/null | tr -d '[:space:]')
-            # Find the main JS bundle and check if it contains the expected version
-            JS_FILE=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/" 2>/dev/null | grep -oP 'ui-components-[^"]+\.js' | head -1)
+            # Bust CDN cache by appending a unique query string
+            CACHEBUST="?cb=$(date +%s)-$i"
+            VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt${CACHEBUST}" 2>/dev/null | tr -d '[:space:]')
+            # Also check the HTML to ensure it references a bundle with our version
+            HTML=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html${CACHEBUST}" 2>/dev/null)
+            UI_FILE=$(echo "$HTML" | grep -oP 'ui-components-[^"]+\.js' | head -1)
             JS_VER=""
-            if [ -n "$JS_FILE" ]; then
-              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${JS_FILE}" 2>/dev/null | grep -oP "\"${EXPECTED}\"" | head -1 | tr -d '"')
+            if [ -n "$UI_FILE" ]; then
+              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${UI_FILE}" 2>/dev/null | grep -oP "\"${EXPECTED}\"" | head -1 | tr -d '"')
             fi
             if [ "$VER" = "v${EXPECTED}" ] && [ "$JS_VER" = "${EXPECTED}" ]; then
-              echo "Staging confirmed: v${EXPECTED} in version.txt and JS bundle after ${i}0s"; exit 0
+              echo "Staging confirmed: v${EXPECTED} after ${i}0s"; exit 0
             fi
-            echo "Attempt $i/60: version.txt=$VER js_ver=$JS_VER (expected v${EXPECTED})"; sleep 10
+            echo "Attempt $i/60: version.txt=$VER js_ver=$JS_VER ui_file=$UI_FILE"; sleep 10
           done
           echo "ERROR: staging did not converge after 10 minutes"
           exit 1

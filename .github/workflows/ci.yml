@@ -180,17 +180,20 @@ jobs:
       - name: Wait for staging deploy
         run: |
           EXPECTED=$(node -p "require('./core/package.json').version")
-          # Get the JS bundle hash from the local build to verify CDN has the right files
-          JS_HASH=$(grep -oP 'index-[^"]+\.js' site/dist/index.html | head -1)
-          echo "Waiting for staging to serve v${EXPECTED} (bundle: ${JS_HASH})..."
+          echo "Waiting for staging to serve v${EXPECTED}..."
           for i in $(seq 1 60); do
-            # Check both version.txt AND that index.html references the correct JS bundle
+            # Check version.txt (fast propagation) AND that the JS bundle contains the version
             VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt" 2>/dev/null | tr -d '[:space:]')
-            HTML_JS=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html" 2>/dev/null | grep -oP 'index-[^"]+\.js' | head -1)
-            if [ "$VER" = "v${EXPECTED}" ] && [ "$HTML_JS" = "$JS_HASH" ]; then
-              echo "Staging confirmed: v${EXPECTED}, bundle ${JS_HASH} after ${i}0s"; exit 0
+            # Find the main JS bundle and check if it contains the expected version
+            JS_FILE=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/" 2>/dev/null | grep -oP 'ui-components-[^"]+\.js' | head -1)
+            JS_VER=""
+            if [ -n "$JS_FILE" ]; then
+              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${JS_FILE}" 2>/dev/null | grep -oP "SpecifyJS v\K[0-9.]+" | head -1)
             fi
-            echo "Attempt $i/60: ver=$VER js=$HTML_JS (expected v${EXPECTED} / ${JS_HASH})"; sleep 10
+            if [ "$VER" = "v${EXPECTED}" ] && [ "$JS_VER" = "${EXPECTED}" ]; then
+              echo "Staging confirmed: v${EXPECTED} in version.txt and JS bundle after ${i}0s"; exit 0
+            fi
+            echo "Attempt $i/60: version.txt=$VER js_ver=$JS_VER (expected v${EXPECTED})"; sleep 10
           done
           echo "ERROR: staging did not converge after 10 minutes"
           exit 1

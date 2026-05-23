@@ -72,6 +72,7 @@ export function Footer(props: FooterProps) {
     createElement(
       'div',
       {
+        className: 'footer-inner',
         style: {
           maxWidth,
           margin: '0 auto',
@@ -85,19 +86,19 @@ export function Footer(props: FooterProps) {
       // Left
       createElement(
         'div',
-        { style: { flex: '1', textAlign: 'left', minWidth: '150px' } },
+        { className: 'footer-section', style: { flex: '1', textAlign: 'left', minWidth: '150px' } },
         left ?? null,
       ),
       // Center
       createElement(
         'div',
-        { style: { flex: '1', textAlign: 'center', minWidth: '150px' } },
+        { className: 'footer-section', style: { flex: '1', textAlign: 'center', minWidth: '150px' } },
         center ?? null,
       ),
       // Right
       createElement(
         'div',
-        { style: { flex: '1', textAlign: 'right', minWidth: '150px' } },
+        { className: 'footer-section', style: { flex: '1', textAlign: 'right', minWidth: '150px' } },
         right ?? null,
       ),
     ),

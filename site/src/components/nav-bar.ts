@@ -3,7 +3,7 @@
 
 import { createElement, FeatureGate, useFeatureFlags } from 'specifyjs';
 import { Link } from 'specifyjs';
-import { useState } from 'specifyjs/hooks';
+import { useState, useCallback } from 'specifyjs/hooks';
 
 function SpecifyLogo() {
   return createElement(
@@ -62,11 +62,12 @@ const navItems: { to: string; label: string; flag?: string; exact?: boolean }[] 
   { to: '/featureflags', label: 'Flags', flag: 'feature-flags-demo' },
 ];
 
-function GatedNavLinks() {
+function GatedNavLinks({ mobileOpen }: { mobileOpen?: boolean }) {
   const { isEnabled } = useFeatureFlags();
+  const linkClass = 'nav-links' + (mobileOpen ? ' nav-links--open' : '');
   return createElement(
     'div',
-    { className: 'nav-links' },
+    { className: linkClass },
     ...navItems
       .filter((item) => !item.flag || isEnabled(item.flag))
       .map((item) =>
@@ -80,6 +81,15 @@ function GatedNavLinks() {
 }
 
 export function NavBar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const toggleMenu = useCallback(
+    ((..._args: unknown[]) => setMobileOpen((prev: boolean) => !prev)) as (
+      ...args: unknown[]
+    ) => unknown,
+    [],
+  );
+
   return createElement(
     'nav',
     { className: 'nav-bar' },
@@ -95,9 +105,19 @@ export function NavBar() {
           createElement('span', { style: { color: 'var(--color-text)' } }, 'JS'),
         ),
       ),
-      createElement(GatedNavLinks, null),
+      createElement(GatedNavLinks, { mobileOpen }),
       createElement(FeatureGate, { flag: 'dark-mode', fallback: null },
         createElement(DarkModeToggle, null),
+      ),
+      createElement(
+        'button',
+        {
+          className: 'nav-hamburger',
+          onClick: toggleMenu,
+          'aria-label': mobileOpen ? 'Close menu' : 'Open menu',
+          'aria-expanded': String(mobileOpen),
+        },
+        mobileOpen ? '\u2715' : '\u2630',
       ),
     ),
   );

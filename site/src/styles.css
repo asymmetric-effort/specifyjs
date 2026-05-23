@@ -379,3 +379,152 @@ body {
 
 /* Prevent body scroll when dialog is open */
 body:has(.dialog-backdrop) { overflow: hidden; }
+
+/* Hamburger menu toggle — hidden by default on desktop */
+.nav-hamburger {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 24px;
+  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Mobile: < 768px ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Nav bar */
+  .nav-bar { padding: 0 12px; }
+  .nav-bar-inner { gap: 8px; }
+  .nav-hamburger { display: flex; }
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+    padding: 8px 0;
+    z-index: 99;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .nav-links.nav-links--open { display: flex; }
+  .nav-link {
+    padding: 12px 20px;
+    font-size: 16px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Hero */
+  .hero { padding: 40px 0 24px; }
+  .hero h1 { font-size: 28px; }
+  .hero p { font-size: 16px; }
+  .hero-stats { flex-wrap: wrap; gap: 20px; }
+  .hero-stat-value { font-size: 24px; }
+
+  /* Feature cards — stack */
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .feature-card { min-height: 44px; }
+
+  /* Main content */
+  .main-content { padding: 16px 12px; }
+  .section { margin: 24px 0; }
+  .section h2 { font-size: 22px; }
+
+  /* Dialog — full width/height on mobile */
+  .dialog-backdrop {
+    padding: 0;
+    top: 56px;
+    align-items: stretch;
+  }
+  .dialog-panel {
+    max-width: 100%;
+    max-height: none;
+    border-radius: 0;
+    min-height: calc(100vh - 56px);
+  }
+  .dialog-header {
+    border-radius: 0;
+    padding: 12px 16px;
+  }
+  .dialog-body { padding: 16px; }
+  .dialog-close {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
+  /* Preview grid — stack */
+  .preview-grid { grid-template-columns: 1fr; }
+
+  /* Stat cards — stack */
+  .stat-cards { grid-template-columns: 1fr; }
+
+  /* Data table — horizontal scroll */
+  .data-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Bar chart */
+  .bar-chart { gap: 6px; }
+  .bar-chart-bar-wrap { min-height: 100px; }
+
+  /* Touch targets */
+  .dark-mode-toggle { width: 44px; height: 44px; font-size: 18px; }
+  .accordion-header { padding: 14px 16px; min-height: 44px; }
+
+  /* Code block */
+  .code-block { font-size: 12px; padding: 12px; }
+
+  /* Demo layout — sidebar stacks below */
+  .demo-layout-row {
+    flex-direction: column !important;
+  }
+  .demo-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Footer — stack vertically */
+  .footer-inner {
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+  .footer-section {
+    text-align: center !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Touch targets: ensure all interactive elements are >= 44x44 */
+  a, button, [role="button"], input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ─── Tablet: 768px - 1024px ──────────────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .hero h1 { font-size: 36px; }
+  .hero p { font-size: 18px; }
+  .features-grid { grid-template-columns: repeat(2, 1fr); }
+  .preview-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-cards { grid-template-columns: repeat(2, 1fr); }
+  .main-content { padding: 24px 20px; }
+  .dialog-panel { max-width: 90%; }
+}
+
+/* ─── Desktop: > 1024px — defaults already cover this ─────────────── */

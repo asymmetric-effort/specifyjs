@@ -22,8 +22,10 @@ test.describe('Mobile Responsive Design', () => {
     const pkgPath = resolve(__dirname, '../../core/package.json');
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
     const expected = pkg.version as string;
-    const footer = await page.locator('footer').innerText();
-    expect(footer, `Staging should be running v${expected}`).toContain(`v${expected}`);
+    // Check version.txt which propagates faster than cached HTML/JS on CDN
+    const resp = await page.request.get('/version.txt');
+    const deployed = (await resp.text()).trim();
+    expect(deployed, `Staging should be running v${expected}`).toBe(`v${expected}`);
   });
 
   test('page loads without errors', async ({ page }) => {

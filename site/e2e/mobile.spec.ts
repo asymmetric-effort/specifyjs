@@ -1,7 +1,11 @@
-import { test, expect, devices } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-// Use Pixel 5 (Chromium-based) for CI compatibility — PDV only has Chromium installed
-test.use({ ...devices['Pixel 5'] });
+// Mobile viewport — explicit dimensions for CI compatibility
+test.use({
+  viewport: { width: 393, height: 851 },
+  isMobile: true,
+  hasTouch: true,
+});
 
 test.describe('Mobile Responsive Design', () => {
   test.beforeEach(async ({ page }) => {

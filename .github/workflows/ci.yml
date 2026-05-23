@@ -188,7 +188,7 @@ jobs:
             JS_FILE=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/" 2>/dev/null | grep -oP 'ui-components-[^"]+\.js' | head -1)
             JS_VER=""
             if [ -n "$JS_FILE" ]; then
-              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${JS_FILE}" 2>/dev/null | grep -oP "SpecifyJS v\K[0-9.]+" | head -1)
+              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${JS_FILE}" 2>/dev/null | grep -oP "\"${EXPECTED}\"" | head -1 | tr -d '"')
             fi
             if [ "$VER" = "v${EXPECTED}" ] && [ "$JS_VER" = "${EXPECTED}" ]; then
               echo "Staging confirmed: v${EXPECTED} in version.txt and JS bundle after ${i}0s"; exit 0

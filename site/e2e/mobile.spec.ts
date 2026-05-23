@@ -1,6 +1,7 @@
 import { test, expect, devices } from '@playwright/test';
 
-test.use({ ...devices['iPhone 13'] });
+// Use Pixel 5 (Chromium-based) for CI compatibility — PDV only has Chromium installed
+test.use({ ...devices['Pixel 5'] });
 
 test.describe('Mobile Responsive Design', () => {
   test.beforeEach(async ({ page }) => {

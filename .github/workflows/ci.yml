@@ -180,15 +180,19 @@ jobs:
       - name: Wait for staging deploy
         run: |
           EXPECTED=$(node -p "require('./core/package.json').version")
-          echo "Waiting for staging to serve v${EXPECTED}..."
+          # Get the JS bundle hash from the local build to verify CDN has the right files
+          JS_HASH=$(grep -oP 'index-[^"]+\.js' site/dist/index.html | head -1)
+          echo "Waiting for staging to serve v${EXPECTED} (bundle: ${JS_HASH})..."
           for i in $(seq 1 60); do
-            DEPLOYED=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt" 2>/dev/null | tr -d '[:space:]')
-            if [ "$DEPLOYED" = "v${EXPECTED}" ]; then
-              echo "Staging version confirmed: $DEPLOYED after ${i}0s"; exit 0
+            # Check both version.txt AND that index.html references the correct JS bundle
+            VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt" 2>/dev/null | tr -d '[:space:]')
+            HTML_JS=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html" 2>/dev/null | grep -oP 'index-[^"]+\.js' | head -1)
+            if [ "$VER" = "v${EXPECTED}" ] && [ "$HTML_JS" = "$JS_HASH" ]; then
+              echo "Staging confirmed: v${EXPECTED}, bundle ${JS_HASH} after ${i}0s"; exit 0
             fi
-            echo "Attempt $i/60: deployed=$DEPLOYED expected=v${EXPECTED}"; sleep 10
+            echo "Attempt $i/60: ver=$VER js=$HTML_JS (expected v${EXPECTED} / ${JS_HASH})"; sleep 10
           done
-          echo "WARNING: staging version mismatch after 10 minutes"
+          echo "ERROR: staging did not converge after 10 minutes"
           exit 1
       - name: Run PDV against staging
         working-directory: site

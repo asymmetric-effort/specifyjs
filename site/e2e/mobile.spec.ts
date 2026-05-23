@@ -15,7 +15,8 @@ test.use({
 
 test.describe('Mobile Responsive Design', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    // Cache-bust to bypass CDN stale content
+    await page.goto(`/?cb=${Date.now()}`);
   });
 
   test('deployed version matches package.json', async ({ page }) => {

@@ -23,7 +23,8 @@ test.describe('Mobile Responsive Design', () => {
     const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
     const expected = pkg.version as string;
     // Check version.txt which propagates faster than cached HTML/JS on CDN
-    const resp = await page.request.get('/version.txt');
+    const baseURL = process.env.SITE_URL || 'https://specifyjs.asymmetric-effort.com';
+    const resp = await page.request.get(`${baseURL}/version.txt`);
     const deployed = (await resp.text()).trim();
     expect(deployed, `Staging should be running v${expected}`).toBe(`v${expected}`);
   });

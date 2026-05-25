@@ -45,6 +45,10 @@ async function buildAll() {
     splitting: true,
     chunkNames: 'chunks/[name]-[hash]',
     external: [],
+    // ESM bundles are NOT minified — consumers' bundlers (Vite, webpack)
+    // handle minification during their own build. Pre-minifying causes
+    // double-minification failures when re-bundled. See #68.
+    minify: false,
   });
 
   // Rename ESM outputs to match the expected filenames in package.json exports.

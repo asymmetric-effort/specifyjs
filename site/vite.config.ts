@@ -209,7 +209,7 @@ function escapeHtmlBasic(s: string): string {
 // In CI builds, resolve specifyjs imports from dist/ artifacts (not source)
 // so E2E and PDV tests validate the same code consumers get from npm.
 // Local dev uses source aliases for HMR.
-const useDist = process.env.SPECIFYJS_USE_DIST === 'true';
+const useDist = process.env.SPECIFYJS_USE_DIST === 'true' || process.env.CI === 'true';
 
 const sourceAliases = {
   'specifyjs/hooks': path.resolve(__dirname, '../core/src/hooks/index.ts'),
@@ -217,10 +217,20 @@ const sourceAliases = {
   'specifyjs': path.resolve(__dirname, '../core/src/index.ts'),
 };
 
+const coreSrc = path.resolve(__dirname, '../core/src');
 const distAliases = {
+  // Named imports (from site code)
   'specifyjs/hooks': path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
   'specifyjs/dom': path.resolve(__dirname, '../core/dist/specifyjs-dom.esm.js'),
   'specifyjs': path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+  // Relative imports (from component source files that use ../../../../core/src/...)
+  // These MUST resolve to the same dist bundle to avoid singleton duplication
+  [path.resolve(coreSrc, 'hooks/index.ts')]: path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+  [path.resolve(coreSrc, 'hooks/index')]: path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+  [path.resolve(coreSrc, 'dom/index.ts')]: path.resolve(__dirname, '../core/dist/specifyjs-dom.esm.js'),
+  [path.resolve(coreSrc, 'dom/index')]: path.resolve(__dirname, '../core/dist/specifyjs-dom.esm.js'),
+  [path.resolve(coreSrc, 'index.ts')]: path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+  [path.resolve(coreSrc, 'index')]: path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
 };
 
 export default defineConfig({

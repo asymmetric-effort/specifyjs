@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { waitForDeployedVersion } from './helpers/wait-for-deploy';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,23 +17,11 @@ test.use({
 const expectedVersion = JSON.parse(readFileSync(resolve(__dirname, '../../core/package.json'), 'utf-8')).version;
 
 test.describe('Mobile Responsive Design', () => {
-  let versionMatch = false;
-
   test.beforeEach(async ({ page }) => {
-    await page.goto(`/?cb=${Date.now()}`);
-    // Check the rendered footer version (not version.txt which propagates independently)
-    if (!versionMatch) {
-      try {
-        const footer = await page.locator('footer').innerText({ timeout: 5000 });
-        versionMatch = footer.includes(`v${expectedVersion}`);
-      } catch {
-        versionMatch = false;
-      }
-    }
+    await waitForDeployedVersion(page, expectedVersion);
   });
 
   test('deployed version matches package.json', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     const footer = await page.locator('footer').innerText();
     expect(footer).toContain(`v${expectedVersion}`);
   });
@@ -52,7 +41,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('hamburger menu is visible on mobile', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.nav-bar');
     const hamburger = page.locator('.nav-hamburger');
     // Skip if hamburger not deployed yet (CDN propagation delay)
@@ -62,7 +50,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('nav links are hidden by default on mobile', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.nav-bar');
     const hamburger = page.locator('.nav-hamburger');
     if ((await hamburger.count()) === 0) { test.skip(); return; }
@@ -71,7 +58,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('hamburger menu reveals nav links when tapped', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.nav-bar');
     const hamburger = page.locator('.nav-hamburger');
     if ((await hamburger.count()) === 0) { test.skip(); return; }
@@ -84,7 +70,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('hamburger menu hides nav links when tapped again', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.nav-bar');
     const hamburger = page.locator('.nav-hamburger');
     const navLinks = page.locator('.nav-links');
@@ -96,7 +81,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('feature cards are stacked vertically', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.features-grid');
     const grid = page.locator('.features-grid');
     const gridColumns = await grid.evaluate((el) =>
@@ -108,7 +92,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('dialog renders full-width on mobile', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.feature-card');
     await page.locator('.feature-card').first().click();
     await page.waitForSelector('.dialog-panel');
@@ -121,7 +104,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('dialog close button has adequate touch target', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.locator('.feature-card').first().click();
     await page.waitForSelector('.dialog-close');
     const closeBox = await page.locator('.dialog-close').boundingBox();
@@ -132,7 +114,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('touch targets are at least 44x44px', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.nav-bar');
     // Check hamburger button
     const hamburgerBox = await page.locator('.nav-hamburger').boundingBox();
@@ -152,7 +133,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('hero section adapts to mobile', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.hero h1');
     const h1FontSize = await page.locator('.hero h1').evaluate((el) =>
       parseFloat(window.getComputedStyle(el).fontSize),
@@ -163,7 +143,6 @@ test.describe('Mobile Responsive Design', () => {
   });
 
   test('no elements overflow viewport width', async ({ page }) => {
-    if (!versionMatch) { test.skip(); return; }
     await page.waitForSelector('.hero');
     const hasOverflow = await page.evaluate(() => {
       const vw = window.innerWidth;

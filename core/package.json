@@ -74,6 +74,7 @@
     "test": "bun --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts test tests/ ../components/",
     "test:watch": "bun --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts test --watch tests/ ../components/",
     "test:coverage": "bun --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts test --coverage tests/ ../components/",
+    "test:smoke": "node tests/smoke/consumer-vite-build.test.mjs",
     "test:e2e": "bun x playwright test",
     "dev:e2e": "bun x vite --port 3000",
     "lint": "bun x eslint src/ tests/",

@@ -9,17 +9,17 @@
 import { test, expect } from '@playwright/test';
 
 const gallerySections = [
-  'Form',
+  'Form Components',
+  'Data Display',
+  'Feedback',
+  'Navigation',
   'Layout',
-  'Nav',
-  'Viz',
   'Charts & Graphs',
   'Data & Analytics',
-  'Hierarchical',
-  'Scientific & Engineering',
-  'Geospatial & Maps',
+  'Geospatial Maps',
+  'Mathematical',
+  '3D & Advanced',
   'Page Layouts',
-  'Games',
 ];
 
 test.describe('Component Gallery Smoke Tests', () => {
@@ -45,7 +45,9 @@ test.describe('Component Gallery Smoke Tests', () => {
       await page.waitForTimeout(500);
 
       // Verify section body is visible and non-empty
-      const sectionBody = page.locator('.accordion-body').first();
+      // Scope to the parent .accordion-section of the clicked header
+      const sectionContainer = header.locator('..');
+      const sectionBody = sectionContainer.locator('.accordion-body');
       await expect(sectionBody).toBeVisible({ timeout: 10_000 });
 
       const box = await sectionBody.boundingBox();

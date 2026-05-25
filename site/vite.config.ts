@@ -209,7 +209,7 @@ function escapeHtmlBasic(s: string): string {
 // In CI builds, resolve specifyjs imports from dist/ artifacts (not source)
 // so E2E and PDV tests validate the same code consumers get from npm.
 // Local dev uses source aliases for HMR.
-const useDist = process.env.SPECIFYJS_USE_DIST === 'true' || process.env.CI === 'true';
+const useDist = process.env.SPECIFYJS_USE_DIST === 'true';
 
 const sourceAliases = {
   'specifyjs/hooks': path.resolve(__dirname, '../core/src/hooks/index.ts'),

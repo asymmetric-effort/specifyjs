@@ -1,4 +1,14 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "fs";
+import { dirname, resolve } from "path";
+import { fileURLToPath } from "url";
+import { waitForDeployedVersion } from "./helpers/wait-for-deploy";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const expectedVersion = JSON.parse(
+  readFileSync(resolve(__dirname, "../../core/package.json"), "utf-8"),
+).version;
 
 /**
  * Post-Deployment Verification: Form Component Accessibility
@@ -9,9 +19,8 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Form Component Accessibility", () => {
   test.beforeEach(async ({ page }) => {
-    const baseURL =
-      process.env.SITE_URL || "https://specifyjs.asymmetric-effort.com";
-    await page.goto(`${baseURL}/#/components`);
+    await waitForDeployedVersion(page, expectedVersion);
+    await page.goto("/#/components");
     await page.waitForTimeout(2000);
   });
 

@@ -209,7 +209,10 @@ function escapeHtmlBasic(s: string): string {
 // In CI builds, resolve specifyjs imports from dist/ artifacts (not source)
 // so E2E and PDV tests validate the same code consumers get from npm.
 // Local dev uses source aliases for HMR.
-const useDist = process.env.SPECIFYJS_USE_DIST === 'true' || process.env.CI === 'true';
+// Dist mode is opt-in until the double-minification issue is resolved.
+// The dist ESM bundles are pre-minified by esbuild; when Vite re-bundles them,
+// the mangled names cause runtime failures. See #68 for investigation.
+const useDist = process.env.SPECIFYJS_USE_DIST === 'true';
 
 const sourceAliases = {
   'specifyjs/hooks': path.resolve(__dirname, '../core/src/hooks/index.ts'),

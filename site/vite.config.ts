@@ -206,16 +206,29 @@ function escapeHtmlBasic(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// In CI builds, resolve specifyjs imports from dist/ artifacts (not source)
+// so E2E and PDV tests validate the same code consumers get from npm.
+// Local dev uses source aliases for HMR.
+const useDist = process.env.SPECIFYJS_USE_DIST === 'true' || process.env.CI === 'true';
+
+const sourceAliases = {
+  'specifyjs/hooks': path.resolve(__dirname, '../core/src/hooks/index.ts'),
+  'specifyjs/dom': path.resolve(__dirname, '../core/src/dom/index.ts'),
+  'specifyjs': path.resolve(__dirname, '../core/src/index.ts'),
+};
+
+const distAliases = {
+  'specifyjs/hooks': path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+  'specifyjs/dom': path.resolve(__dirname, '../core/dist/specifyjs-dom.esm.js'),
+  'specifyjs': path.resolve(__dirname, '../core/dist/specifyjs.esm.js'),
+};
+
 export default defineConfig({
   define: {
     '__SPECIFYJS_VERSION__': JSON.stringify(corePkg.version),
   },
   resolve: {
-    alias: {
-      'specifyjs/hooks': path.resolve(__dirname, '../core/src/hooks/index.ts'),
-      'specifyjs/dom': path.resolve(__dirname, '../core/src/dom/index.ts'),
-      'specifyjs': path.resolve(__dirname, '../core/src/index.ts'),
-    },
+    alias: useDist ? distAliases : sourceAliases,
   },
   server: {
     https: https as any,

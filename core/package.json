@@ -69,7 +69,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "node build.mjs",
+    "build": "node build.mjs && node verify-build.mjs",
     "dev": "node build.mjs",
     "test": "bun --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts test tests/ ../components/",
     "test:watch": "bun --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts test --watch tests/ ../components/",

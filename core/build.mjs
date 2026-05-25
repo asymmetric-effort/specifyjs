@@ -68,9 +68,10 @@ async function buildAll() {
       const { readFileSync } = await import('fs');
       let content = readFileSync(from, 'utf-8');
       // Fix chunk import paths to be relative to dist/ instead of dist/esm/
-      // Minified output has no space: from"../chunks/" or from"./chunks/"
-      content = content.replace(/from\s*"\.\.?\/(?:\.\.\/)*chunks\//g, 'from "./esm/chunks/');
-      content = content.replace(/from\s*'\.\.?\/(?:\.\.\/)*chunks\//g, "from './esm/chunks/");
+      // Handles both: from"../chunks/..." and import"../chunks/..." (side-effect imports)
+      // Minified output may have no space between keyword and quote
+      content = content.replace(/((?:from|import)\s*)"\.\.?\/(?:\.\.\/)*chunks\//g, '$1"./esm/chunks/');
+      content = content.replace(/((?:from|import)\s*)'\.\.?\/(?:\.\.\/)*chunks\//g, "$1'./esm/chunks/");
       writeFileSync(to, content);
     }
   }

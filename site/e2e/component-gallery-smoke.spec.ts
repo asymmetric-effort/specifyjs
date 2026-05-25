@@ -31,7 +31,9 @@ test.describe('Component Gallery Smoke Tests', () => {
       await page.goto('/#/components');
       await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });
 
-      const header = page.locator('.accordion-header', { hasText: section });
+      // Use exact text match via .accordion-title span to avoid partial matches
+      // (e.g., "Layout" matching both "Layout" and "Page Layouts")
+      const header = page.locator(`.accordion-title:text-is("${section}")`);
 
       // Skip if section doesn't exist (may be renamed or removed)
       const count = await header.count();
@@ -40,13 +42,14 @@ test.describe('Component Gallery Smoke Tests', () => {
         return;
       }
 
-      await header.scrollIntoViewIfNeeded();
-      await header.click();
+      // Click the parent button (accordion-header)
+      const headerBtn = header.locator('xpath=ancestor::button');
+      await headerBtn.scrollIntoViewIfNeeded();
+      await headerBtn.click();
       await page.waitForTimeout(500);
 
-      // Verify section body is visible and non-empty
-      // Scope to the parent .accordion-section of the clicked header
-      const sectionContainer = header.locator('..');
+      // Verify section body is visible — find accordion-body within the same accordion-section
+      const sectionContainer = header.locator('xpath=ancestor::div[contains(@class,"accordion-section")]');
       const sectionBody = sectionContainer.locator('.accordion-body');
       await expect(sectionBody).toBeVisible({ timeout: 10_000 });
 

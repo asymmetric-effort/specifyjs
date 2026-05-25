@@ -38,7 +38,7 @@ export async function waitForDeployedVersion(
   expectedVersion: string,
   options?: WaitForDeployOptions,
 ): Promise<void> {
-  const timeout = options?.timeout ?? 60_000;
+  const timeout = options?.timeout ?? 20_000;
   const interval = options?.interval ?? 5_000;
   const url = options?.url ?? '/';
 

@@ -629,14 +629,17 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
   }, [apiRef]);
 
   // ---- Collect scene objects for Space3D ------------------------------------
-
-  const sceneObjects = useMemo(() => {
-    const objects: SceneObject[] = [];
-    scene.traverse((obj: SceneObject) => {
-      objects.push(obj);
-    });
-    return objects;
+  // Trigger re-render after objects are registered in the effect.
+  const [sceneVersion, setSceneVersion] = useState(0);
+  useEffect(() => {
+    setSceneVersion((v: number) => v + 1);
   }, [nodes, edges]);
+
+  // Collect objects on every render — the scene graph traversal is cheap.
+  const sceneObjects: SceneObject[] = [];
+  scene.traverse((obj: SceneObject) => {
+    sceneObjects.push(obj);
+  });
 
   // ---- Render ---------------------------------------------------------------
 

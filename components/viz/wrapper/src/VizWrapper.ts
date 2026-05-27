@@ -10,8 +10,8 @@
  * rest of the DOM.
  */
 
-import { createElement, Fragment } from '../../../../core/src/index';
-import { useMemo, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement, Fragment } from 'specifyjs';
+import { useMemo, useRef, useEffect } from 'specifyjs/hooks';
 
 // -- Types ------------------------------------------------------------------
 

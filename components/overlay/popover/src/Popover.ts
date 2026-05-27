@@ -5,8 +5,8 @@
  * Popover — Positioned popover attached to a trigger element.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback } from 'specifyjs/hooks';
 
 export type PopoverPlacement = 'top' | 'bottom' | 'left' | 'right';
 

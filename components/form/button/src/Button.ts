@@ -7,8 +7,8 @@
  * sizes (sm, md, lg), disabled state, and full-width mode.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo } from 'specifyjs/hooks';
 
 export interface ButtonProps {
   /** Button label / children */

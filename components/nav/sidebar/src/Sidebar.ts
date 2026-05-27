@@ -8,8 +8,8 @@
  * badge indicators, icon-only collapsed mode, and tooltip labels when collapsed.
  */
 
-import { createElement, type SpecNode } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { createElement, type SpecNode } from 'specifyjs';
+import { useState, useCallback } from 'specifyjs/hooks';
 import { NavWrapper, useHover, buildNavItemStyle } from '../../wrapper/src/NavWrapper';
 
 // -- Types ------------------------------------------------------------------

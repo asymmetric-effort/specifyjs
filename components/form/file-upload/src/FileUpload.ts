@@ -8,8 +8,8 @@
  * with remove buttons and file size formatting.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useCallback, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useRef, useCallback, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface FileUploadProps {

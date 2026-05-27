@@ -8,8 +8,8 @@
  * selected date highlight, min/max date constraints.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback, useMemo, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback, useMemo, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface DatePickerProps {

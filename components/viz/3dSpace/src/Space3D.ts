@@ -1,8 +1,8 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback } from 'specifyjs/hooks';
 import type { Vec3 } from '../../../math/src/vec';
 import type { RenderPipeline } from './render-pipeline';
 import type { LightingModel } from './lighting-model';

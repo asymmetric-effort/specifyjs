@@ -12,7 +12,7 @@
  *   })
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 
 export interface FooterProps {
   /** Content for the left section */

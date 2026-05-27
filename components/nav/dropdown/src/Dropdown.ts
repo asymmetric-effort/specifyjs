@@ -9,8 +9,8 @@
  * states, and keyboard dismissal.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useRef, useEffect } from 'specifyjs/hooks';
 import {
   NavWrapper,
   buildNavItemStyle,

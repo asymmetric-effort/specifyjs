@@ -21,12 +21,23 @@ const entries = [
 
 const buildEntry = { input: 'src/build/index.ts', name: 'specifyjs-build' };
 
+// Alias specifyjs package imports back to local source during bundling.
+// Components use `from 'specifyjs'` / `from 'specifyjs/hooks'` etc.,
+// which esbuild resolves via these aliases so the singleton is shared.
+const specifyAlias = {
+  'specifyjs': './src/index.ts',
+  'specifyjs/hooks': './src/hooks/index.ts',
+  'specifyjs/dom': './src/dom/index.ts',
+  'specifyjs/server': './src/server/index.ts',
+};
+
 const sharedOptions = {
   bundle: true,
   minify: true,
   sourcemap: true,
   target: 'es2020',
   banner: { js: banner },
+  alias: specifyAlias,
 };
 
 async function buildAll() {

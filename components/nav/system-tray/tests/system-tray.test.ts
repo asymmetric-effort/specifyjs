@@ -4,8 +4,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { SystemTray } from '../src/index';
 import type { SystemTrayProps, SystemTrayIndicator, SystemTrayUser } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/index';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 const roots = new Map<HTMLElement, ReturnType<typeof createRoot>>();
 

@@ -9,8 +9,8 @@
  * disabled tabs, optional icons, and full ARIA tablist/tab/tabpanel roles.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useMemo, useRef } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

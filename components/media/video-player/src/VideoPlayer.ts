@@ -9,14 +9,14 @@
  * overlaid on the native video element.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 import {
   useState,
   useRef,
   useEffect,
   useCallback,
   useId,
-} from '../../../../core/src/hooks/index';
+} from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

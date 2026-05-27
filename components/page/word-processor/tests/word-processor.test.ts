@@ -3,8 +3,8 @@
 
 import { describe, it, expect, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { WordProcessor } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/create-root';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 let container: HTMLDivElement;
 

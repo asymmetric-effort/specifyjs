@@ -5,8 +5,8 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

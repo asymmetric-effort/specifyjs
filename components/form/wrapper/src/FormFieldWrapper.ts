@@ -8,8 +8,8 @@
  * and styling. Foundation for textfield, multiline, texteditor, etc.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo } from 'specifyjs/hooks';
 
 export interface FormFieldWrapperStyle {
   /** Container font family */

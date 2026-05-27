@@ -9,8 +9,8 @@
  * navigation, and custom styling.
  */
 
-import { createElement, type FunctionComponent } from '../../../../core/src/index';
-import { useState, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { createElement, type FunctionComponent } from 'specifyjs';
+import { useState, useCallback, useMemo } from 'specifyjs/hooks';
 import { NavWrapper, useHover } from '../../wrapper/src/NavWrapper';
 import type { NavWrapperStyle } from '../../wrapper/src/NavWrapper';
 

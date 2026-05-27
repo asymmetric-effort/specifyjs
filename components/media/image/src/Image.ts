@@ -9,8 +9,8 @@
  * loading="lazy" attribute, object-fit, border-radius, and captions.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useEffect, useId, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useRef, useEffect, useId, useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

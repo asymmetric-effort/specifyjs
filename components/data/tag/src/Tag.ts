@@ -6,7 +6,7 @@
  * and click interaction.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 
 export interface TagProps {
   /** Tag label text */

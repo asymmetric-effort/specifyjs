@@ -8,7 +8,7 @@
  * descriptive text, and an optional call-to-action button.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 
 // ---------------------------------------------------------------------------
 // Types

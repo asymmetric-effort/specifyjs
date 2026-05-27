@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
 import { NavWrapper, buildNavItemStyle, useHover } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/index';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 function renderToContainer(element: unknown): HTMLElement {
   const container = document.createElement('div');

@@ -3,9 +3,9 @@
 
 import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { Checkbox } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/create-root';
-import * as hooks from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
+import * as hooks from 'specifyjs/hooks';
 
 function render(vnode: unknown): HTMLElement {
   const container = document.createElement('div');

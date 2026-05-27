@@ -6,8 +6,8 @@
  * selection, filtering, and sticky header support.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useMemo, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'specifyjs/hooks';
 
 export interface DataGridColumn {
   /** Property key in the row data */

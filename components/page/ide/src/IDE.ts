@@ -10,8 +10,8 @@
  * and a status bar.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useMemo, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useMemo, useCallback, useRef } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -7,8 +7,8 @@
  * Uses a hidden native input + visible styled div with checkmark/indeterminate indicator.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useEffect, useCallback, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useRef, useEffect, useCallback, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface CheckboxProps {

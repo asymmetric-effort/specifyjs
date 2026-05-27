@@ -11,8 +11,8 @@
  *   createElement(GoogleAnalytics, { measurementId: 'G-XXXXXXXXXX' })
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useEffect } from 'specifyjs/hooks';
 
 export interface GoogleAnalyticsProps {
   /** Google Analytics measurement ID (e.g., 'G-XXXXXXXXXX') */

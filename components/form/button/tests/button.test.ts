@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 import { describe, it, expect, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 import { Button } from '../src/index';
 

@@ -9,8 +9,8 @@
  * hover effect, padding, and border radius.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

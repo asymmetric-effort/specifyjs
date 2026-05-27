@@ -7,8 +7,8 @@
  * recalculates visible range on every scroll event.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useRef, useEffect } from 'specifyjs/hooks';
 
 export interface VirtualScrollProps {
   /** Full array of items */

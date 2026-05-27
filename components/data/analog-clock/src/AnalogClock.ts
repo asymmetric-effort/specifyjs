@@ -6,8 +6,8 @@
  * size, date display, and timezone support.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect } from 'specifyjs/hooks';
 
 export interface AnalogClockProps {
   /** Display format: '12h' or '24h' — in 24h, show 0-23 hour numbers */

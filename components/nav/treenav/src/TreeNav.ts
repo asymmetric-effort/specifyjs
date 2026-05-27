@@ -9,8 +9,8 @@
  * NavWrapper with role="tree" and assigns role="treeitem" to each node row.
  */
 
-import { createElement, type FunctionComponent } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement, type FunctionComponent } from 'specifyjs';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'specifyjs/hooks';
 import { NavWrapper, buildNavItemStyle, useHover } from '../../wrapper/src/NavWrapper';
 import type { NavItemStyle, NavWrapperStyle } from '../../wrapper/src/NavWrapper';
 import { TreeNode } from './TreeNode';

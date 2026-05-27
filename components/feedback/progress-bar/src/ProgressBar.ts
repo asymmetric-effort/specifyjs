@@ -8,8 +8,8 @@
  * optional percentage label, shimmer animation, and a circular SVG variant.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo, useId } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

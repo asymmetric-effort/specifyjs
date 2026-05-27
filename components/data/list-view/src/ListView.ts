@@ -6,8 +6,8 @@
  * selection, hover effects, and optional header/footer.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback } from 'specifyjs/hooks';
 
 export interface ListViewProps {
   /** Array of items to render */

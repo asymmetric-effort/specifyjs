@@ -6,8 +6,8 @@
  * and optional online/offline status indicator dot.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useMemo } from 'specifyjs/hooks';
 
 export interface AvatarProps {
   /** Image source URL */

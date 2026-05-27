@@ -8,8 +8,8 @@
  * Injects an inline style element for the @keyframes rotation animation.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useId, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useId, useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

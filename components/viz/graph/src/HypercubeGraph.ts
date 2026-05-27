@@ -14,14 +14,14 @@
  *  - Depth-sorted rendering (painter's algorithm)
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 import {
   useState,
   useEffect,
   useRef,
   useMemo,
   useCallback,
-} from '../../../../core/src/hooks/index';
+} from 'specifyjs/hooks';
 import {
   generateHypercube,
   numRotationAngles,

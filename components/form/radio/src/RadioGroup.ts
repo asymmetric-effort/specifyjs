@@ -8,8 +8,8 @@
  * keyboard navigation, and error states.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useCallback, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useCallback, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface RadioOption {

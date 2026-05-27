@@ -8,8 +8,8 @@
  * Supports size and variant props for consistent toolbar styling.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback } from 'specifyjs/hooks';
 import { NavWrapper, useHover } from '../../wrapper/src/NavWrapper';
 
 // -- Types ------------------------------------------------------------------

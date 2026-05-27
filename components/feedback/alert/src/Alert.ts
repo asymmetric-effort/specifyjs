@@ -9,8 +9,8 @@
  * Supports filled, outline, and subtle style variants.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo, useState } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo, useState } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

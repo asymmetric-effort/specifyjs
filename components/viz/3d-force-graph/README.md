@@ -5,39 +5,58 @@
 
 ## Overview
 
-A SpecifyJS component that renders force-directed graph layouts in 3D space,
-projected to SVG via perspective projection. Supports:
+A SpecifyJS component that renders force-directed graph layouts in 3D space
+using the 3dSpace engine. Supports:
 
 - Physics-based 3D node positioning (Coulomb repulsion + Hooke spring attraction)
-- Animated simulation via requestAnimationFrame with convergence detection
-- Camera orbit via mouse drag, zoom via scroll wheel
-- Node click/hover callbacks
-- Configurable forces (repulsion, attraction, damping)
-- Node labels (billboarded)
-- Depth-sorted rendering (painter's algorithm)
+- Multiple node shapes: sphere, cube, tetrahedron, octahedron, icosahedron, custom
+- Multiple edge styles: cylinder-solid, cylinder-mesh, line
+- Animated simulation via Space3D onFrame with convergence detection
+- Imperative API for dynamic graph manipulation (add/remove nodes/edges)
+- Pure math force simulation engine (testable without DOM)
+- Boundary clamping, velocity clamping, fixed nodes
 
-Zero runtime dependencies — pure SpecifyJS + SVG.
+Depends on the 3dSpace component for rendering.
+
+## Architecture
+
+```
+src/
+  types.ts          # ForceGraph3DNode, ForceGraph3DEdge, ForceGraph3DProps, ForceGraph3DAPI
+  force-sim.ts      # Pure math 3D force simulation (no DOM, no rendering)
+  ForceGraph3D.ts   # Main component using Space3D
+  index.ts          # Public exports
+```
+
+The force simulation (`force-sim.ts`) is completely decoupled from rendering.
+It operates on `Map<string, SimNode>` and mutates positions/velocities in place.
+
+The component (`ForceGraph3D.ts`) maintains internal state maps (`NodeState`,
+`EdgeState`) that map graph nodes/edges to SceneObjects. No `userData` is stored
+on 3dSpace SceneObjects.
 
 ## Props
 
 | Prop | Type | Description |
 | --- | --- | --- |
+| `width` | `number` (required) | Canvas width in pixels |
+| `height` | `number` (required) | Canvas height in pixels |
 | `nodes` | `ForceGraph3DNode[]` (required) | Array of nodes to render |
 | `edges` | `ForceGraph3DEdge[]` (required) | Array of edges connecting nodes |
-| `width` | `number` | SVG width in pixels (default: 600) |
-| `height` | `number` | SVG height in pixels (default: 400) |
-| `simulation` | `object` | Force simulation parameters |
-| `simulation.repulsion` | `number` | Repulsion strength (default: -100) |
-| `simulation.springStrength` | `number` | Spring strength for edges (default: 0.01) |
-| `simulation.springLength` | `number` | Ideal spring length (default: 100) |
-| `simulation.damping` | `number` | Velocity damping per tick (default: 0.9) |
-| `simulation.iterations` | `number` | Iterations per frame (default: 1) |
-| `camera` | `object` | Camera controls |
-| `camera.distance` | `number` | Initial camera distance (default: 300) |
-| `camera.autoRotateSpeed` | `number` | Auto-rotate speed in deg/s (default: 0) |
-| `onNodeClick` | `(node) => void` | Click callback |
-| `onNodeHover` | `(node \| null) => void` | Hover callback |
-| `backgroundColor` | `string` | Background color (default: '#0f172a') |
+| `bounds` | `{min: Vec3, max: Vec3}` | Boundary for simulation (default: +/-50) |
+| `repulsionStrength` | `number` | Coulomb constant (default: 100) |
+| `attractionStrength` | `number` | Hooke constant (default: 0.1) |
+| `damping` | `number` | Velocity decay 0-1 (default: 0.9) |
+| `centerGravity` | `number` | Pull toward origin (default: 0.01) |
+| `running` | `boolean` | Simulation active (default: true) |
+| `timeStep` | `number` | Seconds per step (default: 0.016) |
+| `cameraDistance` | `number` | Camera distance (default: auto-fit) |
+| `apiRef` | `(api: ForceGraph3DAPI) => void` | Imperative API ref |
+| `onNodeClick` | `(nodeId, node) => void` | Click callback |
+| `onNodeHover` | `(nodeId | null) => void` | Hover callback |
+| `onEdgeClick` | `(edge) => void` | Edge click callback |
+| `lightingModel` | `LightingModel` | 3dSpace lighting model |
+| `backgroundColor` | `Color` | Background color |
 
 ## Node Interface
 
@@ -45,10 +64,14 @@ Zero runtime dependencies — pure SpecifyJS + SVG.
 interface ForceGraph3DNode {
   id: string;
   label?: string;
-  x?: number; y?: number; z?: number;
-  size?: number;       // default: 5
-  color?: string;      // default: '#3b82f6'
-  data?: Record<string, unknown>;
+  position?: Vec3;
+  shape?: 'sphere' | 'cube' | 'tetrahedron' | 'octahedron' | 'icosahedron' | 'custom';
+  customGeometry?: PolyhedronGeometry;
+  size?: number;       // default: 1.0
+  color?: Color;
+  textColor?: Color;
+  fixed?: boolean;     // default: false
+  mass?: number;       // default: 1.0
 }
 ```
 
@@ -58,9 +81,30 @@ interface ForceGraph3DNode {
 interface ForceGraph3DEdge {
   source: string;
   target: string;
-  color?: string;      // default: '#94a3b8'
-  width?: number;      // default: 1
-  label?: string;
+  style?: 'cylinder-solid' | 'cylinder-mesh' | 'line';
+  thickness?: number;  // default: 0.1
+  color?: Color;
+  length?: number;     // rest length (default: auto)
+  stiffness?: number;  // spring constant (default: 0.1)
+}
+```
+
+## Imperative API
+
+```typescript
+interface ForceGraph3DAPI {
+  addNode(node: ForceGraph3DNode): void;
+  removeNode(nodeId: string): void;
+  addEdge(edge: ForceGraph3DEdge): void;
+  removeEdge(source: string, target: string): void;
+  updateNode(nodeId: string, updates: Partial<ForceGraph3DNode>): void;
+  updateEdge(source: string, target: string, updates: Partial<ForceGraph3DEdge>): void;
+  getNodePositions(): Map<string, Vec3>;
+  setRunning(running: boolean): void;
+  resetPositions(): void;
+  fitCamera(): void;
+  loadGraph(graph: { nodes: ForceGraph3DNode[]; edges: ForceGraph3DEdge[] }): void;
+  getSceneGraph(): SceneGraph;
 }
 ```
 
@@ -70,19 +114,23 @@ interface ForceGraph3DEdge {
 import { ForceGraph3D } from '@specifyjs/3d-force-graph';
 
 ForceGraph3D({
-  nodes: [
-    { id: 'a', label: 'Alpha' },
-    { id: 'b', label: 'Beta' },
-    { id: 'c', label: 'Gamma' },
-  ],
-  edges: [
-    { source: 'a', target: 'b' },
-    { source: 'b', target: 'c' },
-  ],
   width: 800,
   height: 600,
-  simulation: { repulsion: -150, damping: 0.85 },
-  camera: { distance: 400, autoRotateSpeed: 5 },
-  onNodeClick: (node) => console.log('Clicked:', node.id),
+  nodes: [
+    { id: 'a', label: 'Alpha', shape: 'sphere' },
+    { id: 'b', label: 'Beta', shape: 'cube' },
+    { id: 'c', label: 'Gamma', shape: 'tetrahedron' },
+  ],
+  edges: [
+    { source: 'a', target: 'b', style: 'cylinder-solid' },
+    { source: 'b', target: 'c', style: 'cylinder-mesh' },
+  ],
+  repulsionStrength: 150,
+  damping: 0.85,
+  apiRef: (api) => {
+    // Dynamically add a node
+    api.addNode({ id: 'd', label: 'Delta' });
+    api.addEdge({ source: 'c', target: 'd' });
+  },
 });
 ```

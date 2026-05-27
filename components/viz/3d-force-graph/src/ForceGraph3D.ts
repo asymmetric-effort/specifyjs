@@ -2,859 +2,650 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * ForceGraph3D — A SpecifyJS component that renders force-directed graph
- * layouts in 3D space, projected to SVG via perspective projection.
+ * ForceGraph3D -- A SpecifyJS component that renders force-directed graph
+ * layouts in 3D space using the 3dSpace engine.
  *
- * Supports:
- *  - Physics-based 3D node positioning (Coulomb repulsion + Hooke spring attraction)
- *  - Animated simulation via requestAnimationFrame with convergence detection
- *  - Camera orbit via mouse drag, zoom via scroll wheel
- *  - Node click/hover callbacks
- *  - Configurable forces (repulsion, attraction, damping)
- *  - Node labels (billboarded — always face camera)
- *  - Depth-sorted rendering (painter's algorithm)
- *
- * Zero runtime dependencies — pure SpecifyJS + SVG.
+ * - Uses Space3D with onFrame callback for animation
+ * - Creates SceneObjects for each node (sphere/polyhedron) and edge (cylinder)
+ * - Maintains internal state maps (no userData on SceneObjects)
+ * - Exposes imperative API via apiRef
  */
 
 import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'specifyjs/hooks';
+import type { Vec3 } from '../../../math/src/vec';
+import type { Quaternion } from '../../../math/src/quaternion';
+import type { Color } from '../../3dSpace/src/types';
+import { SceneObject } from '../../3dSpace/src/scene-object';
+import { SceneGraph } from '../../3dSpace/src/scene-graph';
+import { Mesh } from '../../3dSpace/src/mesh';
+import { createMaterial } from '../../3dSpace/src/material';
+import { createGeomSphere } from '../../3dSpace/src/geom-sphere';
 import {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from 'specifyjs/hooks';
+  createGeomPolyhedron,
+  cubeGeometry,
+  tetrahedronGeometry,
+  octahedronGeometry,
+  icosahedronGeometry,
+} from '../../3dSpace/src/geom-polyhedron';
+import { Camera } from '../../3dSpace/src/camera';
+import { Space3D } from '../../3dSpace/src/Space3D';
+import type {
+  ForceGraph3DNode,
+  ForceGraph3DEdge,
+  ForceGraph3DProps,
+  ForceGraph3DAPI,
+} from './types';
+import type { SimNode, SimEdge, SimConfig } from './force-sim';
+import { stepSimulation, computeKineticEnergy } from './force-sim';
 
-// -- Data types ---------------------------------------------------------------
+// ---- Internal state types ---------------------------------------------------
 
-/** A node in the 3D force graph. */
-export interface ForceGraph3DNode {
-  id: string;
-  label?: string;
-  /** Initial position (randomized if omitted) */
-  x?: number;
-  y?: number;
-  z?: number;
-  /** Node size. Default: 5 */
-  size?: number;
-  /** Node color. Default: '#3b82f6' */
-  color?: string;
-  /** Arbitrary metadata accessible in callbacks */
-  data?: Record<string, unknown>;
+/** Internal state for a node, mapping config to SceneObject. */
+export interface NodeState {
+  config: ForceGraph3DNode;
+  sceneObjectId: string;
+  labelObjectId?: string;
 }
 
-/** An edge in the 3D force graph. */
-export interface ForceGraph3DEdge {
-  source: string;
-  target: string;
-  /** Edge color. Default: '#94a3b8' */
-  color?: string;
-  /** Edge width. Default: 1 */
-  width?: number;
-  /** Edge label */
-  label?: string;
+/** Internal state for an edge, mapping config to SceneObject. */
+export interface EdgeState {
+  config: ForceGraph3DEdge;
+  sceneObjectId: string;
 }
 
-// -- Props --------------------------------------------------------------------
+// ---- Helpers ----------------------------------------------------------------
 
-export interface ForceGraph3DProps {
-  /** Node definitions */
-  nodes: ForceGraph3DNode[];
-  /** Edge definitions (references node ids) */
-  edges: ForceGraph3DEdge[];
-  /** Canvas width. Default: 600 */
-  width?: number;
-  /** Canvas height. Default: 400 */
-  height?: number;
-  /** Force simulation parameters */
-  simulation?: {
-    /** Repulsion strength between nodes. Default: -100 */
-    repulsion?: number;
-    /** Spring strength for edges. Default: 0.01 */
-    springStrength?: number;
-    /** Ideal spring length. Default: 100 */
-    springLength?: number;
-    /** Velocity damping per tick. Default: 0.9 */
-    damping?: number;
-    /** Simulation iterations per frame. Default: 1 */
-    iterations?: number;
-  };
-  /** Camera controls */
-  camera?: {
-    /** Initial distance from origin. Default: 300 */
-    distance?: number;
-    /** Auto-rotate speed (degrees/sec, 0 to disable). Default: 0 */
-    autoRotateSpeed?: number;
-  };
-  /** Called when a node is clicked */
-  onNodeClick?: (node: ForceGraph3DNode) => void;
-  /** Called when a node is hovered */
-  onNodeHover?: (node: ForceGraph3DNode | null) => void;
-  /** Background color. Default: '#0f172a' */
-  backgroundColor?: string;
+const DEFAULT_COLOR: Color = { r: 0.23, g: 0.51, b: 0.96, a: 1 };
+const DEFAULT_EDGE_COLOR: Color = { r: 0.58, g: 0.64, b: 0.72, a: 1 };
+const DEFAULT_BG: Color = { r: 0.06, g: 0.09, b: 0.16, a: 1 };
+
+/** Generate edge key from source+target. */
+export function edgeKey(source: string, target: string): string {
+  return `${source}::${target}`;
 }
 
-// -- Internal simulation state ------------------------------------------------
-
-/** Internal simulation node with velocity. */
-export interface ForceGraph3DSimNode {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vy: number;
-  vz: number;
-  size: number;
-  color: string;
-  data: Record<string, unknown>;
-}
-
-// -- Camera state -------------------------------------------------------------
-
-interface CameraState {
-  /** Azimuth angle in radians (horizontal orbit) */
-  azimuth: number;
-  /** Elevation angle in radians (vertical orbit, clamped) */
-  elevation: number;
-  /** Distance from origin */
-  distance: number;
-}
-
-// -- Default palette ----------------------------------------------------------
-
-const DEFAULT_PALETTE = [
-  '#3b82f6',
-  '#ef4444',
-  '#22c55e',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ec4899',
-  '#14b8a6',
-  '#f97316',
-  '#6366f1',
-  '#84cc16',
-];
-
-function defaultColor(index: number): string {
-  return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]!;
-}
-
-// -- Simulation helpers -------------------------------------------------------
-
-/** Initialize simulation nodes from props using spherical distribution. */
-export function initSimNodes3D(
-  nodes: ForceGraph3DNode[],
-): ForceGraph3DSimNode[] {
-  const count = nodes.length;
-  const radius = 50;
-
-  const result: ForceGraph3DSimNode[] = [];
-  for (let i = 0; i < count; i++) {
-    const n = nodes[i]!;
-    // Distribute on a sphere using the golden angle
-    const phi = Math.acos(1 - (2 * (i + 0.5)) / Math.max(count, 1));
-    const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-    result.push({
-      id: n.id,
-      label: n.label ?? n.id,
-      x: n.x ?? radius * Math.sin(phi) * Math.cos(theta),
-      y: n.y ?? radius * Math.sin(phi) * Math.sin(theta),
-      z: n.z ?? radius * Math.cos(phi),
-      vx: 0,
-      vy: 0,
-      vz: 0,
-      size: n.size ?? 5,
-      color: n.color ?? defaultColor(i),
-      data: n.data ?? {},
-    });
-  }
-  return result;
+/** Auto-compute rest length based on node count. */
+export function autoRestLength(nodeCount: number): number {
+  return Math.max(3, 5 + Math.sqrt(nodeCount) * 2);
 }
 
 /**
- * Run one tick of the 3D force simulation. Returns new node states.
- *
- * Forces:
- *  - Coulomb repulsion between all node pairs (O(n^2))
- *  - Hooke spring attraction along edges
- *  - Center gravity — gentle pull toward origin
+ * Compute quaternion that rotates the Y-axis (0,1,0) to the given direction.
  */
-export function simulationTick3D(
-  simNodes: ForceGraph3DSimNode[],
-  edges: ForceGraph3DEdge[],
-  repulsion: number,
-  springStrength: number,
-  springLength: number,
-  damping: number,
-): ForceGraph3DSimNode[] {
-  const count = simNodes.length;
-  if (count === 0) return simNodes;
+export function quaternionFromYAxisTo(dir: Vec3): Quaternion {
+  const yAxis: Vec3 = { x: 0, y: 1, z: 0 };
 
-  // Build index for fast lookup
-  const indexMap = new Map<string, number>();
-  for (let i = 0; i < count; i++) {
-    indexMap.set(simNodes[i]!.id, i);
+  // dot product
+  const dot = yAxis.x * dir.x + yAxis.y * dir.y + yAxis.z * dir.z;
+
+  // If dir is approximately +Y, return identity
+  if (dot > 0.9999) {
+    return { x: 0, y: 0, z: 0, w: 1 };
   }
 
-  // Accumulate forces
-  const fx = new Float64Array(count);
-  const fy = new Float64Array(count);
-  const fz = new Float64Array(count);
-
-  // Repulsion: Coulomb-like force between all pairs
-  // repulsion is negative (e.g. -100) so force pushes nodes apart
-  for (let i = 0; i < count; i++) {
-    const ni = simNodes[i]!;
-    for (let j = i + 1; j < count; j++) {
-      const nj = simNodes[j]!;
-      const dx = ni.x - nj.x;
-      const dy = ni.y - nj.y;
-      const dz = ni.z - nj.z;
-      let distSq = dx * dx + dy * dy + dz * dz;
-      if (distSq < 1) distSq = 1;
-      const dist = Math.sqrt(distSq);
-      // Negative repulsion => push apart (force away from other node)
-      const force = -repulsion / distSq;
-      const forceX = (dx / dist) * force;
-      const forceY = (dy / dist) * force;
-      const forceZ = (dz / dist) * force;
-      fx[i] += forceX;
-      fy[i] += forceY;
-      fz[i] += forceZ;
-      fx[j] -= forceX;
-      fy[j] -= forceY;
-      fz[j] -= forceZ;
-    }
+  // If dir is approximately -Y, rotate 180 around Z
+  if (dot < -0.9999) {
+    return { x: 0, y: 0, z: 1, w: 0 };
   }
 
-  // Attraction: spring force along edges (Hooke's law)
-  for (let e = 0; e < edges.length; e++) {
-    const edge = edges[e]!;
-    const si = indexMap.get(edge.source);
-    const ti = indexMap.get(edge.target);
-    if (si === undefined || ti === undefined) continue;
+  // Cross product Y x dir
+  const cx = yAxis.y * dir.z - yAxis.z * dir.y;
+  const cy = yAxis.z * dir.x - yAxis.x * dir.z;
+  const cz = yAxis.x * dir.y - yAxis.y * dir.x;
 
-    const ns = simNodes[si]!;
-    const nt = simNodes[ti]!;
-    const dx = nt.x - ns.x;
-    const dy = nt.y - ns.y;
-    const dz = nt.z - ns.z;
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist < 0.1) continue;
-
-    const displacement = dist - springLength;
-    const force = springStrength * displacement;
-    const forceX = (dx / dist) * force;
-    const forceY = (dy / dist) * force;
-    const forceZ = (dz / dist) * force;
-
-    fx[si] += forceX;
-    fy[si] += forceY;
-    fz[si] += forceZ;
-    fx[ti] -= forceX;
-    fy[ti] -= forceY;
-    fz[ti] -= forceZ;
-  }
-
-  // Center gravity — gentle pull toward origin
-  const centerForce = 0.001;
-  for (let i = 0; i < count; i++) {
-    const n = simNodes[i]!;
-    fx[i] -= n.x * centerForce;
-    fy[i] -= n.y * centerForce;
-    fz[i] -= n.z * centerForce;
-  }
-
-  // Update velocities and positions (Velocity Verlet integration with damping)
-  const result: ForceGraph3DSimNode[] = [];
-  for (let i = 0; i < count; i++) {
-    const n = simNodes[i]!;
-    let vx = (n.vx + fx[i]) * damping;
-    let vy = (n.vy + fy[i]) * damping;
-    let vz = (n.vz + fz[i]) * damping;
-
-    // Clamp velocity
-    const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-    const maxSpeed = 10;
-    if (speed > maxSpeed) {
-      const scale = maxSpeed / speed;
-      vx *= scale;
-      vy *= scale;
-      vz *= scale;
-    }
-
-    result.push({
-      ...n,
-      x: n.x + vx,
-      y: n.y + vy,
-      z: n.z + vz,
-      vx,
-      vy,
-      vz,
-    });
-  }
-
-  return result;
-}
-
-/** Compute total kinetic energy to determine when simulation is settled. */
-export function kineticEnergy3D(simNodes: ForceGraph3DSimNode[]): number {
-  let energy = 0;
-  for (let i = 0; i < simNodes.length; i++) {
-    const n = simNodes[i]!;
-    energy += n.vx * n.vx + n.vy * n.vy + n.vz * n.vz;
-  }
-  return energy;
-}
-
-// -- 3D projection helpers ---------------------------------------------------
-
-/** Compute camera position from spherical coordinates. */
-export function cameraPosition(cam: CameraState): { x: number; y: number; z: number } {
+  // Quaternion: q = (cross, 1 + dot), then normalize
+  const w = 1 + dot;
+  const len = Math.sqrt(cx * cx + cy * cy + cz * cz + w * w);
   return {
-    x: cam.distance * Math.cos(cam.elevation) * Math.sin(cam.azimuth),
-    y: cam.distance * Math.sin(cam.elevation),
-    z: cam.distance * Math.cos(cam.elevation) * Math.cos(cam.azimuth),
+    x: cx / len,
+    y: cy / len,
+    z: cz / len,
+    w: w / len,
   };
 }
 
-/**
- * Project a 3D point to 2D screen coordinates using perspective projection.
- * Returns { sx, sy, depth } where sx/sy are screen coords and depth is for sorting.
- * Returns null if the point is behind the camera.
- *
- * The camera orbits around the origin. Its "forward" direction is from camPos
- * toward the origin. We build an orthonormal camera basis (right, up, forward)
- * and project the camera-to-point vector onto that basis.
- */
-export function projectPoint(
-  px: number, py: number, pz: number,
-  camPos: { x: number; y: number; z: number },
-  camAzimuth: number,
-  camElevation: number,
-  width: number,
-  height: number,
-  fov: number,
-): { sx: number; sy: number; depth: number } | null {
-  // Forward direction: camera looks toward the origin
-  const fwdLen = Math.sqrt(camPos.x * camPos.x + camPos.y * camPos.y + camPos.z * camPos.z);
-  if (fwdLen < 0.0001) return null;
+/** Create a SceneObject for a node based on its shape config. */
+export function createNodeSceneObject(
+  nodeId: string,
+  node: ForceGraph3DNode,
+  position: Vec3,
+): SceneObject {
+  const color = node.color ?? DEFAULT_COLOR;
+  const size = Math.max(0.01, node.size ?? 1.0);
+  const shape = node.shape ?? 'sphere';
+  const sceneId = `node-${nodeId}`;
 
-  const fwdX = -camPos.x / fwdLen;
-  const fwdY = -camPos.y / fwdLen;
-  const fwdZ = -camPos.z / fwdLen;
-
-  // World up
-  const worldUpX = 0;
-  const worldUpY = 1;
-  const worldUpZ = 0;
-
-  // Right = forward x worldUp (cross product)
-  let rightX = fwdY * worldUpZ - fwdZ * worldUpY;
-  let rightY = fwdZ * worldUpX - fwdX * worldUpZ;
-  let rightZ = fwdX * worldUpY - fwdY * worldUpX;
-  const rightLen = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
-  if (rightLen < 0.0001) {
-    // Camera looking straight up/down — use fallback right vector
-    rightX = 1;
-    rightY = 0;
-    rightZ = 0;
-  } else {
-    rightX /= rightLen;
-    rightY /= rightLen;
-    rightZ /= rightLen;
+  if (shape === 'sphere') {
+    return createGeomSphere(sceneId, position, {
+      radius: size,
+      surfaceColor: color,
+      label: node.label,
+      textColor: node.textColor,
+    });
   }
 
-  // Up = right x forward
-  const upX = rightY * fwdZ - rightZ * fwdY;
-  const upY = rightZ * fwdX - rightX * fwdZ;
-  const upZ = rightX * fwdY - rightY * fwdX;
+  // For polyhedra, map shape to geometry
+  let geometry;
+  switch (shape) {
+    case 'cube':
+      geometry = cubeGeometry();
+      break;
+    case 'tetrahedron':
+      geometry = tetrahedronGeometry();
+      break;
+    case 'octahedron':
+      geometry = octahedronGeometry();
+      break;
+    case 'icosahedron':
+      geometry = icosahedronGeometry();
+      break;
+    case 'custom':
+      if (node.customGeometry) {
+        geometry = node.customGeometry;
+      } else {
+        geometry = cubeGeometry(); // fallback
+      }
+      break;
+    default:
+      geometry = cubeGeometry();
+      break;
+  }
 
-  // Vector from camera to point
-  const dx = px - camPos.x;
-  const dy = py - camPos.y;
-  const dz = pz - camPos.z;
-
-  // Project onto camera basis
-  const rx = dx * rightX + dy * rightY + dz * rightZ;
-  const ry = dx * upX + dy * upY + dz * upZ;
-  const rz = dx * fwdX + dy * fwdY + dz * fwdZ; // depth along forward
-
-  if (rz < 0.1) return null; // Behind camera or too close
-
-  const depth = rz;
-  const scale = (fov * Math.min(width, height) * 0.5) / depth;
-  const sx = width / 2 + rx * scale;
-  const sy = height / 2 - ry * scale; // flip Y for screen coords
-
-  return { sx, sy, depth };
+  return createGeomPolyhedron(sceneId, position, {
+    geometry,
+    scale: size,
+    surfaceColor: color,
+    label: node.label,
+    textColor: node.textColor,
+  });
 }
 
-// -- Component ----------------------------------------------------------------
+/** Create a SceneObject for an edge (unit cylinder). */
+export function createEdgeSceneObject(
+  source: string,
+  target: string,
+  edge: ForceGraph3DEdge,
+): SceneObject {
+  const style = edge.style ?? 'cylinder-solid';
+  const color = edge.color ?? DEFAULT_EDGE_COLOR;
+  const sceneId = `edge-${source}-${target}`;
 
+  const obj = new SceneObject(sceneId);
+
+  if (style === 'cylinder-mesh') {
+    obj.mesh = Mesh.createCylinderMesh(1, 1, { radialSegments: 8, heightSegments: 1 });
+    obj.renderMode = 'lines';
+  } else {
+    // cylinder-solid or line (we use thin cylinder for line)
+    obj.mesh = Mesh.createCylinderSolid(1, 1, { radialSegments: 8 });
+  }
+
+  obj.material = createMaterial(color);
+  return obj;
+}
+
+/** Update edge SceneObject transform to connect source and target positions. */
+export function updateEdgeTransform(
+  edgeObj: SceneObject,
+  sourcePos: Vec3,
+  targetPos: Vec3,
+  thickness: number,
+): void {
+  const dx = targetPos.x - sourcePos.x;
+  const dy = targetPos.y - sourcePos.y;
+  const dz = targetPos.z - sourcePos.z;
+  const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  if (dist < 0.0001) {
+    edgeObj.visible = false;
+    return;
+  }
+  edgeObj.visible = true;
+
+  // Midpoint
+  const mid: Vec3 = {
+    x: (sourcePos.x + targetPos.x) / 2,
+    y: (sourcePos.y + targetPos.y) / 2,
+    z: (sourcePos.z + targetPos.z) / 2,
+  };
+
+  // Direction (normalized)
+  const dir: Vec3 = { x: dx / dist, y: dy / dist, z: dz / dist };
+
+  // Quaternion from Y-axis to direction
+  const quat = quaternionFromYAxisTo(dir);
+
+  edgeObj.position = mid;
+  edgeObj.scale = { x: thickness, y: dist, z: thickness };
+  edgeObj.rotation = quat;
+}
+
+// ---- Component --------------------------------------------------------------
+
+/** ForceGraph3D component. */
 export function ForceGraph3D(props: ForceGraph3DProps) {
   const {
+    width,
+    height,
     nodes,
     edges,
-    width = 600,
-    height = 400,
-    simulation,
-    camera,
-    onNodeClick,
-    onNodeHover,
-    backgroundColor = '#0f172a',
+    bounds,
+    repulsionStrength = 100,
+    attractionStrength = 0.1,
+    damping = 0.9,
+    centerGravity = 0.01,
+    running = true,
+    timeStep = 0.016,
+    cameraDistance,
+    apiRef,
+    lightingModel,
+    backgroundColor = DEFAULT_BG,
   } = props;
 
-  const repulsion = simulation?.repulsion ?? -100;
-  const springStrength = simulation?.springStrength ?? 0.01;
-  const springLength = simulation?.springLength ?? 100;
-  const damping = simulation?.damping ?? 0.9;
-  const iterations = simulation?.iterations ?? 1;
-  const cameraDistance = camera?.distance ?? 300;
-  const autoRotateSpeed = camera?.autoRotateSpeed ?? 0;
-
-  // Handle empty data
-  if (!nodes || nodes.length === 0) {
-    return createElement(
-      'svg',
-      {
-        width: '100%',
-        viewBox: `0 0 ${width} ${height}`,
-        preserveAspectRatio: 'xMidYMid meet',
-        xmlns: 'http://www.w3.org/2000/svg',
-        role: 'img',
-        'aria-label': 'Empty 3D force-directed graph',
-      },
-      createElement('rect', {
-        key: 'bg',
-        x: '0',
-        y: '0',
-        width: String(width),
-        height: String(height),
-        fill: backgroundColor,
-      }),
-      createElement(
-        'text',
-        {
-          key: 'empty-text',
-          x: String(width / 2),
-          y: String(height / 2),
-          'text-anchor': 'middle',
-          'font-size': '14',
-          'font-family': 'sans-serif',
-          fill: '#6b7280',
-        },
-        'No data',
-      ),
-    );
-  }
-
-  // ── Simulation state ──────────────────────────────────────────────
-  const simRef = useRef<ForceGraph3DSimNode[]>(initSimNodes3D(nodes));
-  const [tick, setTick] = useState(0);
-  const runningRef = useRef(true);
-  const settledRef = useRef(false);
-
-  // Camera state in ref
-  const cameraRef = useRef<CameraState>({
-    azimuth: Math.PI / 4,
-    elevation: Math.PI / 6,
-    distance: cameraDistance,
-  });
-
-  // Drag state
-  const isDraggingRef = useRef(false);
-  const lastMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const svgRef = useRef<SVGSVGElement | null>(null);
-
-  // Hovered node
-  const hoveredNodeRef = useRef<string | null>(null);
-
-  // Store edges/config in refs for animation loop
-  const edgesRef = useRef(edges);
-  edgesRef.current = edges;
-  const configRef = useRef({
-    repulsion, springStrength, springLength, damping, iterations, autoRotateSpeed,
-  });
-  configRef.current = {
-    repulsion, springStrength, springLength, damping, iterations, autoRotateSpeed,
+  const defaultBounds = bounds ?? {
+    min: { x: -50, y: -50, z: -50 },
+    max: { x: 50, y: 50, z: 50 },
   };
 
-  // Callback refs
-  const onNodeClickRef = useRef(onNodeClick);
-  onNodeClickRef.current = onNodeClick;
-  const onNodeHoverRef = useRef(onNodeHover);
-  onNodeHoverRef.current = onNodeHover;
+  // Internal state maps
+  const nodeStatesRef = useRef<Map<string, NodeState>>(new Map());
+  const edgeStatesRef = useRef<Map<string, EdgeState>>(new Map());
+  const simNodesRef = useRef<Map<string, SimNode>>(new Map());
+  const simEdgesRef = useRef<SimEdge[]>([]);
+  const sceneGraphRef = useRef<SceneGraph>(new SceneGraph());
+  const runningRef = useRef<boolean>(running);
+  const simConfigRef = useRef<SimConfig>({
+    repulsionStrength,
+    attractionStrength,
+    damping,
+    centerGravity,
+    timeStep,
+    bounds: defaultBounds,
+  });
 
-  // Re-initialize when nodes change
-  useEffect(() => {
-    simRef.current = initSimNodes3D(nodes);
-    settledRef.current = false;
-    runningRef.current = true;
-    setTick((t: number) => t + 1);
-  }, [nodes.length]);
+  // Keep running state in sync
+  runningRef.current = running;
+  simConfigRef.current = {
+    repulsionStrength,
+    attractionStrength,
+    damping,
+    centerGravity,
+    timeStep,
+    bounds: defaultBounds,
+  };
 
-  // Animation loop
-  useEffect(() => {
-    let frameId = 0;
-    let lastTime = 0;
-    const animate = (time: number) => {
-      if (!runningRef.current) return;
-      const cfg = configRef.current;
+  const scene = sceneGraphRef.current;
 
-      // Auto-rotate
-      if (cfg.autoRotateSpeed !== 0 && !isDraggingRef.current) {
-        const dt = lastTime > 0 ? (time - lastTime) / 1000 : 0;
-        cameraRef.current = {
-          ...cameraRef.current,
-          azimuth: cameraRef.current.azimuth + (cfg.autoRotateSpeed * Math.PI / 180) * dt,
-        };
-      }
-      lastTime = time;
+  // ---- Node/Edge CRUD helpers -----------------------------------------------
 
-      // Run simulation iterations
-      let current = simRef.current;
-      for (let iter = 0; iter < cfg.iterations; iter++) {
-        current = simulationTick3D(
-          current,
-          edgesRef.current,
-          cfg.repulsion,
-          cfg.springStrength,
-          cfg.springLength,
-          cfg.damping,
-        );
-      }
-      simRef.current = current;
+  const addNodeInternal = useCallback((node: ForceGraph3DNode) => {
+    const ns = nodeStatesRef.current;
+    const simNodes = simNodesRef.current;
 
-      // Check for convergence
-      if (kineticEnergy3D(current) < 0.01 && cfg.autoRotateSpeed === 0) {
-        settledRef.current = true;
-        setTick((t: number) => t + 1);
-        return;
-      }
+    if (ns.has(node.id)) return; // duplicate
 
-      setTick((t: number) => t + 1);
-      frameId = requestAnimationFrame(animate) as unknown as number;
+    // Initial position
+    const pos: Vec3 = node.position ?? {
+      x: (Math.random() - 0.5) * 20,
+      y: (Math.random() - 0.5) * 20,
+      z: (Math.random() - 0.5) * 20,
     };
-    frameId = requestAnimationFrame(animate) as unknown as number;
-    return () => {
-      runningRef.current = false;
-      cancelAnimationFrame(frameId);
+
+    // Simulation node
+    const simNode: SimNode = {
+      id: node.id,
+      position: { x: pos.x, y: pos.y, z: pos.z },
+      velocity: { x: 0, y: 0, z: 0 },
+      mass: Math.max(0.001, node.mass ?? 1.0),
+      fixed: node.fixed ?? false,
     };
+    simNodes.set(node.id, simNode);
+
+    // Scene object
+    const obj = createNodeSceneObject(node.id, node, pos);
+    scene.register(obj);
+
+    const state: NodeState = {
+      config: node,
+      sceneObjectId: obj.id,
+    };
+    ns.set(node.id, state);
   }, []);
 
-  // Current simulation snapshot
-  const simNodes = simRef.current;
-  void tick; // drives re-render
+  const removeNodeInternal = useCallback((nodeId: string) => {
+    const ns = nodeStatesRef.current;
+    const simNodes = simNodesRef.current;
+    const es = edgeStatesRef.current;
 
-  // ── Mouse interaction handlers ────────────────────────────────────
+    const state = ns.get(nodeId);
+    if (!state) return;
 
-  const getSvgCoords = useCallback((e: Event): { x: number; y: number } => {
-    const me = e as MouseEvent;
-    const svg = svgRef.current;
-    if (!svg) return { x: me.clientX, y: me.clientY };
-    const rect = (svg as unknown as Element).getBoundingClientRect();
-    const scaleX = width / rect.width;
-    const scaleY = height / rect.height;
-    return {
-      x: (me.clientX - rect.left) * scaleX,
-      y: (me.clientY - rect.top) * scaleY,
+    // Remove scene object
+    scene.unregister(state.sceneObjectId);
+
+    // Remove connected edges
+    const edgesToRemove: string[] = [];
+    for (const [key, edgeState] of es.entries()) {
+      if (edgeState.config.source === nodeId || edgeState.config.target === nodeId) {
+        edgesToRemove.push(key);
+      }
+    }
+    for (const key of edgesToRemove) {
+      const edgeState = es.get(key);
+      if (edgeState) {
+        scene.unregister(edgeState.sceneObjectId);
+        es.delete(key);
+      }
+    }
+    // Remove from sim edges
+    simEdgesRef.current = simEdgesRef.current.filter(
+      e => e.source !== nodeId && e.target !== nodeId,
+    );
+
+    // Remove from maps
+    ns.delete(nodeId);
+    simNodes.delete(nodeId);
+  }, []);
+
+  const addEdgeInternal = useCallback((edge: ForceGraph3DEdge) => {
+    const es = edgeStatesRef.current;
+    const ns = nodeStatesRef.current;
+    const key = edgeKey(edge.source, edge.target);
+
+    // Validate endpoints exist
+    if (!ns.has(edge.source) || !ns.has(edge.target)) return;
+    // Skip self-loops
+    if (edge.source === edge.target) return;
+    // Skip duplicates
+    if (es.has(key)) return;
+
+    const restLen = edge.length ?? autoRestLength(nodeStatesRef.current.size);
+    const stiffness = edge.stiffness ?? 0.1;
+
+    // Simulation edge
+    const simEdge: SimEdge = {
+      source: edge.source,
+      target: edge.target,
+      restLength: restLen,
+      stiffness,
     };
-  }, [width, height]);
+    simEdgesRef.current.push(simEdge);
 
-  // Camera orbit drag
-  const handleMouseDown = useCallback((e: Event) => {
-    const pt = getSvgCoords(e);
-    isDraggingRef.current = true;
-    lastMouseRef.current = pt;
-  }, [getSvgCoords]);
+    // Scene object
+    const obj = createEdgeSceneObject(edge.source, edge.target, edge);
+    scene.register(obj);
 
-  const handleMouseMove = useCallback((e: Event) => {
-    const pt = getSvgCoords(e);
+    const state: EdgeState = {
+      config: edge,
+      sceneObjectId: obj.id,
+    };
+    es.set(key, state);
+  }, []);
 
-    if (isDraggingRef.current) {
-      const dx = pt.x - lastMouseRef.current.x;
-      const dy = pt.y - lastMouseRef.current.y;
-      lastMouseRef.current = pt;
+  const removeEdgeInternal = useCallback((source: string, target: string) => {
+    const es = edgeStatesRef.current;
+    const key = edgeKey(source, target);
+    const state = es.get(key);
+    if (!state) return;
 
-      const cam = cameraRef.current;
-      const sensitivity = 0.005;
-      cameraRef.current = {
-        ...cam,
-        azimuth: cam.azimuth + dx * sensitivity,
-        elevation: Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01,
-          cam.elevation - dy * sensitivity)),
-      };
+    scene.unregister(state.sceneObjectId);
+    es.delete(key);
+    simEdgesRef.current = simEdgesRef.current.filter(
+      e => !(e.source === source && e.target === target),
+    );
+  }, []);
 
-      // Wake simulation for re-render even if settled
-      if (settledRef.current) {
-        settledRef.current = false;
-        runningRef.current = true;
-      }
-      setTick((t: number) => t + 1);
-      return;
+  // ---- Initialize from props ------------------------------------------------
+
+  useEffect(() => {
+    // Clear existing state
+    for (const [, ns] of nodeStatesRef.current) {
+      scene.unregister(ns.sceneObjectId);
     }
-
-    // Hover detection — find nearest projected node
-    const cam = cameraRef.current;
-    const camPos = cameraPosition(cam);
-    const fov = 1.5;
-    let closestId: string | null = null;
-    let closestDistSq = Infinity;
-
-    for (let i = 0; i < simNodes.length; i++) {
-      const n = simNodes[i]!;
-      const proj = projectPoint(n.x, n.y, n.z, camPos, cam.azimuth, cam.elevation, width, height, fov);
-      if (!proj) continue;
-      const ddx = proj.sx - pt.x;
-      const ddy = proj.sy - pt.y;
-      const dSq = ddx * ddx + ddy * ddy;
-      // Hit radius based on projected node size
-      const hitRadius = Math.max(8, n.size * (fov * Math.min(width, height) * 0.5) / proj.depth);
-      if (dSq < hitRadius * hitRadius && dSq < closestDistSq) {
-        closestDistSq = dSq;
-        closestId = n.id;
-      }
+    for (const [, es] of edgeStatesRef.current) {
+      scene.unregister(es.sceneObjectId);
     }
+    nodeStatesRef.current.clear();
+    edgeStatesRef.current.clear();
+    simNodesRef.current.clear();
+    simEdgesRef.current = [];
 
-    if (closestId !== hoveredNodeRef.current) {
-      hoveredNodeRef.current = closestId;
-      if (onNodeHoverRef.current) {
-        if (closestId) {
-          const node = nodes.find(n => n.id === closestId) ?? null;
-          onNodeHoverRef.current(node);
-        } else {
-          onNodeHoverRef.current(null);
+    // Add nodes
+    for (const node of nodes) {
+      addNodeInternal(node);
+    }
+    // Add edges
+    for (const edge of edges) {
+      addEdgeInternal(edge);
+    }
+  }, [nodes, edges]);
+
+  // ---- Frame callback -------------------------------------------------------
+
+  const onFrame = useCallback((_deltaTime: number, _scene: SceneGraph) => {
+    if (!runningRef.current) return;
+
+    const simNodes = simNodesRef.current;
+    const simEdges = simEdgesRef.current;
+    const config = simConfigRef.current;
+
+    // Step simulation
+    stepSimulation(simNodes, simEdges, config);
+
+    // Update node SceneObject positions
+    for (const [nodeId, state] of nodeStatesRef.current) {
+      const simNode = simNodes.get(nodeId);
+      if (!simNode) continue;
+
+      // Find the scene object and update position
+      scene.traverse((obj: SceneObject) => {
+        if (obj.id === state.sceneObjectId) {
+          obj.position = {
+            x: simNode.position.x,
+            y: simNode.position.y,
+            z: simNode.position.z,
+          };
         }
-      }
-      setTick((t: number) => t + 1);
-    }
-  }, [getSvgCoords, width, height]);
-
-  const handleMouseUp = useCallback(() => {
-    isDraggingRef.current = false;
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    isDraggingRef.current = false;
-    if (hoveredNodeRef.current !== null) {
-      hoveredNodeRef.current = null;
-      if (onNodeHoverRef.current) {
-        onNodeHoverRef.current(null);
-      }
-    }
-  }, []);
-
-  // Zoom via scroll
-  const handleWheel = useCallback((e: Event) => {
-    const we = e as WheelEvent;
-    const cam = cameraRef.current;
-    const zoomFactor = 1 + (we.deltaY > 0 ? 0.1 : -0.1);
-    cameraRef.current = {
-      ...cam,
-      distance: Math.max(50, Math.min(2000, cam.distance * zoomFactor)),
-    };
-    if (settledRef.current) {
-      settledRef.current = false;
-      runningRef.current = true;
-    }
-    setTick((t: number) => t + 1);
-  }, []);
-
-  // Click handler
-  const handleClick = useCallback((e: Event) => {
-    if (!onNodeClickRef.current) return;
-    const pt = getSvgCoords(e);
-    const cam = cameraRef.current;
-    const camPos = cameraPosition(cam);
-    const fov = 1.5;
-    let closestNode: ForceGraph3DNode | null = null;
-    let closestDistSq = Infinity;
-
-    for (let i = 0; i < simNodes.length; i++) {
-      const n = simNodes[i]!;
-      const proj = projectPoint(n.x, n.y, n.z, camPos, cam.azimuth, cam.elevation, width, height, fov);
-      if (!proj) continue;
-      const ddx = proj.sx - pt.x;
-      const ddy = proj.sy - pt.y;
-      const dSq = ddx * ddx + ddy * ddy;
-      const hitRadius = Math.max(8, n.size * (fov * Math.min(width, height) * 0.5) / proj.depth);
-      if (dSq < hitRadius * hitRadius && dSq < closestDistSq) {
-        closestDistSq = dSq;
-        closestNode = nodes.find(nd => nd.id === n.id) ?? null;
-      }
-    }
-
-    if (closestNode) {
-      onNodeClickRef.current(closestNode);
-    }
-  }, [getSvgCoords, width, height]);
-
-  // ── Projection & rendering ────────────────────────────────────────
-
-  const cam = cameraRef.current;
-  const camPos = cameraPosition(cam);
-  const fov = 1.5;
-
-  // Build projected node data with depth sorting
-  const projectedNodes = useMemo(() => {
-    const projected: {
-      node: ForceGraph3DSimNode;
-      sx: number;
-      sy: number;
-      depth: number;
-      projectedSize: number;
-    }[] = [];
-
-    for (let i = 0; i < simNodes.length; i++) {
-      const n = simNodes[i]!;
-      const proj = projectPoint(n.x, n.y, n.z, camPos, cam.azimuth, cam.elevation, width, height, fov);
-      if (!proj) continue;
-      const projectedSize = Math.max(2, n.size * (fov * Math.min(width, height) * 0.5) / proj.depth);
-      projected.push({ node: n, sx: proj.sx, sy: proj.sy, depth: proj.depth, projectedSize });
-    }
-
-    // Sort back-to-front (painter's algorithm)
-    projected.sort((a, b) => b.depth - a.depth);
-    return projected;
-  }, [tick]);
-
-  // Build projected edges
-  const projectedEdges = useMemo(() => {
-    const nodeProjections = new Map<string, { sx: number; sy: number; depth: number }>();
-    for (let i = 0; i < simNodes.length; i++) {
-      const n = simNodes[i]!;
-      const proj = projectPoint(n.x, n.y, n.z, camPos, cam.azimuth, cam.elevation, width, height, fov);
-      if (proj) nodeProjections.set(n.id, proj);
-    }
-
-    const result: {
-      edge: ForceGraph3DEdge;
-      x1: number; y1: number;
-      x2: number; y2: number;
-      depth: number;
-    }[] = [];
-
-    for (let i = 0; i < edges.length; i++) {
-      const edge = edges[i]!;
-      const sp = nodeProjections.get(edge.source);
-      const tp = nodeProjections.get(edge.target);
-      if (!sp || !tp) continue;
-      result.push({
-        edge,
-        x1: sp.sx, y1: sp.sy,
-        x2: tp.sx, y2: tp.sy,
-        depth: Math.max(sp.depth, tp.depth),
       });
     }
 
-    // Sort back-to-front
-    result.sort((a, b) => b.depth - a.depth);
-    return result;
-  }, [tick]);
+    // Update edge SceneObject transforms
+    for (const [, edgeState] of edgeStatesRef.current) {
+      const sourceNode = simNodes.get(edgeState.config.source);
+      const targetNode = simNodes.get(edgeState.config.target);
+      if (!sourceNode || !targetNode) continue;
 
-  // ── Build SVG elements ────────────────────────────────────────────
+      const thickness = edgeState.config.thickness ?? 0.1;
 
-  // Background
-  const bgRect = createElement('rect', {
-    key: 'bg',
-    x: '0',
-    y: '0',
-    width: String(width),
-    height: String(height),
-    fill: backgroundColor,
-  });
+      scene.traverse((obj: SceneObject) => {
+        if (obj.id === edgeState.sceneObjectId) {
+          updateEdgeTransform(obj, sourceNode.position, targetNode.position, thickness);
+        }
+      });
+    }
 
-  // Edges
-  const edgeElements: ReturnType<typeof createElement>[] = [];
-  for (let i = 0; i < projectedEdges.length; i++) {
-    const pe = projectedEdges[i]!;
-    const opacity = Math.max(0.1, Math.min(0.8, 100 / pe.depth));
-    edgeElements.push(
-      createElement('line', {
-        key: `edge-${i}`,
-        x1: String(pe.x1),
-        y1: String(pe.y1),
-        x2: String(pe.x2),
-        y2: String(pe.y2),
-        stroke: pe.edge.color ?? '#94a3b8',
-        'stroke-width': String(pe.edge.width ?? 1),
-        'stroke-opacity': String(opacity),
-      }),
-    );
-  }
+    // Check convergence
+    const energy = computeKineticEnergy(simNodes);
+    if (energy < 0.001) {
+      runningRef.current = false;
+    }
+  }, []);
 
-  // Nodes
-  const nodeElements: ReturnType<typeof createElement>[] = [];
-  for (let i = 0; i < projectedNodes.length; i++) {
-    const pn = projectedNodes[i]!;
-    const isHovered = hoveredNodeRef.current === pn.node.id;
-    const opacity = Math.max(0.3, Math.min(1, 150 / pn.depth));
+  // ---- Camera ---------------------------------------------------------------
 
-    // Node circle
-    nodeElements.push(
-      createElement('circle', {
-        key: `node-${pn.node.id}`,
-        cx: String(pn.sx),
-        cy: String(pn.sy),
-        r: String(pn.projectedSize),
-        fill: pn.node.color,
-        stroke: isHovered ? '#ffffff' : 'rgba(255,255,255,0.3)',
-        'stroke-width': isHovered ? '2' : '1',
-        opacity: String(opacity),
-        style: { cursor: 'pointer' },
-        role: 'button',
-        tabIndex: 0,
-        'aria-label': `Node: ${pn.node.label}`,
-      }),
-    );
+  const computeCameraDistance = useCallback((): number => {
+    if (cameraDistance !== undefined) return cameraDistance;
 
-    // Label (billboarded — always rendered horizontally)
-    const fontSize = Math.max(8, Math.min(14, 10 * (150 / pn.depth)));
-    nodeElements.push(
-      createElement('text', {
-        key: `label-${pn.node.id}`,
-        x: String(pn.sx),
-        y: String(pn.sy + pn.projectedSize + fontSize * 0.9),
-        'text-anchor': 'middle',
-        'font-size': String(Math.round(fontSize)),
-        'font-family': 'sans-serif',
-        fill: '#e2e8f0',
-        opacity: String(Math.max(0.2, opacity - 0.2)),
-        'pointer-events': 'none',
-      }, pn.node.label),
-    );
-  }
+    // Auto-fit: compute bounding sphere of nodes
+    const simNodes = simNodesRef.current;
+    if (simNodes.size === 0) return 30;
 
-  // ── Assemble SVG ──────────────────────────────────────────────────
+    let maxDist = 0;
+    for (const node of simNodes.values()) {
+      const d = Math.sqrt(
+        node.position.x * node.position.x
+        + node.position.y * node.position.y
+        + node.position.z * node.position.z,
+      );
+      if (d > maxDist) maxDist = d;
+    }
+    return Math.max(30, maxDist * 2.5);
+  }, [cameraDistance]);
 
-  return createElement(
-    'svg',
-    {
-      ref: svgRef,
-      width: '100%',
-      viewBox: `0 0 ${width} ${height}`,
-      preserveAspectRatio: 'xMidYMid meet',
-      xmlns: 'http://www.w3.org/2000/svg',
-      role: 'img',
-      'aria-label': '3D force-directed graph — drag to orbit, scroll to zoom',
-      style: {
-        fontFamily: 'sans-serif',
-        cursor: isDraggingRef.current ? 'grabbing' : 'grab',
-        userSelect: 'none',
+  const cameras = useMemo(() => {
+    const dist = computeCameraDistance();
+    const cam = new Camera({
+      position: { x: 0, y: dist * 0.3, z: dist },
+      fov: Math.PI / 4,
+      aspect: width / height,
+      near: 0.1,
+      far: 1000,
+    });
+    cam.lookAt({ x: 0, y: 0, z: 0 });
+    return [cam];
+  }, [width, height]);
+
+  // ---- Imperative API -------------------------------------------------------
+
+  useEffect(() => {
+    if (!apiRef) return;
+
+    const api: ForceGraph3DAPI = {
+      addNode: (node: ForceGraph3DNode) => {
+        addNodeInternal(node);
       },
-      onMouseDown: handleMouseDown,
-      onMouseMove: handleMouseMove,
-      onMouseUp: handleMouseUp,
-      onMouseLeave: handleMouseLeave,
-      onWheel: handleWheel,
-      onClick: handleClick,
-    },
-    bgRect,
-    ...edgeElements,
-    ...nodeElements,
-  );
+      removeNode: (nodeId: string) => {
+        removeNodeInternal(nodeId);
+      },
+      addEdge: (edge: ForceGraph3DEdge) => {
+        addEdgeInternal(edge);
+      },
+      removeEdge: (source: string, target: string) => {
+        removeEdgeInternal(source, target);
+      },
+      updateNode: (nodeId: string, updates: Partial<ForceGraph3DNode>) => {
+        const ns = nodeStatesRef.current;
+        const state = ns.get(nodeId);
+        if (!state) return;
+
+        const newConfig = { ...state.config, ...updates };
+        state.config = newConfig;
+
+        // Update sim node
+        const simNode = simNodesRef.current.get(nodeId);
+        if (simNode) {
+          if (updates.mass !== undefined) simNode.mass = Math.max(0.001, updates.mass);
+          if (updates.fixed !== undefined) simNode.fixed = updates.fixed;
+          if (updates.position !== undefined) {
+            (simNode.position as { x: number; y: number; z: number }).x = updates.position.x;
+            (simNode.position as { x: number; y: number; z: number }).y = updates.position.y;
+            (simNode.position as { x: number; y: number; z: number }).z = updates.position.z;
+          }
+        }
+      },
+      updateEdge: (source: string, target: string, updates: Partial<ForceGraph3DEdge>) => {
+        const es = edgeStatesRef.current;
+        const key = edgeKey(source, target);
+        const state = es.get(key);
+        if (!state) return;
+
+        state.config = { ...state.config, ...updates };
+
+        // Update sim edge
+        const simEdge = simEdgesRef.current.find(
+          e => e.source === source && e.target === target,
+        );
+        if (simEdge) {
+          if (updates.length !== undefined) simEdge.restLength = updates.length;
+          if (updates.stiffness !== undefined) simEdge.stiffness = updates.stiffness;
+        }
+      },
+      getNodePositions: (): Map<string, Vec3> => {
+        const result = new Map<string, Vec3>();
+        for (const [id, simNode] of simNodesRef.current) {
+          result.set(id, {
+            x: simNode.position.x,
+            y: simNode.position.y,
+            z: simNode.position.z,
+          });
+        }
+        return result;
+      },
+      setRunning: (r: boolean) => {
+        runningRef.current = r;
+      },
+      resetPositions: () => {
+        for (const [nodeId, state] of nodeStatesRef.current) {
+          const simNode = simNodesRef.current.get(nodeId);
+          if (!simNode) continue;
+          const pos = state.config.position ?? {
+            x: (Math.random() - 0.5) * 20,
+            y: (Math.random() - 0.5) * 20,
+            z: (Math.random() - 0.5) * 20,
+          };
+          (simNode.position as { x: number; y: number; z: number }).x = pos.x;
+          (simNode.position as { x: number; y: number; z: number }).y = pos.y;
+          (simNode.position as { x: number; y: number; z: number }).z = pos.z;
+          (simNode.velocity as { x: number; y: number; z: number }).x = 0;
+          (simNode.velocity as { x: number; y: number; z: number }).y = 0;
+          (simNode.velocity as { x: number; y: number; z: number }).z = 0;
+        }
+        runningRef.current = true;
+      },
+      fitCamera: () => {
+        const dist = computeCameraDistance();
+        if (cameras.length > 0) {
+          cameras[0]!.position = { x: 0, y: dist * 0.3, z: dist };
+          cameras[0]!.lookAt({ x: 0, y: 0, z: 0 });
+        }
+      },
+      loadGraph: (graph: { nodes: ForceGraph3DNode[]; edges: ForceGraph3DEdge[] }) => {
+        // Clear everything
+        for (const [, ns] of nodeStatesRef.current) {
+          scene.unregister(ns.sceneObjectId);
+        }
+        for (const [, es] of edgeStatesRef.current) {
+          scene.unregister(es.sceneObjectId);
+        }
+        nodeStatesRef.current.clear();
+        edgeStatesRef.current.clear();
+        simNodesRef.current.clear();
+        simEdgesRef.current = [];
+
+        // Re-add
+        for (const node of graph.nodes) {
+          addNodeInternal(node);
+        }
+        for (const edge of graph.edges) {
+          addEdgeInternal(edge);
+        }
+        runningRef.current = true;
+      },
+      getSceneGraph: () => scene,
+    };
+
+    apiRef(api);
+  }, [apiRef]);
+
+  // ---- Collect scene objects for Space3D ------------------------------------
+
+  const sceneObjects = useMemo(() => {
+    const objects: SceneObject[] = [];
+    scene.traverse((obj: SceneObject) => {
+      objects.push(obj);
+    });
+    return objects;
+  }, [nodes, edges]);
+
+  // ---- Render ---------------------------------------------------------------
+
+  return Space3D({
+    width,
+    height,
+    onFrame,
+    cameras,
+    objects: sceneObjects,
+    lightingModel,
+  });
 }

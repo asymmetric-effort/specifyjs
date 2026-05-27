@@ -70,6 +70,16 @@ export class CpuPipeline implements RenderPipeline {
 
     const visibleObjects = scene.getVisibleObjects();
 
+    // Collect line-mode edges separately
+    interface ProjectedEdge {
+      sx0: number; sy0: number;
+      sx1: number; sy1: number;
+      renderOrder: number;
+      objectDepth: number;
+      color: Color;
+    }
+    const edges: ProjectedEdge[] = [];
+
     for (const obj of visibleObjects) {
       const mesh = obj.mesh;
       const material = obj.material;
@@ -107,6 +117,51 @@ export class CpuPipeline implements RenderPipeline {
         clipY[v] = mvp[1]! * vx + mvp[5]! * vy + mvp[9]! * vz + mvp[13]!;
         clipZ[v] = mvp[2]! * vx + mvp[6]! * vy + mvp[10]! * vz + mvp[14]!;
         clipW[v] = mvp[3]! * vx + mvp[7]! * vy + mvp[11]! * vz + mvp[15]!;
+      }
+
+      // If renderMode is 'lines', draw edges instead of filled triangles
+      if (obj.renderMode === 'lines') {
+        for (let i = 0; i < indices.length; i += 3) {
+          const i0 = indices[i]!;
+          const i1 = indices[i + 1]!;
+          const i2 = indices[i + 2]!;
+
+          const w0 = clipW[i0]!;
+          const w1 = clipW[i1]!;
+          const w2 = clipW[i2]!;
+          if (w0 <= 0 && w1 <= 0 && w2 <= 0) continue;
+
+          const halfWl = viewport.width / 2;
+          const halfHl = viewport.height / 2;
+
+          const toScreen = (idx: number): [number, number] | null => {
+            const w = clipW[idx]!;
+            if (w <= 0) return null;
+            const invW = 1 / w;
+            const ndcX = clipX[idx]! * invW;
+            const ndcY = clipY[idx]! * invW;
+            return [
+              viewport.x + (ndcX + 1) * halfWl,
+              viewport.y + (1 - ndcY) * halfHl,
+            ];
+          };
+
+          const pairs: [number, number][] = [[i0, i1], [i1, i2], [i2, i0]];
+          for (const [a, b] of pairs) {
+            const pa = toScreen(a);
+            const pb = toScreen(b);
+            if (pa && pb) {
+              edges.push({
+                sx0: pa[0], sy0: pa[1],
+                sx1: pb[0], sy1: pb[1],
+                renderOrder: obj.renderOrder,
+                objectDepth: objCenterZ,
+                color: material.color,
+              });
+            }
+          }
+        }
+        continue;
       }
 
       // Light sources: use provided array or fall back to default directional
@@ -291,6 +346,25 @@ export class CpuPipeline implements RenderPipeline {
       ctx.lineTo(tri.sx[2]!, tri.sy[2]!);
       ctx.closePath();
       ctx.fill();
+    }
+
+    // Render line-mode edges (wireframe objects)
+    // Sort by renderOrder then depth, same as triangles
+    edges.sort((a, b) => {
+      if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
+      return a.objectDepth - b.objectDepth;
+    });
+    for (const edge of edges) {
+      const r = (edge.color.r * 255) | 0;
+      const g = (edge.color.g * 255) | 0;
+      const b = (edge.color.b * 255) | 0;
+      const a = edge.color.a;
+      ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(edge.sx0, edge.sy0);
+      ctx.lineTo(edge.sx1, edge.sy1);
+      ctx.stroke();
     }
 
     ctx.restore();

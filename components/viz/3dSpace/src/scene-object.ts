@@ -6,6 +6,9 @@ import type { Mat4, Quaternion } from './types';
 import type { Mesh } from './mesh';
 import type { Material } from './material';
 
+/** How the mesh should be drawn by the render pipeline. */
+export type RenderMode = 'triangles' | 'lines';
+
 /**
  * Base scene object that consumers can extend.
  * Maintains a transform (position, rotation, scale) and a parent/child hierarchy.
@@ -22,6 +25,8 @@ export class SceneObject {
   visible: boolean;
   /** Render order: lower values draw first (background). Default: 0. */
   renderOrder: number;
+  /** How to draw the mesh: 'triangles' (filled) or 'lines' (wireframe). Default: 'triangles'. */
+  renderMode: RenderMode;
 
   constructor(id: string) {
     this.id = id;
@@ -31,6 +36,7 @@ export class SceneObject {
     this.children = [];
     this.parent = null;
     this.renderOrder = 0;
+    this.renderMode = 'triangles';
     this.visible = true;
   }
 

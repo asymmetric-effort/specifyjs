@@ -217,4 +217,244 @@ export class Mesh {
 
     return new Mesh(vertices, normals, indices);
   }
+
+  /**
+   * Create a wireframe cylinder mesh (intended for use with renderMode: 'lines').
+   * Generates a triangle mesh whose edges trace longitudinal lines and circular cross-sections.
+   * @param radius - Cylinder radius.
+   * @param height - Cylinder height along Y axis.
+   * @param options - Optional radialSegments (default 16) and heightSegments (default 4).
+   */
+  static createCylinderMesh(
+    radius: number,
+    height: number,
+    options?: { radialSegments?: number; heightSegments?: number },
+  ): Mesh {
+    const radialSegments = Math.max(3, options?.radialSegments ?? 16);
+    const heightSegments = Math.max(1, options?.heightSegments ?? 4);
+    const r = Math.abs(radius);
+    const h = Math.abs(height);
+    const halfH = h / 2;
+
+    // Vertices: (radialSegments + 1) per ring * (heightSegments + 1) rings
+    // The +1 on radial duplicates the seam vertex for proper connectivity
+    const rings = heightSegments + 1;
+    const vertsPerRing = radialSegments + 1;
+    const vertCount = rings * vertsPerRing;
+
+    const vertices = new Float32Array(vertCount * 3);
+    const normals = new Float32Array(vertCount * 3);
+
+    let vi = 0;
+    for (let ring = 0; ring < rings; ring++) {
+      const y = -halfH + (ring / heightSegments) * h;
+      for (let seg = 0; seg <= radialSegments; seg++) {
+        const theta = (seg / radialSegments) * Math.PI * 2;
+        const cos = Math.cos(theta);
+        const sin = Math.sin(theta);
+
+        vertices[vi] = r * cos;
+        vertices[vi + 1] = y;
+        vertices[vi + 2] = r * sin;
+
+        // Normals point radially outward
+        normals[vi] = cos;
+        normals[vi + 1] = 0;
+        normals[vi + 2] = sin;
+
+        vi += 3;
+      }
+    }
+
+    // Indices: create quads (2 triangles each) between adjacent rings
+    const triCount = heightSegments * radialSegments * 2;
+    const indices = new Uint32Array(triCount * 3);
+    let ii = 0;
+
+    for (let ring = 0; ring < heightSegments; ring++) {
+      for (let seg = 0; seg < radialSegments; seg++) {
+        const a = ring * vertsPerRing + seg;
+        const b = a + 1;
+        const c = a + vertsPerRing;
+        const d = c + 1;
+
+        // Triangle 1
+        indices[ii] = a;
+        indices[ii + 1] = c;
+        indices[ii + 2] = b;
+        ii += 3;
+
+        // Triangle 2
+        indices[ii] = b;
+        indices[ii + 1] = c;
+        indices[ii + 2] = d;
+        ii += 3;
+      }
+    }
+
+    return new Mesh(vertices, normals, indices);
+  }
+
+  /**
+   * Create a solid cylinder mesh with optional end caps and taper.
+   * @param radius - Bottom radius.
+   * @param height - Cylinder height along Y axis.
+   * @param options - radialSegments (default 24), caps (default true), topRadius (default same as radius).
+   */
+  static createCylinderSolid(
+    radius: number,
+    height: number,
+    options?: { radialSegments?: number; caps?: boolean; topRadius?: number },
+  ): Mesh {
+    const radialSegments = Math.max(3, options?.radialSegments ?? 24);
+    const caps = options?.caps ?? true;
+    const topRadius = Math.abs(options?.topRadius ?? radius);
+    const botRadius = Math.abs(radius);
+    const h = Math.abs(height);
+    const halfH = h / 2;
+
+    // Body: 2 rings of (radialSegments+1) vertices
+    const bodyVertCount = 2 * (radialSegments + 1);
+    // Caps: each cap has 1 center + (radialSegments+1) rim vertices
+    const capVertCount = caps ? 2 * (1 + radialSegments + 1) : 0;
+    const totalVertCount = bodyVertCount + capVertCount;
+
+    const vertices = new Float32Array(totalVertCount * 3);
+    const normals = new Float32Array(totalVertCount * 3);
+
+    let vi = 0;
+
+    // Compute slope angle for body normals (for tapered cylinders)
+    const dr = botRadius - topRadius;
+    const slopeLen = Math.sqrt(dr * dr + h * h);
+    const nY = slopeLen > 0 ? dr / slopeLen : 0;
+    const nR = slopeLen > 0 ? h / slopeLen : 1;
+
+    // Body vertices: bottom ring then top ring
+    for (let ring = 0; ring < 2; ring++) {
+      const y = ring === 0 ? -halfH : halfH;
+      const r = ring === 0 ? botRadius : topRadius;
+      for (let seg = 0; seg <= radialSegments; seg++) {
+        const theta = (seg / radialSegments) * Math.PI * 2;
+        const cos = Math.cos(theta);
+        const sin = Math.sin(theta);
+
+        vertices[vi] = r * cos;
+        vertices[vi + 1] = y;
+        vertices[vi + 2] = r * sin;
+
+        // Body normal accounts for taper
+        const nx = nR * cos;
+        const ny = nY;
+        const nz = nR * sin;
+        const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        normals[vi] = len > 0 ? nx / len : cos;
+        normals[vi + 1] = len > 0 ? ny / len : 0;
+        normals[vi + 2] = len > 0 ? nz / len : sin;
+
+        vi += 3;
+      }
+    }
+
+    // Body indices
+    const bodyTriCount = radialSegments * 2;
+    const vertsPerRing = radialSegments + 1;
+
+    // Cap vertices and indices
+    let capTriCount = 0;
+    let bottomCapCenterIdx = 0;
+    let topCapCenterIdx = 0;
+
+    if (caps) {
+      // Bottom cap: center at -halfH, normal pointing down
+      bottomCapCenterIdx = vi / 3;
+      vertices[vi] = 0;
+      vertices[vi + 1] = -halfH;
+      vertices[vi + 2] = 0;
+      normals[vi] = 0;
+      normals[vi + 1] = -1;
+      normals[vi + 2] = 0;
+      vi += 3;
+
+      for (let seg = 0; seg <= radialSegments; seg++) {
+        const theta = (seg / radialSegments) * Math.PI * 2;
+        vertices[vi] = botRadius * Math.cos(theta);
+        vertices[vi + 1] = -halfH;
+        vertices[vi + 2] = botRadius * Math.sin(theta);
+        normals[vi] = 0;
+        normals[vi + 1] = -1;
+        normals[vi + 2] = 0;
+        vi += 3;
+      }
+
+      // Top cap: center at +halfH, normal pointing up
+      topCapCenterIdx = vi / 3;
+      vertices[vi] = 0;
+      vertices[vi + 1] = halfH;
+      vertices[vi + 2] = 0;
+      normals[vi] = 0;
+      normals[vi + 1] = 1;
+      normals[vi + 2] = 0;
+      vi += 3;
+
+      for (let seg = 0; seg <= radialSegments; seg++) {
+        const theta = (seg / radialSegments) * Math.PI * 2;
+        vertices[vi] = topRadius * Math.cos(theta);
+        vertices[vi + 1] = halfH;
+        vertices[vi + 2] = topRadius * Math.sin(theta);
+        normals[vi] = 0;
+        normals[vi + 1] = 1;
+        normals[vi + 2] = 0;
+        vi += 3;
+      }
+
+      capTriCount = radialSegments * 2; // bottom + top
+    }
+
+    const totalTriCount = bodyTriCount + capTriCount;
+    const indices = new Uint32Array(totalTriCount * 3);
+    let ii = 0;
+
+    // Body quads
+    for (let seg = 0; seg < radialSegments; seg++) {
+      const a = seg;
+      const b = seg + 1;
+      const c = seg + vertsPerRing;
+      const d = seg + vertsPerRing + 1;
+
+      // CCW winding
+      indices[ii] = a;
+      indices[ii + 1] = b;
+      indices[ii + 2] = c;
+      ii += 3;
+
+      indices[ii] = b;
+      indices[ii + 1] = d;
+      indices[ii + 2] = c;
+      ii += 3;
+    }
+
+    // Cap indices
+    if (caps) {
+      // Bottom cap (facing -Y): CCW when viewed from below = CW from above
+      const botRimStart = bottomCapCenterIdx + 1;
+      for (let seg = 0; seg < radialSegments; seg++) {
+        indices[ii] = bottomCapCenterIdx;
+        indices[ii + 1] = botRimStart + seg + 1;
+        indices[ii + 2] = botRimStart + seg;
+        ii += 3;
+      }
+
+      // Top cap (facing +Y): CCW when viewed from above
+      const topRimStart = topCapCenterIdx + 1;
+      for (let seg = 0; seg < radialSegments; seg++) {
+        indices[ii] = topCapCenterIdx;
+        indices[ii + 1] = topRimStart + seg;
+        indices[ii + 2] = topRimStart + seg + 1;
+        ii += 3;
+      }
+    }
+
+    return new Mesh(vertices, normals, indices);
+  }
 }

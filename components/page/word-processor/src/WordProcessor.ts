@@ -12,8 +12,8 @@
  * elements.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useMemo, useState, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useMemo, useState, useCallback, useRef } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

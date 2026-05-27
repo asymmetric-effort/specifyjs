@@ -3,8 +3,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import { DigitalClock } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/create-root';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 function render(vnode: unknown): { container: HTMLElement; root: ReturnType<typeof createRoot> } {
   const container = document.createElement('div');

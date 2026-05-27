@@ -8,8 +8,8 @@
  * (context provider for window state). Also provides toast notifications.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useEffect, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'specifyjs/hooks';
 import { WindowManagerProvider } from '../../../layout/window-manager/src/index';
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';

@@ -8,8 +8,8 @@
  * optional prefix/suffix, and min/max clamping.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 export interface NumberSpinnerProps {

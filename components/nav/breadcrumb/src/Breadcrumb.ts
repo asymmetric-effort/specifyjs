@@ -8,8 +8,8 @@
  * collapsible middle items, and proper ARIA semantics for accessibility.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback } from 'specifyjs/hooks';
 import { NavWrapper } from '../../wrapper/src/NavWrapper';
 
 // -- Types ------------------------------------------------------------------

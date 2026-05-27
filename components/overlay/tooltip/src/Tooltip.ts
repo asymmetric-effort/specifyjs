@@ -5,8 +5,8 @@
  * Tooltip — Lightweight hover tooltip with configurable placement and delay.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback } from 'specifyjs/hooks';
 
 export type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
 

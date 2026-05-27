@@ -6,8 +6,8 @@
  * AM/PM toggle for 12-hour format, and optional timezone selector.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useMemo, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 
 /** Default timezone options for the timezone selector */

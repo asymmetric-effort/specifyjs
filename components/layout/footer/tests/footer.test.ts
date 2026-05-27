@@ -3,8 +3,8 @@
 
 import { describe, it, expect } from '@asymmetric-effort/nogginlessdom';
 import { Footer } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/create-root';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 function render(vnode: unknown): HTMLElement {
   const container = document.createElement('div');

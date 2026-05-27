@@ -7,8 +7,8 @@
  * that only fire on direct background clicks (not bubbled from children).
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useMemo } from 'specifyjs/hooks';
 import { ContextMenu } from '../../../overlay/context-menu/src/index';
 import type { ContextMenuItem } from '../../../overlay/context-menu/src/index';
 

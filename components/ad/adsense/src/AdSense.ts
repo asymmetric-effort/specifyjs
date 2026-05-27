@@ -7,8 +7,8 @@
  * placeholder in test mode.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useEffect, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useEffect, useRef } from 'specifyjs/hooks';
 
 export interface AdSenseProps {
   /** Google AdSense client ID (e.g., 'ca-pub-1234567890') */

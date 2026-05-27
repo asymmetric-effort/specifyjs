@@ -5,8 +5,8 @@
  * TextField — Single-line text input with FormFieldWrapper.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useRef, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper, buildInputStyle } from '../../wrapper/src/FormFieldWrapper';
 import type { FormFieldWrapperStyle, InputBaseStyle } from '../../wrapper/src/FormFieldWrapper';
 

@@ -5,8 +5,8 @@
  * Toggle — Toggle/switch component with sliding pill animation.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useCallback } from 'specifyjs/hooks';
 
 export interface ToggleProps {
   /** Whether toggle is on */

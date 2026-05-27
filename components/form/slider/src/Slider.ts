@@ -6,8 +6,8 @@
  * marks/ticks, and value display.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useRef, useCallback, useEffect, useMemo, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useRef, useCallback, useEffect, useMemo, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface SliderMark {

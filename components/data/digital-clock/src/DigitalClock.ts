@@ -6,8 +6,8 @@
  * format, timezone, date display, and seconds visibility.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect } from 'specifyjs/hooks';
 
 export interface DigitalClockProps {
   /** Display format: '12h' for AM/PM or '24h' for 24-hour */

@@ -8,8 +8,8 @@
  * scrollbar visibility, optional inset shadow at scroll edges, and padding.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useEffect, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

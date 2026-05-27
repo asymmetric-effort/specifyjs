@@ -8,8 +8,8 @@
  * the current color as a swatch. Supports onChange callback.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useId } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useCallback, useRef, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 
 export interface ColorWheelProps {

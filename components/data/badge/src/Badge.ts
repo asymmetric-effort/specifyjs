@@ -6,7 +6,7 @@
  * of children, or rendered inline when no children are provided.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 
 export interface BadgeProps {
   /** Numeric count to display */

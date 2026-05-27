@@ -8,8 +8,8 @@
  * with an animated CSS shimmer (background gradient slide).
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useId, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useId, useMemo } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

@@ -17,14 +17,14 @@
  * Zero runtime dependencies — pure SpecifyJS + SVG.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 import {
   useState,
   useEffect,
   useMemo,
   useCallback,
   useRef,
-} from '../../../../core/src/hooks/index';
+} from 'specifyjs/hooks';
 
 // -- Data types ---------------------------------------------------------------
 

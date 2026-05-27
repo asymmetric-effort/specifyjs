@@ -9,8 +9,8 @@
  * orientations, clickable steps, and circle/dot variants.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useCallback } from 'specifyjs/hooks';
 
 // -- Types ------------------------------------------------------------------
 

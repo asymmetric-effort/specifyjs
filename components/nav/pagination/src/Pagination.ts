@@ -8,8 +8,8 @@
  * Next, and Last controls for navigating paginated data.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useCallback } from 'specifyjs/hooks';
 import { NavWrapper } from '../../wrapper/src/NavWrapper';
 
 // -- Types ------------------------------------------------------------------

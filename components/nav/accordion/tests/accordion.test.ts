@@ -4,8 +4,8 @@
 import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
 import { Accordion } from '../src/index';
 import type { AccordionSection, AccordionProps } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/index';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 function renderToContainer(element: unknown): HTMLElement {
   const container = document.createElement('div');

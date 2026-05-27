@@ -9,8 +9,8 @@
  * and name. Inspired by the Ubuntu Unity / GNOME top panel.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useCallback, useMemo, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'specifyjs/hooks';
 import { useHover } from '../../wrapper/src/NavWrapper';
 
 // -- Types ------------------------------------------------------------------

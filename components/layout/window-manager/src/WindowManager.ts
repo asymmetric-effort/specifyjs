@@ -9,10 +9,10 @@
  * and arranging windows.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { createContext } from '../../../../core/src/context/create-context';
-import { useState, useCallback, useMemo, useContext } from '../../../../core/src/hooks/index';
-import type { SpecNode } from '../../../../core/src/shared/types';
+import { createElement } from 'specifyjs';
+import { createContext } from 'specifyjs';
+import { useState, useCallback, useMemo, useContext } from 'specifyjs/hooks';
+import type { SpecNode } from 'specifyjs';
 
 // ---------------------------------------------------------------------------
 // Types

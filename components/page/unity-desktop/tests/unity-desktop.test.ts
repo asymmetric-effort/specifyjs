@@ -4,8 +4,8 @@
 import { describe, it, expect, beforeEach, vi } from '@asymmetric-effort/nogginlessdom';
 import { UnityDesktop, UnityApp } from '../src/index';
 import type { UnityDesktopProps, UnityAppProps } from '../src/index';
-import { createElement } from '../../../../core/src/index';
-import { createRoot } from '../../../../core/src/dom/create-root';
+import { createElement } from 'specifyjs';
+import { createRoot } from 'specifyjs/dom';
 
 let container: HTMLDivElement;
 

@@ -9,8 +9,8 @@
  * Connects onClose/onFocus/onMove/onResize to the WindowManager context.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useCallback, useMemo } from 'specifyjs/hooks';
 import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import { useWindowManager } from '../../../layout/window-manager/src/index';
 import type { WindowManagerContextValue, WindowState } from '../../../layout/window-manager/src/index';

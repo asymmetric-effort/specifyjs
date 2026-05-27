@@ -13,7 +13,7 @@
  *   afterEach(() => teardownMockDispatcher());
  */
 
-import { __setDispatcher } from '../../core/src/hooks/index';
+import { __setDispatcher } from 'specifyjs/hooks';
 
 let idCounter = 0;
 

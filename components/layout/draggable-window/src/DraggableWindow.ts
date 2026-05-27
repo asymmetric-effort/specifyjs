@@ -10,8 +10,8 @@
  * multi-window UIs.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useCallback, useMemo, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

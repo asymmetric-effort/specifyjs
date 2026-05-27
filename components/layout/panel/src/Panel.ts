@@ -8,8 +8,8 @@
  * transition, and a trailing header-right slot. Configurable border and shadow.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useMemo, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

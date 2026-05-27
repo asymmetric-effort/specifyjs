@@ -9,7 +9,7 @@
  * touch swipe via pointer events, and fade/slide animation modes.
  */
 
-import { createElement } from '../../../../core/src/index';
+import { createElement } from 'specifyjs';
 import {
   useState,
   useEffect,
@@ -17,7 +17,7 @@ import {
   useCallback,
   useId,
   useMemo,
-} from '../../../../core/src/hooks/index';
+} from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

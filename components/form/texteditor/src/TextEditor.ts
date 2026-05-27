@@ -9,8 +9,8 @@
  * dependencies — uses document.execCommand for formatting.
  */
 
-import { createElement, Fragment } from '../../../../core/src/index';
-import { useState, useCallback, useRef, useEffect, useId } from '../../../../core/src/hooks/index';
+import { createElement, Fragment } from 'specifyjs';
+import { useState, useCallback, useRef, useEffect, useId } from 'specifyjs/hooks';
 import { FormFieldWrapper } from '../../wrapper/src/FormFieldWrapper';
 import type { FormFieldWrapperStyle } from '../../wrapper/src/FormFieldWrapper';
 

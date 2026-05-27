@@ -9,8 +9,8 @@
  * visualization. Uses useState for a simulated price ticker.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useMemo, useCallback } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useMemo, useCallback } from 'specifyjs/hooks';
 
 // ---------------------------------------------------------------------------
 // Types

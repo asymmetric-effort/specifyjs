@@ -5,8 +5,8 @@
  * Toast — Notification system with toaster factory, container, and hook.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useRef, useCallback, useMemo } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'specifyjs/hooks';
 
 export type ToastPosition =
   | 'top-right'

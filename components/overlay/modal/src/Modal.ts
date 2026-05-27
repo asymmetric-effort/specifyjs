@@ -5,8 +5,8 @@
  * Modal — Dialog overlay with backdrop, focus trap, and scroll lock.
  */
 
-import { createElement } from '../../../../core/src/index';
-import { useState, useEffect, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { createElement } from 'specifyjs';
+import { useState, useEffect, useCallback, useRef } from 'specifyjs/hooks';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'full';
 

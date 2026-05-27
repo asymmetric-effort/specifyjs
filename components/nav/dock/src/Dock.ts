@@ -9,8 +9,8 @@
  * click-to-open behavior. Inspired by the Ubuntu Unity launcher and macOS dock.
  */
 
-import { createElement, type SpecNode } from '../../../../core/src/index';
-import { useState, useCallback, useRef } from '../../../../core/src/hooks/index';
+import { createElement, type SpecNode } from 'specifyjs';
+import { useState, useCallback, useRef } from 'specifyjs/hooks';
 
 // -- Types ------------------------------------------------------------------
 

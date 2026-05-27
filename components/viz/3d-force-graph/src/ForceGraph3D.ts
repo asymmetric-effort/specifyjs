@@ -253,7 +253,8 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
   const edgeStatesRef = useRef<Map<string, EdgeState>>(new Map());
   const simNodesRef = useRef<Map<string, SimNode>>(new Map());
   const simEdgesRef = useRef<SimEdge[]>([]);
-  const sceneGraphRef = useRef<SceneGraph>(new SceneGraph());
+  const sceneGraphRef = useRef<SceneGraph | null>(null);
+  const initializedRef = useRef<boolean>(false);
   const runningRef = useRef<boolean>(running);
   const simConfigRef = useRef<SimConfig>({
     repulsionStrength,
@@ -423,7 +424,16 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
 
   // ---- Frame callback -------------------------------------------------------
 
-  const onFrame = useCallback((_deltaTime: number, _scene: SceneGraph) => {
+  const onFrame = useCallback((_deltaTime: number, spaceScene: SceneGraph) => {
+    // Sync objects from internal scene to Space3D's scene on first frame
+    // and whenever objects change
+    if (!initializedRef.current && nodeStatesRef.current.size > 0) {
+      scene.traverse((obj: SceneObject) => {
+        try { spaceScene.register(obj); } catch { /* already registered */ }
+      });
+      initializedRef.current = true;
+    }
+
     if (!runningRef.current) return;
 
     const simNodes = simNodesRef.current;
@@ -433,12 +443,12 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     // Step simulation
     stepSimulation(simNodes, simEdges, config);
 
-    // Update node SceneObject positions
+    // Update node SceneObject positions (on the internal scene objects,
+    // which are the same references registered in Space3D's scene)
     for (const [nodeId, state] of nodeStatesRef.current) {
       const simNode = simNodes.get(nodeId);
       if (!simNode) continue;
 
-      // Find the scene object and update position
       scene.traverse((obj: SceneObject) => {
         if (obj.id === state.sceneObjectId) {
           obj.position = {
@@ -628,19 +638,6 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     apiRef(api);
   }, [apiRef]);
 
-  // ---- Collect scene objects for Space3D ------------------------------------
-  // Trigger re-render after objects are registered in the effect.
-  const [sceneVersion, setSceneVersion] = useState(0);
-  useEffect(() => {
-    setSceneVersion((v: number) => v + 1);
-  }, [nodes, edges]);
-
-  // Collect objects on every render — the scene graph traversal is cheap.
-  const sceneObjects: SceneObject[] = [];
-  scene.traverse((obj: SceneObject) => {
-    sceneObjects.push(obj);
-  });
-
   // ---- Render ---------------------------------------------------------------
 
   return Space3D({
@@ -648,7 +645,6 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     height,
     onFrame,
     cameras,
-    objects: sceneObjects,
     lightingModel,
   });
 }

@@ -1,11 +1,11 @@
 {
   "name": "@specifyjs/3d-force-graph",
   "version": "0.0.1",
-  "description": "3D force-directed graph visualization component for SpecifyJS — renders node-link diagrams in 3D space projected to SVG",
+  "description": "3D force-directed graph visualization component for SpecifyJS — renders node-link diagrams using the 3dSpace engine",
   "type": "module",
   "main": "src/index.ts",
   "peerDependencies": {
     "specifyjs": "*"
   },
-  "keywords": ["specifyjs", "component", "force-graph", "3d", "network", "visualization", "svg", "graph"]
+  "keywords": ["specifyjs", "component", "force-graph", "3d", "network", "visualization", "graph"]
 }

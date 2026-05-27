@@ -22,20 +22,20 @@ test.describe('3D Space — Visual Validation', () => {
 
     // Verify the canvas is not a single solid color by sampling pixels
     const hasVariation = await canvas.evaluate((el: HTMLCanvasElement) => {
-      const ctx = el.getContext('2d');
-      if (!ctx) return false;
+      // Draw canvas to offscreen 2d canvas (works for both WebGL and 2d sources)
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, el.width, el.height).data;
 
-      const w = el.width;
-      const h = el.height;
-      const data = ctx.getImageData(0, 0, w, h).data;
-
-      // Sample pixels at different positions and check for variation
+      // Sample pixels and check for variation
       const firstR = data[0];
       const firstG = data[1];
       const firstB = data[2];
       let different = 0;
 
-      // Sample every 100th pixel for performance
       for (let i = 0; i < data.length; i += 400) {
         if (
           data[i] !== firstR ||

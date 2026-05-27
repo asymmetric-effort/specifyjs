@@ -42,19 +42,30 @@ test.describe('3D Force Graph AS Topology PDV', () => {
     expect(box!.height).toBeGreaterThan(100);
   });
 
-  test('canvas is not blank (screenshot has pixel variation)', async ({ page }) => {
-    await page.waitForTimeout(2000);
+  test('canvas is not blank (has rendered content)', async ({ page }) => {
+    await page.waitForTimeout(3000); // let simulation run and render
     const canvas = page.locator('canvas').first();
-    // Use screenshot comparison since canvas may use WebGL (not 2d context)
-    const buffer = await canvas.screenshot();
-    const pixels = new Uint8Array(buffer);
-    // Check that not all bytes are identical (would be blank/solid color)
-    let variations = 0;
-    const first = pixels[0];
-    for (let i = 100; i < pixels.length; i += 100) {
-      if (pixels[i] !== first) variations++;
-    }
-    expect(variations).toBeGreaterThan(5);
+    // Read actual pixel data from canvas in browser context.
+    // For CPU pipeline (2d context), use getImageData directly.
+    // For WebGL, draw to a 2d canvas first via drawImage.
+    const hasContent = await canvas.evaluate((el: HTMLCanvasElement) => {
+      // Create a 2d canvas and draw the source canvas onto it
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, el.width, el.height).data;
+      // Sample pixels across the canvas and count non-black ones
+      let nonBlack = 0;
+      const step = Math.max(4, Math.floor(data.length / 1000)); // ~1000 samples
+      for (let i = 0; i < data.length; i += step) {
+        const r = data[i]!, g = data[i + 1]!, b = data[i + 2]!;
+        if (r > 10 || g > 10 || b > 10) nonBlack++;
+      }
+      return nonBlack > 20; // at least 20 non-black samples out of ~1000
+    });
+    expect(hasContent).toBe(true);
   });
 
   // ── Sidebar content ──────────────────────────────────────────────────

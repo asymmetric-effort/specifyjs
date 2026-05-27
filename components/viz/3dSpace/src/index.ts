@@ -11,6 +11,7 @@ export { Light } from './light';
 export type { ProjectionMode } from './camera';
 export { Camera } from './camera';
 export { Viewport } from './viewport';
+export type { RenderMode } from './scene-object';
 export { SceneObject } from './scene-object';
 export type { LightingModel } from './lighting-model';
 export { FlatShading, LambertianShading } from './lighting-model';
@@ -33,3 +34,14 @@ export type { AnimationFn, AnimationBinding } from './animation';
 export { AnimationManager, rotateY, bob, orbit, compose } from './animation';
 export type { ColliderType, CollisionInfo, CollisionResponse, AABB } from './collision';
 export { CollisionManager, computeBoundingSphereRadius, computeAABB, sphereSphereTest, aabbTest } from './collision';
+export type { GeomSphereConfig } from './geom-sphere';
+export { createGeomSphere } from './geom-sphere';
+export type { PolyhedronFace, PolyhedronGeometry, GeomPolyhedronConfig } from './geom-polyhedron';
+export {
+  createGeomPolyhedron,
+  tetrahedronGeometry,
+  cubeGeometry,
+  octahedronGeometry,
+  dodecahedronGeometry,
+  icosahedronGeometry,
+} from './geom-polyhedron';

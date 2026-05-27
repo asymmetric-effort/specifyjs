@@ -268,14 +268,17 @@ export class WebGLPipeline implements RenderPipeline {
 
     // WebGL1 requires Uint16Array for element indices unless OES_element_index_uint is available
     const hasUint32 = gl.getExtension('OES_element_index_uint');
+    // Determine draw mode: renderMode on SceneObject takes priority, then material.wireframe
+    const useLines = obj.renderMode === 'lines' || material.wireframe;
+
     if (hasUint32) {
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-      const drawMode = material.wireframe ? gl.LINES : gl.TRIANGLES;
+      const drawMode = useLines ? gl.LINES : gl.TRIANGLES;
       gl.drawElements(drawMode, mesh.indexCount, gl.UNSIGNED_INT, 0);
     } else {
       const indices16 = new Uint16Array(mesh.indices);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices16, gl.STATIC_DRAW);
-      const drawMode = material.wireframe ? gl.LINES : gl.TRIANGLES;
+      const drawMode = useLines ? gl.LINES : gl.TRIANGLES;
       gl.drawElements(drawMode, mesh.indexCount, gl.UNSIGNED_SHORT, 0);
     }
 

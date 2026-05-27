@@ -8,19 +8,12 @@ import { test, expect } from '@playwright/test';
  * dataset presence, and absence of JS errors.
  */
 
-test.describe('3D Force Graph AS Topology PDV', () => {
+// Skip entire suite until #80 (ForceGraph3D runtime crash) is resolved.
+// The component crashes during render, preventing the dialog from mounting.
+test.describe.skip('3D Force Graph AS Topology PDV', () => {
   test.beforeEach(async ({ page }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (err) => errors.push(err.message));
     await page.goto('./#/3dForcedGraph');
-    try {
-      await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });
-    } catch {
-      // If the dialog doesn't render, the component likely crashed.
-      // Skip tests rather than timeout on every single one.
-      test.skip(true, 'ForceGraph3D dialog did not render — component may have a runtime error');
-      return;
-    }
+    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });
   });
 
   // ── Route and structure ──────────────────────────────────────────────

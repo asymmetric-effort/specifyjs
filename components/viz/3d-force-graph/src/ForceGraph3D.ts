@@ -634,12 +634,20 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
         }
       }
 
-      // Orbit camera around the graph (stays outside bounding sphere)
+      // Compute live bounding sphere from current node positions
+      let maxNodeDist = 0;
+      for (const sn of simNodesRef.current.values()) {
+        const d = Math.sqrt(sn.position.x * sn.position.x + sn.position.y * sn.position.y + sn.position.z * sn.position.z);
+        if (d > maxNodeDist) maxNodeDist = d;
+      }
+      const liveDist = Math.max(30, maxNodeDist * 2.5);
+
+      // Orbit camera around the graph (stays well outside bounding sphere)
       orbitAngle += orbitSpeed * dt;
-      const orbitRadius = dist * 1.2; // stay well outside
+      const orbitRadius = liveDist * 1.8;
       cam.position = {
         x: Math.sin(orbitAngle) * orbitRadius,
-        y: dist * 0.3,
+        y: liveDist * 0.5,
         z: Math.cos(orbitAngle) * orbitRadius,
       };
       cam.lookAt({ x: 0, y: 0, z: 0 });

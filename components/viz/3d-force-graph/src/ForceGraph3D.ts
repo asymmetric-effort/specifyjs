@@ -32,6 +32,7 @@ import { Camera } from '../../3dSpace/src/camera';
 import { CpuPipeline } from '../../3dSpace/src/cpu-pipeline';
 import { FlatShading } from '../../3dSpace/src/lighting-model';
 import { Viewport } from '../../3dSpace/src/viewport';
+import { mat4Multiply } from '../../../math/src/mat4';
 import type {
   ForceGraph3DNode,
   ForceGraph3DEdge,
@@ -225,17 +226,8 @@ export function updateEdgeTransform(
 
 // ---- Component --------------------------------------------------------------
 
-let __renderCount = 0;
-
 /** ForceGraph3D component. */
 export function ForceGraph3D(props: ForceGraph3DProps) {
-  __renderCount++;
-  if (typeof console !== 'undefined') {
-    console.log(`[ForceGraph3D] render #${__renderCount}`);
-    if (__renderCount > 10) {
-      console.error(`[ForceGraph3D] INFINITE LOOP DETECTED after ${__renderCount} renders`);
-    }
-  }
   const {
     width,
     height,
@@ -598,7 +590,16 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
 
     // 6. Start RAF loop
     let raf = 0;
-    const frame = (_timestamp: number) => {
+    let orbitAngle = 0;
+    const orbitSpeed = 0.15; // radians per second
+
+    // Get 2d context for label overlay (drawn on top of pipeline output)
+    const ctx2d = canvas.getContext('2d');
+
+    const frame = (timestamp: number) => {
+      const dt = timestamp > 0 ? (timestamp - (frame as any)._last || timestamp) / 1000 : 0.016;
+      (frame as any)._last = timestamp;
+
       if (runningRef.current) {
         const simNodes = simNodesRef.current;
         const simEdges = simEdgesRef.current;
@@ -637,8 +638,56 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
         }
       }
 
-      // Render every frame (even if sim paused, to show current state)
+      // Orbit camera around the graph (stays outside bounding sphere)
+      orbitAngle += orbitSpeed * dt;
+      const orbitRadius = dist * 1.2; // stay well outside
+      cam.position = {
+        x: Math.sin(orbitAngle) * orbitRadius,
+        y: dist * 0.3,
+        z: Math.cos(orbitAngle) * orbitRadius,
+      };
+      cam.lookAt({ x: 0, y: 0, z: 0 });
+
+      // Render 3D scene
       pipeline.render(scene, cam, vp, lighting);
+
+      // Draw labels as 2D text overlay
+      if (ctx2d) {
+        const viewMat = cam.getViewMatrix();
+        const projMat = cam.getProjectionMatrix();
+        const vpMat = mat4Multiply(projMat, viewMat);
+
+        ctx2d.font = '10px sans-serif';
+        ctx2d.textAlign = 'center';
+        ctx2d.textBaseline = 'middle';
+
+        for (const [nodeId, state] of nodeStatesRef.current) {
+          const simNode = simNodesRef.current.get(nodeId);
+          if (!simNode) continue;
+
+          // Project world position to clip space
+          const px = simNode.position.x;
+          const py = simNode.position.y;
+          const pz = simNode.position.z;
+          const clipX = vpMat[0]! * px + vpMat[4]! * py + vpMat[8]! * pz + vpMat[12]!;
+          const clipY = vpMat[1]! * px + vpMat[5]! * py + vpMat[9]! * pz + vpMat[13]!;
+          const clipW = vpMat[3]! * px + vpMat[7]! * py + vpMat[11]! * pz + vpMat[15]!;
+
+          if (clipW <= 0) continue; // behind camera
+
+          // NDC to screen
+          const ndcX = clipX / clipW;
+          const ndcY = clipY / clipW;
+          const screenX = (ndcX * 0.5 + 0.5) * W;
+          const screenY = (1 - (ndcY * 0.5 + 0.5)) * H;
+
+          // Draw label
+          const label = state.config.label || nodeId;
+          ctx2d.fillStyle = 'rgba(255,255,255,0.9)';
+          ctx2d.fillText(label, screenX, screenY);
+        }
+      }
+
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);

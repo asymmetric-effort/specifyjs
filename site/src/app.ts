@@ -26,7 +26,8 @@ import { RadioPropagation } from "./screens/radio-propagation";
 import { WumpusWorld } from "./screens/wumpus-world";
 import { Space3DDemo } from "./screens/3d-space";
 import { Space3DWebGLDemo } from "./screens/3d-space-webgl";
-import { ForceGraph3DDemo } from "./screens/3d-force-graph";
+// ForceGraph3DDemo disabled — crashes during module evaluation (#80)
+// import { ForceGraph3DDemo } from "./screens/3d-force-graph";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -119,11 +120,12 @@ function AppContent() {
       title: "3D Space",
       content: createElement(Space3DDemo, null),
     },
-    {
-      path: "/3dForcedGraph",
-      title: "3D Force Graph",
-      content: createElement(ForceGraph3DDemo, null),
-    },
+    // 3D Force Graph disabled — crashes during module evaluation (#80)
+    // {
+    //   path: "/3dForcedGraph",
+    //   title: "3D Force Graph",
+    //   content: createElement(ForceGraph3DDemo, null),
+    // },
   ];
 
   let dialogTitle: string | null = null;

@@ -15,6 +15,10 @@ test.describe('3D Force Graph E2E', () => {
 
   // ── Canvas rendering ─────────────────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.width */
+  /** @feature ForceGraph3DProps.height */
+  /** @feature ForceGraph3DProps.nodes */
+  /** @feature ForceGraph3DProps.edges */
   test('canvas renders with non-blank content after simulation', async ({ page }) => {
     await page.waitForTimeout(3000);
     const canvas = page.locator('canvas').first();
@@ -40,6 +44,8 @@ test.describe('3D Force Graph E2E', () => {
 
   // ── Camera orbit ────────────────────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.orbitControls */
+  /** @feature ForceGraph3DProps.cameraDistance */
   test('camera orbits — canvas content changes over time', async ({ page }) => {
     await page.waitForTimeout(3000);
     const canvas = page.locator('canvas').first();
@@ -71,6 +77,12 @@ test.describe('3D Force Graph E2E', () => {
 
   // ── Mouse interaction infrastructure ──────────────────────────────────
 
+  /** @feature ForceGraph3DProps.onNodeClick */
+  /** @feature ForceGraph3DProps.onNodeDoubleClick */
+  /** @feature ForceGraph3DProps.onNodeRightClick */
+  /** @feature ForceGraph3DProps.onNodeMouseDown */
+  /** @feature ForceGraph3DProps.onNodeMouseUp */
+  /** @feature ForceGraph3DProps.onNodeHover */
   test('canvas accepts mouse events without errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
@@ -97,6 +109,14 @@ test.describe('3D Force Graph E2E', () => {
 
   // ── No JS errors during extended rendering ──────────────────────────
 
+  /** @feature ForceGraph3DProps.running */
+  /** @feature ForceGraph3DProps.collisionEnabled */
+  /** @feature ForceGraph3DProps.restitution */
+  /** @feature ForceGraph3DProps.repulsionStrength */
+  /** @feature ForceGraph3DProps.attractionStrength */
+  /** @feature ForceGraph3DProps.damping */
+  /** @feature ForceGraph3DProps.centerGravity */
+  /** @feature ForceGraph3DProps.timeStep */
   test('no JS errors during 5s of rendering with collision physics', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));

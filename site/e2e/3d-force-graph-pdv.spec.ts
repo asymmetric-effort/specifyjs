@@ -29,11 +29,15 @@ test.describe('3D Force Graph AS Topology PDV', () => {
 
   // ── Canvas rendering ─────────────────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.width */
+  /** @feature ForceGraph3DProps.height */
   test('canvas element is present and visible', async ({ page }) => {
     const canvas = page.locator('canvas');
     await expect(canvas.first()).toBeVisible({ timeout: 10_000 });
   });
 
+  /** @feature ForceGraph3DProps.width */
+  /** @feature ForceGraph3DProps.height */
   test('canvas has non-zero dimensions', async ({ page }) => {
     const canvas = page.locator('canvas').first();
     const box = await canvas.boundingBox();
@@ -42,6 +46,9 @@ test.describe('3D Force Graph AS Topology PDV', () => {
     expect(box!.height).toBeGreaterThan(100);
   });
 
+  /** @feature ForceGraph3DProps.nodes */
+  /** @feature ForceGraph3DProps.edges */
+  /** @feature ForceGraph3DProps.backgroundColor */
   test('canvas is not blank (has rendered content)', async ({ page }) => {
     await page.waitForTimeout(3000); // let simulation run and render
     const canvas = page.locator('canvas').first();
@@ -82,6 +89,8 @@ test.describe('3D Force Graph AS Topology PDV', () => {
     expect(text).toContain('Tier 3');
   });
 
+  /** @feature ForceGraph3DProps.nodes */
+  /** @feature ForceGraph3DProps.edges */
   test('sidebar shows node and edge counts', async ({ page }) => {
     const text = await page.locator('.dialog-body').innerText();
     // Sidebar format is "Nodes: 35" and "Edges: 86"
@@ -110,6 +119,7 @@ test.describe('3D Force Graph AS Topology PDV', () => {
 
   // ── Camera orbit ──────────────────────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.orbitControls */
   test('camera orbits — canvas pixel content changes between frames', async ({ page }) => {
     await page.waitForTimeout(3000); // let simulation settle and orbit start
     const canvas = page.locator('canvas').first();
@@ -139,6 +149,8 @@ test.describe('3D Force Graph AS Topology PDV', () => {
 
   // ── Mouse interaction stability ──────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.onNodeClick */
+  /** @feature ForceGraph3DProps.onNodeRightClick */
   test('mouse click on canvas does not cause JS errors', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
@@ -159,6 +171,9 @@ test.describe('3D Force Graph AS Topology PDV', () => {
 
   // ── Extended rendering stability ─────────────────────────────────────
 
+  /** @feature ForceGraph3DProps.running */
+  /** @feature ForceGraph3DProps.collisionEnabled */
+  /** @feature ForceGraph3DProps.damping */
   test('no JS errors during extended rendering (5s)', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));

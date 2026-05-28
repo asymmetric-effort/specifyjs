@@ -16,8 +16,9 @@
 
 import { createElement } from 'specifyjs';
 import { useHead } from 'specifyjs/hooks';
-import { ForceGraph3D } from '../../../components/viz/3d-force-graph/src/index';
-import type { ForceGraph3DNode, ForceGraph3DEdge } from '../../../components/viz/3d-force-graph/src/types';
+// ForceGraph3D disabled for debugging (#80) — using placeholder
+// import { ForceGraph3D } from '../../../components/viz/3d-force-graph/src/index';
+// import type { ForceGraph3DNode, ForceGraph3DEdge } from '../../../components/viz/3d-force-graph/src/types';
 
 // ── Dataset: Autonomous Systems ─────────────────────────────────────
 
@@ -82,7 +83,7 @@ const AS_LIST: ASEntry[] = [
 function tierConfig(tier: ASEntry['tier']): {
   color: typeof TIER1_COLOR;
   size: number;
-  shape: ForceGraph3DNode['shape'];
+  shape: string;
   mass: number;
 } {
   switch (tier) {
@@ -94,7 +95,7 @@ function tierConfig(tier: ASEntry['tier']): {
 }
 
 // Build nodes
-const NODES: ForceGraph3DNode[] = AS_LIST.map((as) => {
+const NODES: any[] = AS_LIST.map((as) => {
   const cfg = tierConfig(as.tier);
   return {
     id: as.asn,
@@ -121,7 +122,7 @@ interface PeerDef {
   type: 'tier1-tier1' | 'tier1-tier2' | 'tier2-tier3' | 'same-tier';
 }
 
-function edgeStyle(type: PeerDef['type']): Partial<ForceGraph3DEdge> {
+function edgeStyle(type: PeerDef['type']): any {
   switch (type) {
     case 'tier1-tier1':
       return { thickness: 0.25, color: TIER1_PEER_COLOR, style: 'cylinder-solid' };
@@ -233,13 +234,13 @@ const PEERING: PeerDef[] = [
 ];
 
 // Build edges
-const EDGES: ForceGraph3DEdge[] = PEERING.map((p) => {
+const EDGES: any[] = PEERING.map((p) => {
   const style = edgeStyle(p.type);
   return {
     source: p.source,
     target: p.target,
     ...style,
-  } as ForceGraph3DEdge;
+  } as any;
 });
 
 // ── Stats ───────────────────────────────────────────────────────────
@@ -286,18 +287,9 @@ export function ForceGraph3DDemo() {
     createElement('div', {
       style: { flex: '1', display: 'flex', flexDirection: 'column', minWidth: '400px' },
     },
-      createElement(ForceGraph3D, {
-        width: 800,
-        height: 600,
-        nodes: NODES,
-        edges: EDGES,
-        repulsionStrength: 150,
-        attractionStrength: 0.08,
-        damping: 0.92,
-        centerGravity: 0.015,
-        cameraDistance: 80,
-        backgroundColor: { r: 0.04, g: 0.06, b: 0.12, a: 1 },
-      }),
+      createElement('div', {
+        style: { width: '800px', height: '600px', backgroundColor: '#0a0f1f', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', fontSize: '18px' },
+      }, '3D Force Graph — Coming Soon (debugging #80)'),
     ),
 
     // Right: sidebar

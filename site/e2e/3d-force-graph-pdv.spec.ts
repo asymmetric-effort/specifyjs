@@ -108,6 +108,50 @@ test.describe('3D Force Graph AS Topology PDV', () => {
     expect(parseInt(nodeMatch![1])).toBeGreaterThanOrEqual(30);
   });
 
+  // ── Camera orbit ──────────────────────────────────────────────────────
+
+  test('camera orbits — canvas pixel content changes between frames', async ({ page }) => {
+    await page.waitForTimeout(2000);
+    const canvas = page.locator('canvas').first();
+
+    const getPixelSum = async () => canvas.evaluate((el: HTMLCanvasElement) => {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, 100, 100).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += data[i]! + data[i + 1]! + data[i + 2]!;
+      return sum;
+    });
+
+    const frame1 = await getPixelSum();
+    await page.waitForTimeout(2000);
+    const frame2 = await getPixelSum();
+    expect(frame1).not.toBe(frame2);
+  });
+
+  // ── Mouse interaction stability ──────────────────────────────────────
+
+  test('mouse click on canvas does not cause JS errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+
+    const canvas = page.locator('canvas').first();
+    await expect(canvas).toBeVisible({ timeout: 10_000 });
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.dblclick(box!.x + box!.width / 3, box!.y + box!.height / 3);
+    await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2, { button: 'right' });
+    await page.mouse.move(box!.x + 10, box!.y + 10);
+    await page.waitForTimeout(1000);
+
+    expect(errors).toEqual([]);
+  });
+
   // ── Extended rendering stability ─────────────────────────────────────
 
   test('no JS errors during extended rendering (5s)', async ({ page }) => {
@@ -115,5 +159,21 @@ test.describe('3D Force Graph AS Topology PDV', () => {
     page.on('pageerror', (err) => errors.push(err.message));
     await page.waitForTimeout(5000);
     expect(errors).toEqual([]);
+  });
+
+  // ── Component Gallery integration ────────────────────────────────────
+
+  test('3D Force Graph appears in Component Gallery', async ({ page }) => {
+    await page.goto('./#/components');
+    await expect(page.locator('.accordion')).toBeVisible({ timeout: 10_000 });
+
+    // Open Data & Analytics section
+    const section = page.locator('button.accordion-header', { hasText: 'Data & Analytics' });
+    await section.click();
+    await page.waitForTimeout(500);
+
+    // Verify 3D Force Graph card exists
+    const card = page.locator('.preview-card', { hasText: '3D Force Graph' });
+    await expect(card).toBeVisible({ timeout: 5_000 });
   });
 });

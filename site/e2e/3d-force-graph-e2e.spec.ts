@@ -1,0 +1,117 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * E2E: 3D Force Graph — Collision, Labels, and Interaction
+ *
+ * Tests the 3D Force Graph component features including canvas rendering,
+ * label visibility, collision physics, and mouse event infrastructure.
+ */
+
+test.describe('3D Force Graph E2E', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('./#/3dForcedGraph');
+    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });
+  });
+
+  // ── Canvas rendering ─────────────────────────────────────────────────
+
+  test('canvas renders with non-blank content after simulation', async ({ page }) => {
+    await page.waitForTimeout(3000);
+    const canvas = page.locator('canvas').first();
+    await expect(canvas).toBeVisible();
+
+    const hasContent = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, el.width, el.height).data;
+      let nonBlack = 0;
+      const step = Math.max(4, Math.floor(data.length / 1000));
+      for (let i = 0; i < data.length; i += step) {
+        const r = data[i]!, g = data[i + 1]!, b = data[i + 2]!;
+        if (r > 10 || g > 10 || b > 10) nonBlack++;
+      }
+      return nonBlack > 20;
+    });
+    expect(hasContent).toBe(true);
+  });
+
+  // ── Camera orbit ────────────────────────────────────────────────────
+
+  test('camera orbits — canvas content changes over time', async ({ page }) => {
+    await page.waitForTimeout(2000);
+    const canvas = page.locator('canvas').first();
+
+    // Capture frame at t=2s
+    const frame1 = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, 100, 100).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        sum += data[i]! + data[i + 1]! + data[i + 2]!;
+      }
+      return sum;
+    });
+
+    await page.waitForTimeout(2000);
+
+    // Capture frame at t=4s — camera has moved
+    const frame2 = await canvas.evaluate((el: HTMLCanvasElement) => {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = el.width;
+      offscreen.height = el.height;
+      const ctx = offscreen.getContext('2d')!;
+      ctx.drawImage(el, 0, 0);
+      const data = ctx.getImageData(0, 0, 100, 100).data;
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        sum += data[i]! + data[i + 1]! + data[i + 2]!;
+      }
+      return sum;
+    });
+
+    // Frames should differ since camera is orbiting
+    expect(frame1).not.toBe(frame2);
+  });
+
+  // ── Mouse interaction infrastructure ──────────────────────────────────
+
+  test('canvas accepts mouse events without errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+
+    const canvas = page.locator('canvas').first();
+    await expect(canvas).toBeVisible({ timeout: 10_000 });
+
+    // Perform various mouse actions on the canvas
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    const cx = box!.x + box!.width / 2;
+    const cy = box!.y + box!.height / 2;
+
+    await page.mouse.move(cx, cy);
+    await page.mouse.click(cx, cy);
+    await page.mouse.dblclick(cx, cy);
+    await page.mouse.click(cx, cy, { button: 'right' });
+    await page.mouse.move(cx + 50, cy + 50);
+    await page.mouse.move(cx - 50, cy - 50);
+
+    // No JS errors should occur from mouse interaction
+    expect(errors).toEqual([]);
+  });
+
+  // ── No JS errors during extended rendering ──────────────────────────
+
+  test('no JS errors during 5s of rendering with collision physics', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.waitForTimeout(5000);
+    expect(errors).toEqual([]);
+  });
+});

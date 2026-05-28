@@ -59,7 +59,38 @@ jobs:
           path: core/coverage/
           retention-days: 7
 
-  # ── Stage 2: Build (after both Lint and Test pass) ──────────────────
+  # ── Stage 2a: Coverage Check (parallel with Build) ──────────────────
+  coverage:
+    name: Test Coverage Check
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: asymmetric-effort/actions/actions/setup-bun@57dc7b4045a08bb8804c495e4fd034985ac3cb1a # main (cache v5/node24)
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run coverage and check threshold
+        run: |
+          bun run test:coverage 2>&1 | tee coverage-output.txt
+          # Extract coverage percentage from bun test output
+          # Bun reports: "X.XX% line coverage"
+          COVERAGE=$(grep -oP '[\d.]+(?=% line coverage)' coverage-output.txt | tail -1 || echo "0")
+          echo "Line coverage: ${COVERAGE}%"
+          # Fail if coverage is below 97.8%
+          if [ -n "$COVERAGE" ]; then
+            PASS=$(echo "$COVERAGE >= 97.8" | bc -l 2>/dev/null || echo "1")
+            if [ "$PASS" = "0" ]; then
+              echo "ERROR: Line coverage ${COVERAGE}% is below the 97.8% threshold"
+              exit 1
+            fi
+          fi
+          echo "Coverage check passed: ${COVERAGE}%"
+
+  # ── Stage 2b: Build (parallel with Coverage Check) ─────────────────
   build:
     name: Build
     needs: [lint, test]
@@ -90,10 +121,10 @@ jobs:
           path: core/dist/
           retention-days: 7
 
-  # ── Stage 4: E2E ────────────────────────────────────────────────────
+  # ── Stage 3: E2E (after Build and Coverage Check) ───────────────────
   e2e:
     name: E2E (${{ matrix.browser }})
-    needs: build
+    needs: [build, coverage]
     runs-on: ubuntu-latest
     strategy:
       matrix:

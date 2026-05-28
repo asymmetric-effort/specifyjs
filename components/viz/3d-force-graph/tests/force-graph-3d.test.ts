@@ -12,7 +12,14 @@ import {
   updateEdgeTransform,
 } from '../src/ForceGraph3D';
 import type { ForceGraph3DNode, ForceGraph3DEdge, ForceGraph3DAPI } from '../src/types';
+import type { SimConfig } from '../src/force-sim';
 import { SceneObject } from '../../3dSpace/src/scene-object';
+import { Mesh } from '../../3dSpace/src/mesh';
+import { raySphereIntersect, screenToRay, pickObjects } from '../../3dSpace/src/raycast';
+import type { Ray } from '../../3dSpace/src/raycast';
+import { createMaterial } from '../../3dSpace/src/material';
+import { mat4Multiply, mat4Perspective, mat4LookAt } from '../../../math/src/mat4';
+import { vec3 } from '../../../math/src/vec';
 import { installMockDispatcher, teardownMockDispatcher } from '../../../_test-helpers/mock-dispatcher';
 
 beforeEach(() => installMockDispatcher());
@@ -665,5 +672,300 @@ describe('ForceGraph3D — exports', () => {
   it('exports updateEdgeTransform from index', async () => {
     const mod = await import('../src/index');
     expect(typeof mod.updateEdgeTransform).toBe('function');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Collision config propagation
+// ---------------------------------------------------------------------------
+
+describe('ForceGraph3D — collision config', () => {
+  it('accepts collisionEnabled prop', () => {
+    const el = ForceGraph3D({
+      width: 600,
+      height: 400,
+      nodes: sampleNodes,
+      edges: sampleEdges,
+      collisionEnabled: true,
+      restitution: 0.5,
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts collisionEnabled=false', () => {
+    const el = ForceGraph3D({
+      width: 600,
+      height: 400,
+      nodes: sampleNodes,
+      edges: sampleEdges,
+      collisionEnabled: false,
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts restitution=0 (inelastic)', () => {
+    const el = ForceGraph3D({
+      width: 600,
+      height: 400,
+      nodes: sampleNodes,
+      edges: sampleEdges,
+      restitution: 0,
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts restitution=1 (perfectly elastic)', () => {
+    const el = ForceGraph3D({
+      width: 600,
+      height: 400,
+      nodes: sampleNodes,
+      edges: sampleEdges,
+      restitution: 1,
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts node-level collisionRadius', () => {
+    const el = ForceGraph3D({
+      width: 600,
+      height: 400,
+      nodes: [
+        { id: 'a', collisionRadius: 3 },
+        { id: 'b', collisionRadius: 0.5 },
+      ],
+      edges: [],
+    });
+    expect(el).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Mouse event handler props
+// ---------------------------------------------------------------------------
+
+describe('ForceGraph3D — mouse event handler props', () => {
+  it('accepts onNodeClick handler', () => {
+    const handler = (_id: string, _node: ForceGraph3DNode, _e: MouseEvent) => {};
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeClick: handler,
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onNodeDoubleClick handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeDoubleClick: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onNodeRightClick handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeRightClick: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onNodeMouseDown handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeMouseDown: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onNodeMouseUp handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeMouseUp: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onNodeHover handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeHover: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onEdgeClick handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onEdgeClick: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts onEdgeHover handler', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onEdgeHover: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+
+  it('accepts all event handlers simultaneously', () => {
+    const el = ForceGraph3D({
+      width: 600, height: 400, nodes: sampleNodes, edges: sampleEdges,
+      onNodeClick: () => {},
+      onNodeDoubleClick: () => {},
+      onNodeRightClick: () => {},
+      onNodeMouseDown: () => {},
+      onNodeMouseUp: () => {},
+      onNodeHover: () => {},
+      onEdgeClick: () => {},
+      onEdgeHover: () => {},
+    });
+    expect(el).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createNodeSceneObject — boundingRadius and collisionRadius
+// ---------------------------------------------------------------------------
+
+describe('createNodeSceneObject — bounding and collision properties', () => {
+  it('creates SceneObject with mesh that has computable bounding radius', () => {
+    const obj = createNodeSceneObject('a', { id: 'a', size: 2 }, { x: 0, y: 0, z: 0 });
+    expect(obj.mesh).not.toBeNull();
+    // Mesh is a sphere with radius 2
+    const r = obj.computeBoundingRadius();
+    expect(r).toBeGreaterThan(1.9);
+    expect(r).toBeLessThan(2.1);
+  });
+
+  it('label child has no mesh (used for billboard text)', () => {
+    const obj = createNodeSceneObject('a', { id: 'a', label: 'Test' }, { x: 0, y: 0, z: 0 });
+    const labelChild = obj.children.find(c => c.id.endsWith('-label'));
+    expect(labelChild).toBeDefined();
+    expect(labelChild!.mesh).toBeUndefined();
+    expect(labelChild!.label).toBe('Test');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Raycast integration with SceneObjects
+// ---------------------------------------------------------------------------
+
+describe('raycast integration with ForceGraph3D nodes', () => {
+  it('raySphereIntersect hits a node-sized sphere', () => {
+    const obj = createNodeSceneObject('a', { id: 'a', size: 1.5 }, { x: 0, y: 0, z: 0 });
+    const ray: Ray = { origin: { x: 0, y: 0, z: 10 }, direction: { x: 0, y: 0, z: -1 } };
+    const t = raySphereIntersect(ray, obj.position, 1.5);
+    expect(t).not.toBeNull();
+    expect(t!).toBeCloseTo(8.5, 1);
+  });
+
+  it('pickObjects finds closest node among multiple', () => {
+    const nodeA = createNodeSceneObject('a', { id: 'a', size: 1 }, { x: 0, y: 0, z: 5 });
+    nodeA.boundingRadius = 1;
+    const nodeB = createNodeSceneObject('b', { id: 'b', size: 1 }, { x: 0, y: 0, z: -5 });
+    nodeB.boundingRadius = 1;
+
+    const ray: Ray = { origin: { x: 0, y: 0, z: 20 }, direction: { x: 0, y: 0, z: -1 } };
+    const hit = pickObjects(ray, [nodeA, nodeB]);
+    expect(hit).not.toBeNull();
+    expect(hit!.object.id).toBe('node-a'); // closer to ray origin
+  });
+
+  it('pickObjects misses when ray does not intersect any node', () => {
+    const obj = createNodeSceneObject('a', { id: 'a', size: 1 }, { x: 50, y: 50, z: 0 });
+    obj.boundingRadius = 1;
+
+    const ray: Ray = { origin: { x: 0, y: 0, z: 10 }, direction: { x: 0, y: 0, z: -1 } };
+    const hit = pickObjects(ray, [obj]);
+    expect(hit).toBeNull();
+  });
+
+  it('pickObjects skips invisible nodes', () => {
+    const obj = createNodeSceneObject('a', { id: 'a', size: 1 }, { x: 0, y: 0, z: 0 });
+    obj.boundingRadius = 1;
+    obj.visible = false;
+
+    const ray: Ray = { origin: { x: 0, y: 0, z: 10 }, direction: { x: 0, y: 0, z: -1 } };
+    const hit = pickObjects(ray, [obj]);
+    expect(hit).toBeNull();
+  });
+
+  it('screenToRay produces valid ray from center of viewport', () => {
+    const view = mat4LookAt(vec3(0, 0, 10), vec3(0, 0, 0), vec3(0, 1, 0));
+    const proj = mat4Perspective(Math.PI / 4, 800 / 600, 0.1, 1000);
+    const vp = mat4Multiply(proj, view);
+
+    const ray = screenToRay(400, 300, 800, 600, vp);
+    expect(ray.direction.z).toBeLessThan(0); // pointing into scene
+    expect(ray.origin.z).toBeGreaterThan(5); // near camera
+  });
+
+  it('full pick pipeline: screenToRay → pickObjects on created nodes', () => {
+    const obj = createNodeSceneObject('target', { id: 'target', size: 2 }, { x: 0, y: 0, z: 0 });
+    obj.boundingRadius = 2;
+
+    const view = mat4LookAt(vec3(0, 0, 10), vec3(0, 0, 0), vec3(0, 1, 0));
+    const proj = mat4Perspective(Math.PI / 4, 800 / 600, 0.1, 1000);
+    const vp = mat4Multiply(proj, view);
+
+    // Center of screen should hit the node at origin
+    const ray = screenToRay(400, 300, 800, 600, vp);
+    const hit = pickObjects(ray, [obj]);
+    expect(hit).not.toBeNull();
+    expect(hit!.object.id).toBe('node-target');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Pipeline factory exports
+// ---------------------------------------------------------------------------
+
+describe('pipeline-factory exports', () => {
+  it('exports createPipeline async function', async () => {
+    const mod = await import('../../3dSpace/src/pipeline-factory');
+    expect(typeof mod.createPipeline).toBe('function');
+  });
+
+  it('exports createPipelineSync function', async () => {
+    const mod = await import('../../3dSpace/src/pipeline-factory');
+    expect(typeof mod.createPipelineSync).toBe('function');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Raycast module exports
+// ---------------------------------------------------------------------------
+
+describe('raycast module exports', () => {
+  it('exports raySphereIntersect', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.raySphereIntersect).toBe('function');
+  });
+
+  it('exports rayAABBIntersect', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.rayAABBIntersect).toBe('function');
+  });
+
+  it('exports rayCylinderIntersect', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.rayCylinderIntersect).toBe('function');
+  });
+
+  it('exports screenToRay', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.screenToRay).toBe('function');
+  });
+
+  it('exports pickObjects', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.pickObjects).toBe('function');
+  });
+
+  it('exports RaycastPicker', async () => {
+    const mod = await import('../../3dSpace/src/raycast');
+    expect(typeof mod.RaycastPicker).toBe('function');
   });
 });

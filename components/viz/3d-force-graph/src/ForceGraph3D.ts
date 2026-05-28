@@ -263,7 +263,6 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
   const simNodesRef = useRef<Map<string, SimNode>>(new Map());
   const simEdgesRef = useRef<SimEdge[]>([]);
   const sceneGraphRef = useRef<SceneGraph>(new SceneGraph());
-  const initializedRef = useRef<boolean>(false);
   const runningRef = useRef<boolean>(running);
   const simConfigRef = useRef<SimConfig>({
     repulsionStrength,
@@ -315,6 +314,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     // Scene object
     const obj = createNodeSceneObject(node.id, node, pos);
     scene.register(obj);
+    objectMapRef.current.set(obj.id, obj);
 
     const state: NodeState = {
       config: node,
@@ -385,6 +385,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     // Scene object
     const obj = createEdgeSceneObject(edge.source, edge.target, edge);
     scene.register(obj);
+    objectMapRef.current.set(obj.id, obj);
 
     const state: EdgeState = {
       config: edge,
@@ -429,23 +430,20 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     for (const edge of edges) {
       addEdgeInternal(edge);
     }
+    // Trigger re-render so the objects array is passed to Space3D
+    setObjectsReady((v: number) => v + 1);
   }, [nodes, edges]);
+
+  // ---- Object tracking -------------------------------------------------------
+  // Direct map from scene object ID to SceneObject reference for O(1) lookup
+  const objectMapRef = useRef<Map<string, SceneObject>>(new Map());
+
+  // Trigger re-render after objects are registered in the effect
+  const [objectsReady, setObjectsReady] = useState(0);
 
   // ---- Frame callback -------------------------------------------------------
 
-  // Keep a map of scene object ID → SceneObject reference for fast lookup
-  const objectMapRef = useRef<Map<string, SceneObject>>(new Map());
-
-  const onFrame = useCallback((_deltaTime: number, spaceScene: SceneGraph) => {
-    // Sync objects from internal scene to Space3D's scene on first frame
-    if (!initializedRef.current && nodeStatesRef.current.size > 0) {
-      scene.traverse((obj: SceneObject) => {
-        spaceScene.register(obj);
-        objectMapRef.current.set(obj.id, obj);
-      });
-      initializedRef.current = true;
-    }
-
+  const onFrame = useCallback((_deltaTime: number, _spaceScene: SceneGraph) => {
     if (!runningRef.current) return;
 
     const simNodes = simNodesRef.current;
@@ -456,27 +454,21 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     // Step simulation
     stepSimulation(simNodes, simEdges, config);
 
-    // Update node SceneObject positions via direct map lookup (not traverse)
+    // Update node positions
     for (const [nodeId, state] of nodeStatesRef.current) {
       const simNode = simNodes.get(nodeId);
       if (!simNode) continue;
-
       const obj = objectMap.get(state.sceneObjectId);
       if (obj) {
-        obj.position = {
-          x: simNode.position.x,
-          y: simNode.position.y,
-          z: simNode.position.z,
-        };
+        obj.position = { x: simNode.position.x, y: simNode.position.y, z: simNode.position.z };
       }
     }
 
-    // Update edge SceneObject transforms via direct map lookup
+    // Update edge transforms
     for (const [, edgeState] of edgeStatesRef.current) {
       const sourceNode = simNodes.get(edgeState.config.source);
       const targetNode = simNodes.get(edgeState.config.target);
       if (!sourceNode || !targetNode) continue;
-
       const thickness = edgeState.config.thickness ?? 0.1;
       const obj = objectMap.get(edgeState.sceneObjectId);
       if (obj) {
@@ -647,6 +639,15 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     apiRef(api);
   }, [apiRef]);
 
+  // ---- Collect objects for Space3D -------------------------------------------
+  // After the init effect runs and sets objectsReady, this collects all objects
+  // from the internal scene graph and passes them to Space3D via props.
+  void objectsReady; // used to trigger re-collection after effect
+  const spaceObjects: SceneObject[] = [];
+  scene.traverse((obj: SceneObject) => {
+    spaceObjects.push(obj);
+  });
+
   // ---- Render ---------------------------------------------------------------
 
   return createElement(Space3D, {
@@ -654,6 +655,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     height,
     onFrame,
     cameras,
+    objects: spaceObjects,
     lightingModel,
   });
 }

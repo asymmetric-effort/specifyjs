@@ -107,6 +107,8 @@ import {
   BlochSphere,
   type GateOp,
 } from "../../../components/viz/bloch-sphere/src/index";
+import { ForceGraph3D } from "../../../components/viz/3d-force-graph/src/index";
+import type { ForceGraph3DNode, ForceGraph3DEdge } from "../../../components/viz/3d-force-graph/src/types";
 import { LED_ZEPPELIN_WORDS } from "../data/led-zeppelin-words";
 
 const REPO_BASE = "https://github.com/asymmetric-effort/specifyjs/tree/main";
@@ -117,6 +119,18 @@ function preview(
   sourceDir?: string,
 ) {
   return createElement(PreviewCard, { title, component: comp, sourceDir });
+}
+
+function previewWide(
+  title: string,
+  comp: () => ReturnType<typeof createElement>,
+  sourceDir?: string,
+) {
+  return createElement(
+    "div",
+    { style: { gridColumn: "1 / -1" } },
+    createElement(PreviewCard, { title, component: comp, sourceDir }),
+  );
 }
 
 function PreviewCard(props: {
@@ -358,7 +372,7 @@ export function ComponentsGallery() {
       preview("Waterfall Chart", WaterfallDemo, "components/viz/waterfall"),
       preview("Funnel Chart", FunnelDemo, "components/viz/funnel"),
     ]),
-    accordionSection("Data & Analytics", "9 components", openSection, toggle, [
+    accordionSection("Data & Analytics", "10 components", openSection, toggle, [
       preview("Heat Map", HeatMapDemo, "components/viz/heat-map"),
       preview(
         "Calendar Heat Map",
@@ -372,6 +386,11 @@ export function ComponentsGallery() {
       preview("Pivot Table", PivotTableDemo, "components/viz/pivot-table"),
       preview("Matrix", MatrixDemo, "components/viz/matrix"),
       preview("Gantt Chart", GanttDemo, "components/viz/gantt-chart"),
+      previewWide(
+        "3D Force Graph",
+        ForceGraph3DGalleryDemo,
+        "components/viz/3d-force-graph",
+      ),
     ]),
     accordionSection(
       "Hierarchical & Relational",
@@ -3288,4 +3307,50 @@ function PageLayoutSelector() {
         )
       : null,
   );
+}
+
+// ─── 3D Force Graph Gallery Demo ──────────────────────────────────────
+
+function ForceGraph3DGalleryDemo() {
+  const nodes: ForceGraph3DNode[] = [
+    { id: "A", label: "AS3356", size: 1.8, color: { r: 0.9, g: 0.2, b: 0.2, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "B", label: "AS1299", size: 1.8, color: { r: 0.9, g: 0.2, b: 0.2, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "C", label: "AS174", size: 1.8, color: { r: 0.9, g: 0.2, b: 0.2, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "D", label: "AS7018", size: 1.4, color: { r: 0.2, g: 0.5, b: 0.9, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "E", label: "AS13335", size: 1.4, color: { r: 0.2, g: 0.5, b: 0.9, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "F", label: "AS16509", size: 1.4, color: { r: 0.2, g: 0.5, b: 0.9, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "G", label: "AS20940", size: 1.0, color: { r: 0.2, g: 0.8, b: 0.3, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "H", label: "AS36351", size: 1.0, color: { r: 0.2, g: 0.8, b: 0.3, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "I", label: "AS46489", size: 1.0, color: { r: 0.2, g: 0.8, b: 0.3, a: 1 }, textColor: { r: 1, g: 1, b: 1, a: 1 } },
+    { id: "J", label: "IX-F", size: 1.2, color: { r: 0.9, g: 0.8, b: 0.1, a: 1 }, shape: "octahedron" as const, textColor: { r: 0, g: 0, b: 0, a: 1 } },
+  ];
+
+  const edges: ForceGraph3DEdge[] = [
+    { source: "A", target: "B" },
+    { source: "A", target: "C" },
+    { source: "B", target: "C" },
+    { source: "A", target: "D" },
+    { source: "B", target: "E" },
+    { source: "C", target: "F" },
+    { source: "D", target: "G" },
+    { source: "E", target: "H" },
+    { source: "F", target: "I" },
+    { source: "D", target: "J" },
+    { source: "E", target: "J" },
+    { source: "F", target: "J" },
+    { source: "G", target: "J" },
+    { source: "A", target: "E" },
+    { source: "B", target: "F" },
+  ];
+
+  return createElement(ForceGraph3D, {
+    width: 800,
+    height: 500,
+    nodes,
+    edges,
+    repulsionStrength: 80,
+    attractionStrength: 0.08,
+    damping: 0.88,
+    centerGravity: 0.02,
+  });
 }

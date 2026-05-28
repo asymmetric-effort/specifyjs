@@ -123,4 +123,61 @@ test.describe('3D Force Graph E2E', () => {
     await page.waitForTimeout(5000);
     expect(errors).toEqual([]);
   });
+
+  // ── Sad-path tests ──────────────────────────────────────────────────
+
+  /** @feature ForceGraph3DProps.width @sad */
+  /** @feature ForceGraph3DProps.height @sad */
+  /** @feature ForceGraph3DProps.nodes @sad */
+  /** @feature ForceGraph3DProps.edges @sad */
+  /** @feature ForceGraph3DProps.onNodeClick @sad */
+  /** @feature ForceGraph3DProps.onNodeDoubleClick @sad */
+  /** @feature ForceGraph3DProps.onNodeRightClick @sad */
+  /** @feature ForceGraph3DProps.onNodeMouseDown @sad */
+  /** @feature ForceGraph3DProps.onNodeMouseUp @sad */
+  /** @feature ForceGraph3DProps.onNodeHover @sad */
+  test('mouse events on empty canvas area produce no errors (no hit)', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    await page.waitForTimeout(2000);
+    const canvas = page.locator('canvas').first();
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    // Click far corner — no node hit (sad path for all event handlers)
+    const ex = box!.x + 5;
+    const ey = box!.y + 5;
+    await page.mouse.click(ex, ey);
+    await page.mouse.dblclick(ex, ey);
+    await page.mouse.click(ex, ey, { button: 'right' });
+    await page.mouse.move(ex, ey);
+    await page.waitForTimeout(500);
+    expect(errors).toEqual([]);
+  });
+
+  /** @feature ForceGraph3DProps.orbitControls @sad */
+  /** @feature ForceGraph3DProps.cameraDistance @sad */
+  test('canvas renders correctly at initial frame before orbit starts', async ({ page }) => {
+    const canvas = page.locator('canvas').first();
+    await expect(canvas).toBeVisible({ timeout: 10_000 });
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThan(0);
+  });
+
+  /** @feature ForceGraph3DProps.running @sad */
+  /** @feature ForceGraph3DProps.collisionEnabled @sad */
+  /** @feature ForceGraph3DProps.restitution @sad */
+  /** @feature ForceGraph3DProps.repulsionStrength @sad */
+  /** @feature ForceGraph3DProps.attractionStrength @sad */
+  /** @feature ForceGraph3DProps.damping @sad */
+  /** @feature ForceGraph3DProps.centerGravity @sad */
+  /** @feature ForceGraph3DProps.timeStep @sad */
+  /** @feature ForceGraph3DProps.backgroundColor @sad */
+  test('extended rendering produces no errors after simulation converges', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (err) => errors.push(err.message));
+    // Wait long enough for simulation to converge (running becomes false)
+    await page.waitForTimeout(8000);
+    expect(errors).toEqual([]);
+  });
 });

@@ -263,10 +263,24 @@ function buildCoverageMap(features: Feature[], annotations: TestAnnotation[]): M
   return map;
 }
 
-function printReport(coverageMap: Map<string, CoverageEntry>): { covered: number; missing: number; missingSad: number; total: number } {
-  let covered = 0;
-  let missing = 0;
-  let missingSad = 0;
+interface AuditResult {
+  /** Features with both happy and sad path tests */
+  complete: number;
+  /** Features with happy but no sad path (annotated but incomplete) */
+  incompleteSad: number;
+  /** Features with no annotations at all */
+  unannotated: number;
+  /** Total features discovered */
+  total: number;
+  /** Feature IDs that are annotated but missing sad path */
+  incompleteSadIds: string[];
+}
+
+function printReport(coverageMap: Map<string, CoverageEntry>): AuditResult {
+  let complete = 0;
+  let incompleteSad = 0;
+  let unannotated = 0;
+  const incompleteSadIds: string[] = [];
   const total = coverageMap.size;
 
   // Group by interface
@@ -299,35 +313,37 @@ function printReport(coverageMap: Map<string, CoverageEntry>): { covered: number
 
       if (hasAnyHappy && hasAnySad) {
         console.log(`  \u2713 ${prop.padEnd(30)} ${tags.join(' ')}`);
-        covered++;
+        complete++;
       } else if (hasAnyHappy) {
-        console.log(`  \u26a0 ${prop.padEnd(30)} ${tags.join(' ')} (no sad path)`);
-        covered++;
-        missingSad++;
+        console.log(`  \u2717 ${prop.padEnd(30)} ${tags.join(' ')} (MISSING sad path)`);
+        incompleteSad++;
+        incompleteSadIds.push(entry.feature.id);
       } else {
-        console.log(`  \u2717 ${prop.padEnd(30)} MISSING`);
-        missing++;
-        missingSad++;
+        console.log(`  - ${prop.padEnd(30)} unannotated`);
+        unannotated++;
       }
     }
     console.log('');
   }
 
+  const annotated = complete + incompleteSad;
+
   console.log('Summary');
   console.log('-------');
   console.log(`Total features:       ${total}`);
-  console.log(`Covered (happy):      ${covered}`);
-  console.log(`Missing coverage:     ${missing}`);
-  console.log(`Missing sad path:     ${missingSad}`);
-  console.log(`Coverage:             ${total > 0 ? ((covered / total) * 100).toFixed(1) : '0'}%`);
+  console.log(`Annotated:            ${annotated}`);
+  console.log(`  Complete (happy+sad): ${complete}`);
+  console.log(`  Missing sad path:    ${incompleteSad}`);
+  console.log(`Unannotated:          ${unannotated}`);
+  console.log(`Annotated coverage:   ${annotated > 0 ? ((complete / annotated) * 100).toFixed(1) : 'N/A'}%`);
 
-  return { covered, missing, missingSad, total };
+  return { complete, incompleteSad, unannotated, total, incompleteSadIds };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
-const enforce = args.includes('--enforce');
+const enforceAll = args.includes('--enforce');
 const jsonOnly = args.includes('--json');
 
 // Phase 1: Extract features
@@ -348,14 +364,28 @@ console.log(`Found ${annotations.length} @feature annotations across ${testFiles
 
 // Phase 3: Cross-reference and report
 const coverageMap = buildCoverageMap(features, annotations);
-const { missing } = printReport(coverageMap);
+const result = printReport(coverageMap);
 
-if (enforce && missing > 0) {
-  console.log(`\nERROR: ${missing} features have no test coverage. Use @feature annotations in E2E/PDV tests.`);
+// Enforcement: any annotated feature MUST have both happy and sad paths.
+// Once you annotate a feature, you commit to full coverage.
+if (result.incompleteSad > 0) {
+  console.log(`\nERROR: ${result.incompleteSad} annotated feature(s) are missing sad-path tests.`);
+  console.log('Every annotated feature must have both happy and sad path coverage.\n');
+  console.log('Missing sad path for:');
+  for (const id of result.incompleteSadIds) {
+    console.log(`  - ${id}`);
+  }
+  console.log('\nAdd /** @feature ' + result.incompleteSadIds[0] + ' @sad */ before a sad-path test.');
   process.exit(1);
 }
 
-if (missing > 0) {
-  console.log(`\nWARNING: ${missing} features have no test coverage. Add @feature annotations to E2E/PDV tests.`);
-  console.log('Run with --enforce to fail the build on coverage gaps.');
+// --enforce mode: also fail if any features are unannotated
+if (enforceAll && result.unannotated > 0) {
+  console.log(`\nERROR: ${result.unannotated} features have no @feature annotations.`);
+  process.exit(1);
+}
+
+if (result.unannotated > 0) {
+  console.log(`\nINFO: ${result.unannotated} features are not yet annotated.`);
+  console.log('Run with --enforce to require all features have annotations.');
 }

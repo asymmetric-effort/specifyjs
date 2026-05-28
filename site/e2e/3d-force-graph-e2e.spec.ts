@@ -41,40 +41,29 @@ test.describe('3D Force Graph E2E', () => {
   // ── Camera orbit ────────────────────────────────────────────────────
 
   test('camera orbits — canvas content changes over time', async ({ page }) => {
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     const canvas = page.locator('canvas').first();
 
-    // Capture frame at t=2s
-    const frame1 = await canvas.evaluate((el: HTMLCanvasElement) => {
+    // Hash the center 200x200 region where geometry is rendered
+    const getPixelHash = async () => canvas.evaluate((el: HTMLCanvasElement) => {
       const offscreen = document.createElement('canvas');
       offscreen.width = el.width;
       offscreen.height = el.height;
       const ctx = offscreen.getContext('2d')!;
       ctx.drawImage(el, 0, 0);
-      const data = ctx.getImageData(0, 0, 100, 100).data;
-      let sum = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        sum += data[i]! + data[i + 1]! + data[i + 2]!;
+      const cx = Math.floor(el.width / 2);
+      const cy = Math.floor(el.height / 2);
+      const data = ctx.getImageData(cx - 100, cy - 100, 200, 200).data;
+      let hash = 0;
+      for (let i = 0; i < data.length; i += 16) {
+        hash = ((hash << 5) - hash + data[i]! + data[i + 1]! + data[i + 2]!) | 0;
       }
-      return sum;
+      return hash;
     });
 
-    await page.waitForTimeout(2000);
-
-    // Capture frame at t=4s — camera has moved
-    const frame2 = await canvas.evaluate((el: HTMLCanvasElement) => {
-      const offscreen = document.createElement('canvas');
-      offscreen.width = el.width;
-      offscreen.height = el.height;
-      const ctx = offscreen.getContext('2d')!;
-      ctx.drawImage(el, 0, 0);
-      const data = ctx.getImageData(0, 0, 100, 100).data;
-      let sum = 0;
-      for (let i = 0; i < data.length; i += 4) {
-        sum += data[i]! + data[i + 1]! + data[i + 2]!;
-      }
-      return sum;
-    });
+    const frame1 = await getPixelHash();
+    await page.waitForTimeout(3000);
+    const frame2 = await getPixelHash();
 
     // Frames should differ since camera is orbiting
     expect(frame1).not.toBe(frame2);

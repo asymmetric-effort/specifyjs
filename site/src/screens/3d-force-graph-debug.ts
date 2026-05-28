@@ -1,105 +1,43 @@
-// Minimal test: exact same pattern as the working 3dSpace demo
+// Test Space3D component directly — no ForceGraph3D wrapper
 import { createElement } from 'specifyjs';
-import { useEffect, useRef } from 'specifyjs/hooks';
-import {
-  SceneObject,
-  SceneGraph,
-  Mesh,
-  Camera,
-  Viewport,
-  CpuPipeline,
-  FlatShading,
-  createMaterial,
-} from '../../../components/viz/3dSpace/src/index';
+import { useRef, useEffect } from 'specifyjs/hooks';
+import { Space3D } from '../../../components/viz/3dSpace/src/Space3D';
+import { SceneObject } from '../../../components/viz/3dSpace/src/scene-object';
+import { Mesh } from '../../../components/viz/3dSpace/src/mesh';
+import { createMaterial } from '../../../components/viz/3dSpace/src/material';
+import { Camera } from '../../../components/viz/3dSpace/src/camera';
 
-const W = 400;
-const H = 300;
+// Static objects created at module level
+const box = new SceneObject('test-box');
+box.mesh = Mesh.createBox(2, 2, 2);
+box.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+box.position = { x: 0, y: 0, z: 0 };
+
+const cam = new Camera({
+  position: { x: 0, y: 3, z: 8 },
+  fov: Math.PI / 4,
+  aspect: 400 / 300,
+  near: 0.1,
+  far: 100,
+});
+cam.lookAt({ x: 0, y: 0, z: 0 });
 
 export function ForceGraph3DDebug() {
-  const initializedRef = useRef(false);
-  const cleanupRef = useRef<(() => void) | null>(null);
-
-  const containerCallback = (node: HTMLDivElement | null) => {
-    if (typeof console !== 'undefined') {
-      console.log('[3dFGDebug] containerCallback called, node:', node ? 'present' : 'null', 'initialized:', initializedRef.current);
-    }
-    if (!node || initializedRef.current) return;
-    initializedRef.current = true;
-    if (typeof console !== 'undefined') {
-      console.log('[3dFGDebug] initializing canvas + pipeline');
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
-    canvas.style.display = 'block';
-    canvas.style.backgroundColor = '#0f172a';
-    canvas.style.width = '100%';
-    canvas.style.maxWidth = `${W}px`;
-    node.appendChild(canvas);
-
-    const scene = new SceneGraph();
-    const mesh = Mesh.createBox(1, 1, 1);
-
-    const box = new SceneObject('red-box');
-    box.position = { x: 0, y: 0, z: 0 };
-    box.mesh = mesh;
-    box.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
-    scene.register(box);
-
-    const cam = new Camera({
-      position: { x: 0, y: 3, z: 8 },
-      fov: Math.PI / 4,
-      aspect: W / H,
-      near: 0.1,
-      far: 100,
-    });
-    cam.lookAt({ x: 0, y: 0, z: 0 });
-
-    const vp = new Viewport({ x: 0, y: 0, width: W, height: H, camera: cam });
-    const pipeline = new CpuPipeline();
-    pipeline.initialize(canvas);
-    const lighting = new FlatShading();
-
-    let lastTime = performance.now();
-    let raf = 0;
-    let _frameCount = 0;
-
-    const frame = (timestamp: number) => {
-      const _dt = (timestamp - lastTime) / 1000;
-      lastTime = timestamp;
-      pipeline.render(scene, cam, vp, lighting);
-      if (typeof console !== 'undefined' && _frameCount < 3) {
-        console.log('[3dFGDebug] frame rendered, objects:', scene.getVisibleObjects().length);
-      }
-      _frameCount++;
-      raf = requestAnimationFrame(frame);
-    };
-    raf = requestAnimationFrame(frame);
-
-    cleanupRef.current = () => {
-      cancelAnimationFrame(raf);
-      pipeline.dispose();
-    };
-  };
-
-  useEffect(() => {
-    return () => {
-      if (cleanupRef.current) cleanupRef.current();
-    };
-  }, []);
-
+  // Test 1: Space3D component with static objects
   return createElement('div', {
-    style: { display: 'flex', height: '100%', padding: '16px', boxSizing: 'border-box' },
+    style: { padding: '16px' },
   },
-    createElement('div', { style: { flex: '1', minHeight: '300px' } },
-      createElement('h2', {
-        style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
-      }, '3D Force Graph Debug'),
-      createElement('div', {
-        ref: containerCallback,
-        style: { width: '100%', maxWidth: `${W}px`, height: `${H}px`, backgroundColor: '#0f172a' },
-      }),
-    ),
+    createElement('h2', {
+      style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: 'var(--color-text, #0f172a)' },
+    }, 'Space3D Component Test'),
+    createElement('p', {
+      style: { fontSize: '13px', color: 'var(--color-text-muted, #64748b)', marginBottom: '8px' },
+    }, 'If you see a red box below, Space3D component works. If blank, Space3D is broken.'),
+    createElement(Space3D, {
+      width: 400,
+      height: 300,
+      objects: [box],
+      cameras: [cam],
+    }),
   );
 }

@@ -5,14 +5,14 @@
  * ForceGraph3D -- A SpecifyJS component that renders force-directed graph
  * layouts in 3D space using the 3dSpace engine.
  *
- * - Uses Space3D with onFrame callback for animation
+ * - Uses imperative CpuPipeline approach (canvas + RAF loop)
  * - Creates SceneObjects for each node (sphere/polyhedron) and edge (cylinder)
  * - Maintains internal state maps (no userData on SceneObjects)
  * - Exposes imperative API via apiRef
  */
 
 import { createElement } from 'specifyjs';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'specifyjs/hooks';
+import { useRef, useCallback } from 'specifyjs/hooks';
 import type { Vec3 } from '../../../math/src/vec';
 import type { Quaternion } from '../../../math/src/quaternion';
 import type { Color } from '../../3dSpace/src/types';
@@ -29,7 +29,9 @@ import {
   icosahedronGeometry,
 } from '../../3dSpace/src/geom-polyhedron';
 import { Camera } from '../../3dSpace/src/camera';
-import { Space3D } from '../../3dSpace/src/Space3D';
+import { CpuPipeline } from '../../3dSpace/src/cpu-pipeline';
+import { FlatShading } from '../../3dSpace/src/lighting-model';
+import { Viewport } from '../../3dSpace/src/viewport';
 import type {
   ForceGraph3DNode,
   ForceGraph3DEdge,
@@ -248,7 +250,6 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     timeStep = 0.016,
     cameraDistance,
     apiRef,
-    lightingModel,
     backgroundColor = DEFAULT_BG,
   } = props;
 
@@ -262,8 +263,10 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
   const edgeStatesRef = useRef<Map<string, EdgeState>>(new Map());
   const simNodesRef = useRef<Map<string, SimNode>>(new Map());
   const simEdgesRef = useRef<SimEdge[]>([]);
-  const sceneGraphRef = useRef<SceneGraph>(new SceneGraph());
+  const objectMapRef = useRef<Map<string, SceneObject>>(new Map());
   const runningRef = useRef<boolean>(running);
+  const initializedRef = useRef<boolean>(false);
+  const cleanupRef = useRef<(() => void) | null>(null);
   const simConfigRef = useRef<SimConfig>({
     repulsionStrength,
     attractionStrength,
@@ -284,11 +287,9 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     bounds: defaultBounds,
   };
 
-  const scene = sceneGraphRef.current;
-
   // ---- Node/Edge CRUD helpers -----------------------------------------------
 
-  const addNodeInternal = useCallback((node: ForceGraph3DNode) => {
+  const addNodeInternal = useCallback((node: ForceGraph3DNode, scene: SceneGraph) => {
     const ns = nodeStatesRef.current;
     const simNodes = simNodesRef.current;
 
@@ -323,7 +324,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     ns.set(node.id, state);
   }, []);
 
-  const removeNodeInternal = useCallback((nodeId: string) => {
+  const removeNodeInternal = useCallback((nodeId: string, scene: SceneGraph) => {
     const ns = nodeStatesRef.current;
     const simNodes = simNodesRef.current;
     const es = edgeStatesRef.current;
@@ -358,7 +359,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     simNodes.delete(nodeId);
   }, []);
 
-  const addEdgeInternal = useCallback((edge: ForceGraph3DEdge) => {
+  const addEdgeInternal = useCallback((edge: ForceGraph3DEdge, scene: SceneGraph) => {
     const es = edgeStatesRef.current;
     const ns = nodeStatesRef.current;
     const key = edgeKey(edge.source, edge.target);
@@ -394,7 +395,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     es.set(key, state);
   }, []);
 
-  const removeEdgeInternal = useCallback((source: string, target: string) => {
+  const removeEdgeInternal = useCallback((source: string, target: string, scene: SceneGraph) => {
     const es = edgeStatesRef.current;
     const key = edgeKey(source, target);
     const state = es.get(key);
@@ -407,83 +408,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     );
   }, []);
 
-  // ---- Initialize from props ------------------------------------------------
-
-  useEffect(() => {
-    // Clear existing state
-    for (const [, ns] of nodeStatesRef.current) {
-      scene.unregister(ns.sceneObjectId);
-    }
-    for (const [, es] of edgeStatesRef.current) {
-      scene.unregister(es.sceneObjectId);
-    }
-    nodeStatesRef.current.clear();
-    edgeStatesRef.current.clear();
-    simNodesRef.current.clear();
-    simEdgesRef.current = [];
-
-    // Add nodes
-    for (const node of nodes) {
-      addNodeInternal(node);
-    }
-    // Add edges
-    for (const edge of edges) {
-      addEdgeInternal(edge);
-    }
-    // Trigger re-render so the objects array is passed to Space3D
-    setObjectsReady((v: number) => v + 1);
-  }, [nodes, edges]);
-
-  // ---- Object tracking -------------------------------------------------------
-  // Direct map from scene object ID to SceneObject reference for O(1) lookup
-  const objectMapRef = useRef<Map<string, SceneObject>>(new Map());
-
-  // Trigger re-render after objects are registered in the effect
-  const [objectsReady, setObjectsReady] = useState(0);
-
-  // ---- Frame callback -------------------------------------------------------
-
-  const onFrame = useCallback((_deltaTime: number, _spaceScene: SceneGraph) => {
-    if (!runningRef.current) return;
-
-    const simNodes = simNodesRef.current;
-    const simEdges = simEdgesRef.current;
-    const config = simConfigRef.current;
-    const objectMap = objectMapRef.current;
-
-    // Step simulation
-    stepSimulation(simNodes, simEdges, config);
-
-    // Update node positions
-    for (const [nodeId, state] of nodeStatesRef.current) {
-      const simNode = simNodes.get(nodeId);
-      if (!simNode) continue;
-      const obj = objectMap.get(state.sceneObjectId);
-      if (obj) {
-        obj.position = { x: simNode.position.x, y: simNode.position.y, z: simNode.position.z };
-      }
-    }
-
-    // Update edge transforms
-    for (const [, edgeState] of edgeStatesRef.current) {
-      const sourceNode = simNodes.get(edgeState.config.source);
-      const targetNode = simNodes.get(edgeState.config.target);
-      if (!sourceNode || !targetNode) continue;
-      const thickness = edgeState.config.thickness ?? 0.1;
-      const obj = objectMap.get(edgeState.sceneObjectId);
-      if (obj) {
-        updateEdgeTransform(obj, sourceNode.position, targetNode.position, thickness);
-      }
-    }
-
-    // Check convergence
-    const energy = computeKineticEnergy(simNodes);
-    if (energy < 0.001) {
-      runningRef.current = false;
-    }
-  }, []);
-
-  // ---- Camera ---------------------------------------------------------------
+  // ---- Camera helpers -------------------------------------------------------
 
   const computeCameraDistance = useCallback((): number => {
     if (cameraDistance !== undefined) return cameraDistance;
@@ -504,158 +429,233 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     return Math.max(30, maxDist * 2.5);
   }, [cameraDistance]);
 
-  const cameras = useMemo(() => {
+  // ---- Ref callback: imperative setup ---------------------------------------
+
+  const containerCallback = useCallback((node: HTMLDivElement | null) => {
+    if (!node || initializedRef.current) return;
+    initializedRef.current = true;
+
+    const W = width;
+    const H = height;
+
+    // 1. Create canvas, append to container
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    canvas.style.display = 'block';
+    node.appendChild(canvas);
+
+    // 2. Create scene, pipeline, camera, viewport, lighting
+    const scene = new SceneGraph();
+    const pipeline = new CpuPipeline();
+    pipeline.initialize(canvas);
+    const lighting = new FlatShading();
+
     const dist = computeCameraDistance();
     const cam = new Camera({
       position: { x: 0, y: dist * 0.3, z: dist },
       fov: Math.PI / 4,
-      aspect: width / height,
+      aspect: W / H,
       near: 0.1,
       far: 1000,
     });
     cam.lookAt({ x: 0, y: 0, z: 0 });
-    return [cam];
-  }, [width, height]);
 
-  // ---- Imperative API -------------------------------------------------------
+    const vp = new Viewport({
+      x: 0,
+      y: 0,
+      width: W,
+      height: H,
+      camera: cam,
+      clearColor: backgroundColor,
+    });
 
-  useEffect(() => {
-    if (!apiRef) return;
+    // 3. Add all nodes
+    for (const n of nodes) {
+      addNodeInternal(n, scene);
+    }
 
-    const api: ForceGraph3DAPI = {
-      addNode: (node: ForceGraph3DNode) => {
-        addNodeInternal(node);
-      },
-      removeNode: (nodeId: string) => {
-        removeNodeInternal(nodeId);
-      },
-      addEdge: (edge: ForceGraph3DEdge) => {
-        addEdgeInternal(edge);
-      },
-      removeEdge: (source: string, target: string) => {
-        removeEdgeInternal(source, target);
-      },
-      updateNode: (nodeId: string, updates: Partial<ForceGraph3DNode>) => {
-        const ns = nodeStatesRef.current;
-        const state = ns.get(nodeId);
-        if (!state) return;
+    // 4. Add all edges
+    for (const e of edges) {
+      addEdgeInternal(e, scene);
+    }
 
-        const newConfig = { ...state.config, ...updates };
-        state.config = newConfig;
+    // 5. Expose imperative API
+    if (apiRef) {
+      const api: ForceGraph3DAPI = {
+        addNode: (n: ForceGraph3DNode) => {
+          addNodeInternal(n, scene);
+        },
+        removeNode: (nodeId: string) => {
+          removeNodeInternal(nodeId, scene);
+        },
+        addEdge: (e: ForceGraph3DEdge) => {
+          addEdgeInternal(e, scene);
+        },
+        removeEdge: (source: string, target: string) => {
+          removeEdgeInternal(source, target, scene);
+        },
+        updateNode: (nodeId: string, updates: Partial<ForceGraph3DNode>) => {
+          const ns = nodeStatesRef.current;
+          const state = ns.get(nodeId);
+          if (!state) return;
 
-        // Update sim node
-        const simNode = simNodesRef.current.get(nodeId);
-        if (simNode) {
-          if (updates.mass !== undefined) simNode.mass = Math.max(0.001, updates.mass);
-          if (updates.fixed !== undefined) simNode.fixed = updates.fixed;
-          if (updates.position !== undefined) {
-            (simNode.position as { x: number; y: number; z: number }).x = updates.position.x;
-            (simNode.position as { x: number; y: number; z: number }).y = updates.position.y;
-            (simNode.position as { x: number; y: number; z: number }).z = updates.position.z;
+          const newConfig = { ...state.config, ...updates };
+          state.config = newConfig;
+
+          const simNode = simNodesRef.current.get(nodeId);
+          if (simNode) {
+            if (updates.mass !== undefined) simNode.mass = Math.max(0.001, updates.mass);
+            if (updates.fixed !== undefined) simNode.fixed = updates.fixed;
+            if (updates.position !== undefined) {
+              (simNode.position as { x: number; y: number; z: number }).x = updates.position.x;
+              (simNode.position as { x: number; y: number; z: number }).y = updates.position.y;
+              (simNode.position as { x: number; y: number; z: number }).z = updates.position.z;
+            }
+          }
+        },
+        updateEdge: (source: string, target: string, updates: Partial<ForceGraph3DEdge>) => {
+          const es = edgeStatesRef.current;
+          const key = edgeKey(source, target);
+          const state = es.get(key);
+          if (!state) return;
+
+          state.config = { ...state.config, ...updates };
+
+          const simEdge = simEdgesRef.current.find(
+            e => e.source === source && e.target === target,
+          );
+          if (simEdge) {
+            if (updates.length !== undefined) simEdge.restLength = updates.length;
+            if (updates.stiffness !== undefined) simEdge.stiffness = updates.stiffness;
+          }
+        },
+        getNodePositions: (): Map<string, Vec3> => {
+          const result = new Map<string, Vec3>();
+          for (const [id, simNode] of simNodesRef.current) {
+            result.set(id, {
+              x: simNode.position.x,
+              y: simNode.position.y,
+              z: simNode.position.z,
+            });
+          }
+          return result;
+        },
+        setRunning: (r: boolean) => {
+          runningRef.current = r;
+        },
+        resetPositions: () => {
+          for (const [nodeId, state] of nodeStatesRef.current) {
+            const simNode = simNodesRef.current.get(nodeId);
+            if (!simNode) continue;
+            const pos = state.config.position ?? {
+              x: (Math.random() - 0.5) * 20,
+              y: (Math.random() - 0.5) * 20,
+              z: (Math.random() - 0.5) * 20,
+            };
+            (simNode.position as { x: number; y: number; z: number }).x = pos.x;
+            (simNode.position as { x: number; y: number; z: number }).y = pos.y;
+            (simNode.position as { x: number; y: number; z: number }).z = pos.z;
+            (simNode.velocity as { x: number; y: number; z: number }).x = 0;
+            (simNode.velocity as { x: number; y: number; z: number }).y = 0;
+            (simNode.velocity as { x: number; y: number; z: number }).z = 0;
+          }
+          runningRef.current = true;
+        },
+        fitCamera: () => {
+          const d = computeCameraDistance();
+          cam.position = { x: 0, y: d * 0.3, z: d };
+          cam.lookAt({ x: 0, y: 0, z: 0 });
+        },
+        loadGraph: (graph: { nodes: ForceGraph3DNode[]; edges: ForceGraph3DEdge[] }) => {
+          // Clear everything
+          for (const [, ns] of nodeStatesRef.current) {
+            scene.unregister(ns.sceneObjectId);
+          }
+          for (const [, es] of edgeStatesRef.current) {
+            scene.unregister(es.sceneObjectId);
+          }
+          nodeStatesRef.current.clear();
+          edgeStatesRef.current.clear();
+          simNodesRef.current.clear();
+          simEdgesRef.current = [];
+          objectMapRef.current.clear();
+
+          // Re-add
+          for (const n of graph.nodes) {
+            addNodeInternal(n, scene);
+          }
+          for (const e of graph.edges) {
+            addEdgeInternal(e, scene);
+          }
+          runningRef.current = true;
+        },
+        getSceneGraph: () => scene,
+      };
+
+      apiRef(api);
+    }
+
+    // 6. Start RAF loop
+    let raf = 0;
+    const frame = (_timestamp: number) => {
+      if (runningRef.current) {
+        const simNodes = simNodesRef.current;
+        const simEdges = simEdgesRef.current;
+        const config = simConfigRef.current;
+        const objectMap = objectMapRef.current;
+
+        // Step simulation
+        stepSimulation(simNodes, simEdges, config);
+
+        // Update node positions
+        for (const [nodeId, state] of nodeStatesRef.current) {
+          const simNode = simNodes.get(nodeId);
+          if (!simNode) continue;
+          const obj = objectMap.get(state.sceneObjectId);
+          if (obj) {
+            obj.position = { x: simNode.position.x, y: simNode.position.y, z: simNode.position.z };
           }
         }
-      },
-      updateEdge: (source: string, target: string, updates: Partial<ForceGraph3DEdge>) => {
-        const es = edgeStatesRef.current;
-        const key = edgeKey(source, target);
-        const state = es.get(key);
-        if (!state) return;
 
-        state.config = { ...state.config, ...updates };
+        // Update edge transforms
+        for (const [, edgeState] of edgeStatesRef.current) {
+          const sourceNode = simNodes.get(edgeState.config.source);
+          const targetNode = simNodes.get(edgeState.config.target);
+          if (!sourceNode || !targetNode) continue;
+          const thickness = edgeState.config.thickness ?? 0.1;
+          const obj = objectMap.get(edgeState.sceneObjectId);
+          if (obj) {
+            updateEdgeTransform(obj, sourceNode.position, targetNode.position, thickness);
+          }
+        }
 
-        // Update sim edge
-        const simEdge = simEdgesRef.current.find(
-          e => e.source === source && e.target === target,
-        );
-        if (simEdge) {
-          if (updates.length !== undefined) simEdge.restLength = updates.length;
-          if (updates.stiffness !== undefined) simEdge.stiffness = updates.stiffness;
+        // Check convergence
+        const energy = computeKineticEnergy(simNodes);
+        if (energy < 0.001) {
+          runningRef.current = false;
         }
-      },
-      getNodePositions: (): Map<string, Vec3> => {
-        const result = new Map<string, Vec3>();
-        for (const [id, simNode] of simNodesRef.current) {
-          result.set(id, {
-            x: simNode.position.x,
-            y: simNode.position.y,
-            z: simNode.position.z,
-          });
-        }
-        return result;
-      },
-      setRunning: (r: boolean) => {
-        runningRef.current = r;
-      },
-      resetPositions: () => {
-        for (const [nodeId, state] of nodeStatesRef.current) {
-          const simNode = simNodesRef.current.get(nodeId);
-          if (!simNode) continue;
-          const pos = state.config.position ?? {
-            x: (Math.random() - 0.5) * 20,
-            y: (Math.random() - 0.5) * 20,
-            z: (Math.random() - 0.5) * 20,
-          };
-          (simNode.position as { x: number; y: number; z: number }).x = pos.x;
-          (simNode.position as { x: number; y: number; z: number }).y = pos.y;
-          (simNode.position as { x: number; y: number; z: number }).z = pos.z;
-          (simNode.velocity as { x: number; y: number; z: number }).x = 0;
-          (simNode.velocity as { x: number; y: number; z: number }).y = 0;
-          (simNode.velocity as { x: number; y: number; z: number }).z = 0;
-        }
-        runningRef.current = true;
-      },
-      fitCamera: () => {
-        const dist = computeCameraDistance();
-        if (cameras.length > 0) {
-          cameras[0]!.position = { x: 0, y: dist * 0.3, z: dist };
-          cameras[0]!.lookAt({ x: 0, y: 0, z: 0 });
-        }
-      },
-      loadGraph: (graph: { nodes: ForceGraph3DNode[]; edges: ForceGraph3DEdge[] }) => {
-        // Clear everything
-        for (const [, ns] of nodeStatesRef.current) {
-          scene.unregister(ns.sceneObjectId);
-        }
-        for (const [, es] of edgeStatesRef.current) {
-          scene.unregister(es.sceneObjectId);
-        }
-        nodeStatesRef.current.clear();
-        edgeStatesRef.current.clear();
-        simNodesRef.current.clear();
-        simEdgesRef.current = [];
+      }
 
-        // Re-add
-        for (const node of graph.nodes) {
-          addNodeInternal(node);
-        }
-        for (const edge of graph.edges) {
-          addEdgeInternal(edge);
-        }
-        runningRef.current = true;
-      },
-      getSceneGraph: () => scene,
+      // Render every frame (even if sim paused, to show current state)
+      pipeline.render(scene, cam, vp, lighting);
+      raf = requestAnimationFrame(frame);
     };
+    raf = requestAnimationFrame(frame);
 
-    apiRef(api);
-  }, [apiRef]);
-
-  // ---- Collect objects for Space3D -------------------------------------------
-  // After the init effect runs and sets objectsReady, this collects all objects
-  // from the internal scene graph and passes them to Space3D via props.
-  void objectsReady; // used to trigger re-collection after effect
-  const spaceObjects: SceneObject[] = [];
-  scene.traverse((obj: SceneObject) => {
-    spaceObjects.push(obj);
-  });
+    // 7. Store cleanup
+    cleanupRef.current = () => {
+      cancelAnimationFrame(raf);
+      if (canvas.parentNode) {
+        canvas.parentNode.removeChild(canvas);
+      }
+    };
+  }, []);
 
   // ---- Render ---------------------------------------------------------------
 
-  return createElement(Space3D, {
-    width,
-    height,
-    onFrame,
-    cameras,
-    objects: spaceObjects,
-    lightingModel,
+  return createElement('div', {
+    ref: containerCallback,
+    style: { width: `${width}px`, height: `${height}px` },
   });
 }

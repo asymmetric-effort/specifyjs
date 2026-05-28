@@ -11,6 +11,8 @@ import type { Light } from './light';
 export interface RenderPipeline {
   name: string;
   initialize(canvas: HTMLCanvasElement): void;
+  /** Async initialization for pipelines that need it (e.g., WebGPU). */
+  initializeAsync?(canvas: HTMLCanvasElement): Promise<void>;
   dispose(): void;
   render(scene: SceneGraph, camera: Camera, viewport: Viewport, lighting: LightingModel, lights?: Light[]): void;
 }

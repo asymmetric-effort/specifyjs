@@ -22,6 +22,8 @@ export interface ForceGraph3DNode {
   fixed?: boolean;
   /** Affects force response. Default: 1.0. */
   mass?: number;
+  /** Collision sphere radius. Defaults to size. */
+  collisionRadius?: number;
 }
 
 /** An edge in the 3D force graph. */
@@ -63,9 +65,18 @@ export interface ForceGraph3DProps {
   cameraDistance?: number;
   /** Default: true. */
   orbitControls?: boolean;
-  onNodeClick?: (nodeId: string, node: ForceGraph3DNode) => void;
-  onNodeHover?: (nodeId: string | null) => void;
-  onEdgeClick?: (edge: ForceGraph3DEdge) => void;
+  /** Enable sphere-sphere collision detection. Default: true. */
+  collisionEnabled?: boolean;
+  /** Coefficient of restitution (bounciness) 0-1. Default: 0.8. */
+  restitution?: number;
+  onNodeClick?: (nodeId: string, node: ForceGraph3DNode, event: MouseEvent) => void;
+  onNodeDoubleClick?: (nodeId: string, node: ForceGraph3DNode, event: MouseEvent) => void;
+  onNodeRightClick?: (nodeId: string, node: ForceGraph3DNode, event: MouseEvent) => void;
+  onNodeMouseDown?: (nodeId: string, node: ForceGraph3DNode, event: MouseEvent) => void;
+  onNodeMouseUp?: (nodeId: string, node: ForceGraph3DNode, event: MouseEvent) => void;
+  onNodeHover?: (nodeId: string | null, node: ForceGraph3DNode | null, event: MouseEvent) => void;
+  onEdgeClick?: (edge: ForceGraph3DEdge, event: MouseEvent) => void;
+  onEdgeHover?: (edge: ForceGraph3DEdge | null, event: MouseEvent) => void;
   /** Dynamic API ref. */
   apiRef?: (api: ForceGraph3DAPI) => void;
   lightingModel?: LightingModel;

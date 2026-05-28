@@ -22,6 +22,8 @@ export class SceneObject {
   material?: Material;
   /** Billboard text label rendered at this object's world position. */
   label?: string;
+  /** Bounding sphere radius for hit testing. Set manually or via computeBoundingRadius(). */
+  boundingRadius?: number;
   children: SceneObject[];
   parent: SceneObject | null;
   visible: boolean;
@@ -88,6 +90,35 @@ export class SceneObject {
     }
 
     return result;
+  }
+
+  /**
+   * Compute bounding sphere radius from mesh vertices (max distance from local origin).
+   * Accounts for scale. Sets and returns boundingRadius.
+   */
+  computeBoundingRadius(): number {
+    if (!this.mesh) {
+      this.boundingRadius = 0;
+      return 0;
+    }
+    const verts = this.mesh.vertices;
+    const count = this.mesh.vertexCount;
+    let maxDistSq = 0;
+    for (let i = 0; i < count; i++) {
+      const vi = i * 3;
+      const x = verts[vi]!;
+      const y = verts[vi + 1]!;
+      const z = verts[vi + 2]!;
+      const dSq = x * x + y * y + z * z;
+      if (dSq > maxDistSq) maxDistSq = dSq;
+    }
+    const maxScale = Math.max(
+      Math.abs(this.scale.x),
+      Math.abs(this.scale.y),
+      Math.abs(this.scale.z),
+    );
+    this.boundingRadius = Math.sqrt(maxDistSq) * maxScale;
+    return this.boundingRadius;
   }
 }
 

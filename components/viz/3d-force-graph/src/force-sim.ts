@@ -17,6 +17,8 @@ export interface SimNode {
   velocity: Vec3;
   mass: number;
   fixed: boolean;
+  /** Radius for sphere-sphere collision detection. Default: 1. */
+  collisionRadius?: number;
 }
 
 /** A simulation edge. */
@@ -35,6 +37,10 @@ export interface SimConfig {
   centerGravity: number;
   timeStep: number;
   bounds: { min: Vec3; max: Vec3 };
+  /** Enable sphere-sphere collision detection and response. Default: false. */
+  collisionEnabled?: boolean;
+  /** Coefficient of restitution (bounciness) 0-1. 1 = perfectly elastic. Default: 0.8. */
+  restitution?: number;
 }
 
 /** Minimum mass to avoid division by zero. */
@@ -190,6 +196,94 @@ export function stepSimulation(
     (n.position as { x: number; y: number; z: number }).x = px;
     (n.position as { x: number; y: number; z: number }).y = py;
     (n.position as { x: number; y: number; z: number }).z = pz;
+  }
+
+  // 7. Sphere-sphere collision detection and response
+  if (config.collisionEnabled) {
+    const restitution = config.restitution ?? 0.8;
+
+    for (let i = 0; i < count; i++) {
+      const ni = entries[i]!;
+      const ri = ni.collisionRadius ?? 1;
+
+      for (let j = i + 1; j < count; j++) {
+        const nj = entries[j]!;
+        const rj = nj.collisionRadius ?? 1;
+        const minDist = ri + rj;
+
+        let dx = nj.position.x - ni.position.x;
+        let dy = nj.position.y - ni.position.y;
+        let dz = nj.position.z - ni.position.z;
+        let distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq >= minDist * minDist) continue; // no overlap
+
+        let dist = Math.sqrt(distSq);
+        if (dist < EPSILON) {
+          // Coincident: push apart along x
+          dx = EPSILON;
+          dy = 0;
+          dz = 0;
+          dist = EPSILON;
+        }
+
+        // Collision normal (from i to j)
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const nz = dz / dist;
+
+        // Separate overlapping nodes to surface contact
+        const overlap = minDist - dist;
+        const mi = Math.max(ni.mass, MIN_MASS);
+        const mj = Math.max(nj.mass, MIN_MASS);
+        const totalMass = mi + mj;
+
+        if (!ni.fixed && !nj.fixed) {
+          const pushI = overlap * (mj / totalMass);
+          const pushJ = overlap * (mi / totalMass);
+          (ni.position as { x: number; y: number; z: number }).x -= nx * pushI;
+          (ni.position as { x: number; y: number; z: number }).y -= ny * pushI;
+          (ni.position as { x: number; y: number; z: number }).z -= nz * pushI;
+          (nj.position as { x: number; y: number; z: number }).x += nx * pushJ;
+          (nj.position as { x: number; y: number; z: number }).y += ny * pushJ;
+          (nj.position as { x: number; y: number; z: number }).z += nz * pushJ;
+        } else if (!ni.fixed) {
+          (ni.position as { x: number; y: number; z: number }).x -= nx * overlap;
+          (ni.position as { x: number; y: number; z: number }).y -= ny * overlap;
+          (ni.position as { x: number; y: number; z: number }).z -= nz * overlap;
+        } else if (!nj.fixed) {
+          (nj.position as { x: number; y: number; z: number }).x += nx * overlap;
+          (nj.position as { x: number; y: number; z: number }).y += ny * overlap;
+          (nj.position as { x: number; y: number; z: number }).z += nz * overlap;
+        }
+
+        // Elastic collision velocity response
+        // Relative velocity along collision normal
+        const dvx = ni.velocity.x - nj.velocity.x;
+        const dvy = ni.velocity.y - nj.velocity.y;
+        const dvz = ni.velocity.z - nj.velocity.z;
+        const relVelNormal = dvx * nx + dvy * ny + dvz * nz;
+
+        if (relVelNormal <= 0) continue; // already separating
+
+        // Impulse scalar (1D collision along normal)
+        // relVelNormal > 0 means approaching; impulse pushes them apart
+        const invMassSum = (ni.fixed ? 0 : 1 / mi) + (nj.fixed ? 0 : 1 / mj);
+        if (invMassSum === 0) continue; // both fixed
+        const impulse = (1 + restitution) * relVelNormal / invMassSum;
+
+        if (!ni.fixed) {
+          (ni.velocity as { x: number; y: number; z: number }).x -= (impulse / mi) * nx;
+          (ni.velocity as { x: number; y: number; z: number }).y -= (impulse / mi) * ny;
+          (ni.velocity as { x: number; y: number; z: number }).z -= (impulse / mi) * nz;
+        }
+        if (!nj.fixed) {
+          (nj.velocity as { x: number; y: number; z: number }).x += (impulse / mj) * nx;
+          (nj.velocity as { x: number; y: number; z: number }).y += (impulse / mj) * ny;
+          (nj.velocity as { x: number; y: number; z: number }).z += (impulse / mj) * nz;
+        }
+      }
+    }
   }
 }
 

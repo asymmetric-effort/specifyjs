@@ -30,8 +30,11 @@ import {
 } from '../../3dSpace/src/geom-polyhedron';
 import { Camera } from '../../3dSpace/src/camera';
 import { CpuPipeline } from '../../3dSpace/src/cpu-pipeline';
+import { createPipeline } from '../../3dSpace/src/pipeline-factory';
 import { FlatShading } from '../../3dSpace/src/lighting-model';
 import { Viewport } from '../../3dSpace/src/viewport';
+import { screenToRay, pickObjects } from '../../3dSpace/src/raycast';
+import { mat4Multiply } from '../../../math/src/mat4';
 import type {
   ForceGraph3DNode,
   ForceGraph3DEdge,
@@ -242,6 +245,16 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     cameraDistance,
     apiRef,
     backgroundColor = DEFAULT_BG,
+    collisionEnabled = true,
+    restitution = 0.8,
+    onNodeClick,
+    onNodeDoubleClick,
+    onNodeRightClick,
+    onNodeMouseDown,
+    onNodeMouseUp,
+    onNodeHover,
+    onEdgeClick,
+    onEdgeHover,
   } = props;
 
   const defaultBounds = bounds ?? {
@@ -265,6 +278,8 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     centerGravity,
     timeStep,
     bounds: defaultBounds,
+    collisionEnabled,
+    restitution,
   });
 
   // Keep running state in sync
@@ -276,6 +291,8 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     centerGravity,
     timeStep,
     bounds: defaultBounds,
+    collisionEnabled,
+    restitution,
   };
 
   // ---- Node/Edge CRUD helpers -----------------------------------------------
@@ -294,17 +311,20 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     };
 
     // Simulation node
+    const nodeSize = Math.max(0.01, node.size ?? 1.0);
     const simNode: SimNode = {
       id: node.id,
       position: { x: pos.x, y: pos.y, z: pos.z },
       velocity: { x: 0, y: 0, z: 0 },
       mass: Math.max(0.001, node.mass ?? 1.0),
       fixed: node.fixed ?? false,
+      collisionRadius: node.collisionRadius ?? nodeSize,
     };
     simNodes.set(node.id, simNode);
 
     // Scene object
     const obj = createNodeSceneObject(node.id, node, pos);
+    obj.boundingRadius = nodeSize;
     scene.register(obj);
     objectMapRef.current.set(obj.id, obj);
 
@@ -438,8 +458,15 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
 
     // 2. Create scene, pipeline, camera, viewport, lighting
     const scene = new SceneGraph();
-    const pipeline = new CpuPipeline();
-    pipeline.initialize(canvas);
+    // Start with CPU pipeline immediately; async-upgrade to GPU if available
+    let activePipeline: import('../../3dSpace/src/render-pipeline').RenderPipeline = new CpuPipeline();
+    activePipeline.initialize(canvas);
+    createPipeline(canvas).then(gpuPipeline => {
+      if (gpuPipeline.name !== 'cpu') {
+        activePipeline.dispose();
+        activePipeline = gpuPipeline;
+      }
+    }).catch(() => { /* keep CPU */ });
     const lighting = new FlatShading();
 
     const dist = computeCameraDistance();
@@ -653,15 +680,88 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
       cam.lookAt({ x: 0, y: 0, z: 0 });
 
       // Render 3D scene
-      pipeline.render(scene, cam, vp, lighting);
+      activePipeline.render(scene, cam, vp, lighting);
 
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
 
-    // 7. Store cleanup
+    // 7. Mouse event wiring (raycasting hit test)
+    let hoveredNodeId: string | null = null;
+    let hoveredEdgeKey: string | null = null;
+
+    const hitTest = (e: MouseEvent): { nodeId: string; node: ForceGraph3DNode } | null => {
+      const rect = canvas.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+
+      const viewMat = cam.getViewMatrix();
+      const projMat = cam.getProjectionMatrix();
+      const vpMat = mat4Multiply(projMat, viewMat);
+
+      const ray = screenToRay(sx, sy, W, H, vpMat);
+      const allObjects = scene.getVisibleObjects().filter(o => o.boundingRadius !== undefined && o.boundingRadius > 0);
+      const hit = pickObjects(ray, allObjects);
+      if (!hit) return null;
+
+      // Resolve SceneObject id back to node id
+      const objId = hit.object.id;
+      for (const [nodeId, state] of nodeStatesRef.current) {
+        if (state.sceneObjectId === objId) {
+          return { nodeId, node: state.config };
+        }
+      }
+      return null;
+    };
+
+    const onMouseClick = (e: MouseEvent) => {
+      const result = hitTest(e);
+      if (result && onNodeClick) onNodeClick(result.nodeId, result.node, e);
+    };
+    const onMouseDblClick = (e: MouseEvent) => {
+      const result = hitTest(e);
+      if (result && onNodeDoubleClick) onNodeDoubleClick(result.nodeId, result.node, e);
+    };
+    const onMouseContextMenu = (e: MouseEvent) => {
+      const result = hitTest(e);
+      if (result && onNodeRightClick) {
+        e.preventDefault();
+        onNodeRightClick(result.nodeId, result.node, e);
+      }
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      const result = hitTest(e);
+      if (result && onNodeMouseDown) onNodeMouseDown(result.nodeId, result.node, e);
+    };
+    const onMouseUp = (e: MouseEvent) => {
+      const result = hitTest(e);
+      if (result && onNodeMouseUp) onNodeMouseUp(result.nodeId, result.node, e);
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      const result = hitTest(e);
+      const newHoveredId = result ? result.nodeId : null;
+      if (newHoveredId !== hoveredNodeId) {
+        hoveredNodeId = newHoveredId;
+        if (onNodeHover) onNodeHover(newHoveredId, result ? result.node : null, e);
+      }
+    };
+
+    if (onNodeClick) canvas.addEventListener('click', onMouseClick);
+    if (onNodeDoubleClick) canvas.addEventListener('dblclick', onMouseDblClick);
+    if (onNodeRightClick) canvas.addEventListener('contextmenu', onMouseContextMenu);
+    if (onNodeMouseDown) canvas.addEventListener('mousedown', onMouseDown);
+    if (onNodeMouseUp) canvas.addEventListener('mouseup', onMouseUp);
+    if (onNodeHover) canvas.addEventListener('mousemove', onMouseMove);
+
+    // 8. Store cleanup
     cleanupRef.current = () => {
       cancelAnimationFrame(raf);
+      canvas.removeEventListener('click', onMouseClick);
+      canvas.removeEventListener('dblclick', onMouseDblClick);
+      canvas.removeEventListener('contextmenu', onMouseContextMenu);
+      canvas.removeEventListener('mousedown', onMouseDown);
+      canvas.removeEventListener('mouseup', onMouseUp);
+      canvas.removeEventListener('mousemove', onMouseMove);
       if (canvas.parentNode) {
         canvas.parentNode.removeChild(canvas);
       }

@@ -77,5 +77,8 @@ export function ForceGraph3DDebug() {
     rafRef.current = requestAnimationFrame(frame);
   };
 
-  return createElement('div', { ref: containerRef });
+  return createElement('div', {
+    ref: containerRef,
+    style: { width: '400px', height: '300px' },
+  });
 }

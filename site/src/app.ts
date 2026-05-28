@@ -27,6 +27,7 @@ import { WumpusWorld } from "./screens/wumpus-world";
 import { Space3DDemo } from "./screens/3d-space";
 import { Space3DWebGLDemo } from "./screens/3d-space-webgl";
 import { ForceGraph3DDemo } from "./screens/3d-force-graph";
+import { ForceGraph3DDebug } from "./screens/3d-force-graph-debug";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -123,6 +124,11 @@ function AppContent() {
       path: "/3dForcedGraph",
       title: "3D Force Graph",
       content: createElement(ForceGraph3DDemo, null),
+    },
+    {
+      path: "/3dFGDebug",
+      title: "3D FG Debug",
+      content: createElement(ForceGraph3DDebug, null),
     },
   ];
 

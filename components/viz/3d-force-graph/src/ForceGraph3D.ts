@@ -223,8 +223,17 @@ export function updateEdgeTransform(
 
 // ---- Component --------------------------------------------------------------
 
+let __renderCount = 0;
+
 /** ForceGraph3D component. */
 export function ForceGraph3D(props: ForceGraph3DProps) {
+  __renderCount++;
+  if (typeof console !== 'undefined') {
+    console.log(`[ForceGraph3D] render #${__renderCount}`);
+    if (__renderCount > 10) {
+      console.error(`[ForceGraph3D] INFINITE LOOP DETECTED after ${__renderCount} renders`);
+    }
+  }
   const {
     width,
     height,

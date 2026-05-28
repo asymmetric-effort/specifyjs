@@ -424,12 +424,15 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
 
   // ---- Frame callback -------------------------------------------------------
 
+  // Keep a map of scene object ID → SceneObject reference for fast lookup
+  const objectMapRef = useRef<Map<string, SceneObject>>(new Map());
+
   const onFrame = useCallback((_deltaTime: number, spaceScene: SceneGraph) => {
     // Sync objects from internal scene to Space3D's scene on first frame
-    // and whenever objects change
     if (!initializedRef.current && nodeStatesRef.current.size > 0) {
       scene.traverse((obj: SceneObject) => {
-        try { spaceScene.register(obj); } catch { /* already registered */ }
+        spaceScene.register(obj);
+        objectMapRef.current.set(obj.id, obj);
       });
       initializedRef.current = true;
     }
@@ -439,40 +442,37 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
     const simNodes = simNodesRef.current;
     const simEdges = simEdgesRef.current;
     const config = simConfigRef.current;
+    const objectMap = objectMapRef.current;
 
     // Step simulation
     stepSimulation(simNodes, simEdges, config);
 
-    // Update node SceneObject positions (on the internal scene objects,
-    // which are the same references registered in Space3D's scene)
+    // Update node SceneObject positions via direct map lookup (not traverse)
     for (const [nodeId, state] of nodeStatesRef.current) {
       const simNode = simNodes.get(nodeId);
       if (!simNode) continue;
 
-      scene.traverse((obj: SceneObject) => {
-        if (obj.id === state.sceneObjectId) {
-          obj.position = {
-            x: simNode.position.x,
-            y: simNode.position.y,
-            z: simNode.position.z,
-          };
-        }
-      });
+      const obj = objectMap.get(state.sceneObjectId);
+      if (obj) {
+        obj.position = {
+          x: simNode.position.x,
+          y: simNode.position.y,
+          z: simNode.position.z,
+        };
+      }
     }
 
-    // Update edge SceneObject transforms
+    // Update edge SceneObject transforms via direct map lookup
     for (const [, edgeState] of edgeStatesRef.current) {
       const sourceNode = simNodes.get(edgeState.config.source);
       const targetNode = simNodes.get(edgeState.config.target);
       if (!sourceNode || !targetNode) continue;
 
       const thickness = edgeState.config.thickness ?? 0.1;
-
-      scene.traverse((obj: SceneObject) => {
-        if (obj.id === edgeState.sceneObjectId) {
-          updateEdgeTransform(obj, sourceNode.position, targetNode.position, thickness);
-        }
-      });
+      const obj = objectMap.get(edgeState.sceneObjectId);
+      if (obj) {
+        updateEdgeTransform(obj, sourceNode.position, targetNode.position, thickness);
+      }
     }
 
     // Check convergence

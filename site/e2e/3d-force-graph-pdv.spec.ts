@@ -8,8 +8,7 @@ import { test, expect } from '@playwright/test';
  * dataset presence, and absence of JS errors.
  */
 
-// Skip until #80 is resolved and the route is re-enabled in app.ts
-test.describe.skip('3D Force Graph AS Topology PDV', () => {
+test.describe('3D Force Graph AS Topology PDV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('./#/3dForcedGraph');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });

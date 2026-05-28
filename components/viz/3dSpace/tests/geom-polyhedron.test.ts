@@ -151,6 +151,7 @@ describe('createGeomPolyhedron', () => {
       });
       expect(obj.children.length).toBe(1);
       expect(obj.children[0]!.id).toBe('p-label');
+      expect(obj.children[0]!.label).toBe('Tetra');
     });
 
     it('does not create label when label is omitted', () => {

@@ -20,6 +20,8 @@ export class SceneObject {
   scale: Vec3;
   mesh?: Mesh;
   material?: Material;
+  /** Billboard text label rendered at this object's world position. */
+  label?: string;
   children: SceneObject[];
   parent: SceneObject | null;
   visible: boolean;

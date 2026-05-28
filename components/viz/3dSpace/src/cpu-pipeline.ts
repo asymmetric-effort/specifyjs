@@ -14,21 +14,45 @@ import { mat4Multiply } from '../../../math/src/mat4';
 import type { Mat4 } from '../../../math/src/mat4';
 import type { SpaceBounds } from './bounds';
 
-/** Triangle ready for rasterization after projection. */
-interface ProjectedTriangle {
-  /** Screen-space x coordinates for the 3 vertices. */
-  sx: [number, number, number];
-  /** Screen-space y coordinates for the 3 vertices. */
-  sy: [number, number, number];
+/** Shared depth-sorting fields for all render primitives. */
+interface RenderItemBase {
+  /** Discriminator for the primitive type. */
+  kind: 'tri' | 'edge' | 'label';
   /** Render order from SceneObject (lower = draw first). */
   renderOrder: number;
   /** Object center depth in view space (for coarse sorting). */
   objectDepth: number;
   /** Average Z in clip space (for fine sorting within an object). */
   avgZ: number;
-  /** Shaded fill color. */
+  /** Fill/stroke color. */
   color: Color;
 }
+
+/** Triangle ready for rasterization after projection. */
+interface TriangleItem extends RenderItemBase {
+  kind: 'tri';
+  /** Screen-space x coordinates for the 3 vertices. */
+  sx: [number, number, number];
+  /** Screen-space y coordinates for the 3 vertices. */
+  sy: [number, number, number];
+}
+
+/** Line segment for wireframe edges. */
+interface EdgeItem extends RenderItemBase {
+  kind: 'edge';
+  sx0: number; sy0: number;
+  sx1: number; sy1: number;
+}
+
+/** Billboard text label projected from 3D world position. */
+interface LabelItem extends RenderItemBase {
+  kind: 'label';
+  text: string;
+  screenX: number;
+  screenY: number;
+}
+
+type RenderPrimitive = TriangleItem | EdgeItem | LabelItem;
 
 /**
  * CPU-based software render pipeline.
@@ -65,22 +89,49 @@ export class CpuPipeline implements RenderPipeline {
     ctx.fillStyle = `rgba(${(cc.r * 255) | 0},${(cc.g * 255) | 0},${(cc.b * 255) | 0},${cc.a})`;
     ctx.fillRect(viewport.x, viewport.y, viewport.width, viewport.height);
 
-    // Collect all projected triangles for depth sorting
-    const triangles: ProjectedTriangle[] = [];
+    // Unified render queue: triangles, edges, and labels all sorted together
+    const items: RenderPrimitive[] = [];
 
     const visibleObjects = scene.getVisibleObjects();
 
-    // Collect line-mode edges separately
-    interface ProjectedEdge {
-      sx0: number; sy0: number;
-      sx1: number; sy1: number;
-      renderOrder: number;
-      objectDepth: number;
-      color: Color;
-    }
-    const edges: ProjectedEdge[] = [];
+    const halfWv = viewport.width / 2;
+    const halfHv = viewport.height / 2;
 
     for (const obj of visibleObjects) {
+      // Handle label objects (no mesh, have label text)
+      if (obj.label && !obj.mesh && obj.material) {
+        const modelMat = obj.getWorldMatrix();
+        const viewModel = mat4Multiply(viewMat, modelMat);
+        const objCenterZ = viewModel[14]!;
+
+        // Project world position to screen
+        const wx = modelMat[12]!;
+        const wy = modelMat[13]!;
+        const wz = modelMat[14]!;
+        const clipX = viewProj[0]! * wx + viewProj[4]! * wy + viewProj[8]! * wz + viewProj[12]!;
+        const clipY = viewProj[1]! * wx + viewProj[5]! * wy + viewProj[9]! * wz + viewProj[13]!;
+        const clipW = viewProj[3]! * wx + viewProj[7]! * wy + viewProj[11]! * wz + viewProj[15]!;
+        if (clipW <= 0) continue; // behind camera
+
+        const ndcX = clipX / clipW;
+        const ndcY = clipY / clipW;
+        const screenX = viewport.x + (ndcX + 1) * halfWv;
+        const screenY = viewport.y + (1 - ndcY) * halfHv;
+
+        items.push({
+          kind: 'label',
+          text: obj.label,
+          screenX,
+          screenY,
+          renderOrder: obj.renderOrder,
+          objectDepth: objCenterZ,
+          // Sort after all parent triangles within the same object depth
+          avgZ: 999,
+          color: obj.material.color,
+        });
+        continue;
+      }
+
       const mesh = obj.mesh;
       const material = obj.material;
       if (!mesh || !material) continue;
@@ -151,11 +202,15 @@ export class CpuPipeline implements RenderPipeline {
             const pa = toScreen(a);
             const pb = toScreen(b);
             if (pa && pb) {
-              edges.push({
+              // Compute average NDC Z for edge depth sorting
+              const edgeAvgZ = (clipZ[a]! / clipW[a]! + clipZ[b]! / clipW[b]!) / 2;
+              items.push({
+                kind: 'edge',
                 sx0: pa[0], sy0: pa[1],
                 sx1: pb[0], sy1: pb[1],
                 renderOrder: obj.renderOrder,
                 objectDepth: objCenterZ,
+                avgZ: edgeAvgZ,
                 color: material.color,
               });
             }
@@ -310,7 +365,8 @@ export class CpuPipeline implements RenderPipeline {
         // Average Z for painter's algorithm (more negative = farther)
         const avgZ = (ndcZ0 + ndcZ1 + ndcZ2) / 3;
 
-        triangles.push({
+        items.push({
+          kind: 'tri',
           sx: [sx0, sx1, sx2],
           sy: [sy0, sy1, sy2],
           renderOrder: obj.renderOrder,
@@ -321,50 +377,46 @@ export class CpuPipeline implements RenderPipeline {
       }
     }
 
-    // Painter's algorithm: sort back-to-front
+    // Painter's algorithm: sort all primitives back-to-front
     // 1st key: renderOrder (lower draws first — background objects like terrain)
     // 2nd key: object center depth (more negative = farther in view space)
-    // 3rd key: triangle average NDC Z (within same object)
-    triangles.sort((a, b) => {
+    // 3rd key: avgZ (within same object; labels use 999 to draw on top of parent)
+    items.sort((a, b) => {
       if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
       const depthDiff = a.objectDepth - b.objectDepth;
       if (Math.abs(depthDiff) > 0.01) return depthDiff;
       return a.avgZ - b.avgZ;
     });
 
-    // Render sorted triangles
-    for (const tri of triangles) {
-      const r = (tri.color.r * 255) | 0;
-      const g = (tri.color.g * 255) | 0;
-      const b = (tri.color.b * 255) | 0;
-      const a = tri.color.a;
+    // Render all primitives in sorted order
+    for (const item of items) {
+      const r = (item.color.r * 255) | 0;
+      const g = (item.color.g * 255) | 0;
+      const b = (item.color.b * 255) | 0;
+      const a = item.color.a;
 
-      ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
-      ctx.beginPath();
-      ctx.moveTo(tri.sx[0]!, tri.sy[0]!);
-      ctx.lineTo(tri.sx[1]!, tri.sy[1]!);
-      ctx.lineTo(tri.sx[2]!, tri.sy[2]!);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Render line-mode edges (wireframe objects)
-    // Sort by renderOrder then depth, same as triangles
-    edges.sort((a, b) => {
-      if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
-      return a.objectDepth - b.objectDepth;
-    });
-    for (const edge of edges) {
-      const r = (edge.color.r * 255) | 0;
-      const g = (edge.color.g * 255) | 0;
-      const b = (edge.color.b * 255) | 0;
-      const a = edge.color.a;
-      ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(edge.sx0, edge.sy0);
-      ctx.lineTo(edge.sx1, edge.sy1);
-      ctx.stroke();
+      if (item.kind === 'tri') {
+        ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+        ctx.beginPath();
+        ctx.moveTo(item.sx[0]!, item.sy[0]!);
+        ctx.lineTo(item.sx[1]!, item.sy[1]!);
+        ctx.lineTo(item.sx[2]!, item.sy[2]!);
+        ctx.closePath();
+        ctx.fill();
+      } else if (item.kind === 'edge') {
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(item.sx0, item.sy0);
+        ctx.lineTo(item.sx1, item.sy1);
+        ctx.stroke();
+      } else if (item.kind === 'label') {
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+        ctx.fillText(item.text, item.screenX, item.screenY);
+      }
     }
 
     ctx.restore();

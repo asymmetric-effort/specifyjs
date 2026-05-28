@@ -21,6 +21,7 @@ function createMockCtx() {
     rect: vi.fn(),
     clip: vi.fn(),
     fillRect: vi.fn(),
+    fillText: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     closePath: vi.fn(),
@@ -28,6 +29,9 @@ function createMockCtx() {
     stroke: vi.fn(),
     fillStyle: '',
     strokeStyle: '',
+    font: '',
+    textAlign: '',
+    textBaseline: '',
     lineWidth: 1,
     globalAlpha: 1,
   };
@@ -488,6 +492,177 @@ describe('CpuPipeline', () => {
       const camera = new Camera({ position: { x: 0, y: 5, z: 5 }, near: 0.1, far: 100 });
       const viewport = new Viewport({ x: 0, y: 0, width: 100, height: 100, camera });
       expect(() => pipeline.renderEdges(scene, camera, viewport)).not.toThrow();
+    });
+  });
+
+  describe('label rendering', () => {
+    it('renders a label object (no mesh, has label + material)', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const labelObj = new SceneObject('my-label');
+      labelObj.label = 'AS3356';
+      labelObj.material = createMaterial({ r: 1, g: 1, b: 1, a: 1 });
+      labelObj.position = { x: 0, y: 0, z: 0 };
+      scene.register(labelObj);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 10 } });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      expect(ctx.fillText).toHaveBeenCalledWith('AS3356', expect.any(Number), expect.any(Number));
+      expect(ctx.font).toBe('10px sans-serif');
+      expect(ctx.textAlign).toBe('center');
+      expect(ctx.textBaseline).toBe('middle');
+    });
+
+    it('skips label behind camera', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const labelObj = new SceneObject('behind-label');
+      labelObj.label = 'Hidden';
+      labelObj.material = createMaterial({ r: 1, g: 1, b: 1, a: 1 });
+      labelObj.position = { x: 0, y: 0, z: 100 }; // behind camera looking at -Z
+      scene.register(labelObj);
+
+      const camera = new Camera({ position: { x: 0, y: 0, z: 0 } });
+      camera.lookAt({ x: 0, y: 0, z: -10 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      expect(ctx.fillText).not.toHaveBeenCalled();
+    });
+
+    it('label without material is skipped', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+      const labelObj = new SceneObject('no-mat-label');
+      labelObj.label = 'NoMat';
+      // No material set
+      scene.register(labelObj);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 10 } });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      expect(ctx.fillText).not.toHaveBeenCalled();
+    });
+
+    it('label as child of sphere participates in depth sorting', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const scene = new SceneGraph();
+
+      // Far sphere with label
+      const farSphere = new SceneObject('far-sphere');
+      farSphere.mesh = Mesh.createSphere(1, 8, 8);
+      farSphere.material = createMaterial({ r: 1, g: 0, b: 0, a: 1 });
+      farSphere.position = { x: 0, y: 0, z: -5 };
+      scene.register(farSphere);
+
+      const farLabel = new SceneObject('far-label');
+      farLabel.label = 'FarNode';
+      farLabel.material = createMaterial({ r: 1, g: 1, b: 1, a: 1 });
+      farSphere.addChild(farLabel);
+
+      // Near sphere (closer to camera, should occlude far label)
+      const nearSphere = new SceneObject('near-sphere');
+      nearSphere.mesh = Mesh.createSphere(1, 8, 8);
+      nearSphere.material = createMaterial({ r: 0, g: 0, b: 1, a: 1 });
+      nearSphere.position = { x: 0, y: 0, z: 2 };
+      scene.register(nearSphere);
+
+      const camera = new Camera({ position: { x: 0, y: 0, z: 10 } });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      // Label should be rendered (fillText called)
+      expect(ctx.fillText).toHaveBeenCalledWith('FarNode', expect.any(Number), expect.any(Number));
+      // Both sphere triangles and the label were rendered
+      expect(ctx.fill).toHaveBeenCalled();
+    });
+
+    it('label created by createGeomSphere is rendered', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const { createGeomSphere } = require('../src/geom-sphere');
+      const sphere = createGeomSphere('test-sphere', { x: 0, y: 0, z: 0 }, {
+        radius: 1,
+        surfaceColor: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+        label: 'AS7018',
+        textColor: { r: 1, g: 1, b: 0, a: 1 },
+      });
+
+      const scene = new SceneGraph();
+      scene.register(sphere);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 10 } });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      // Both sphere triangles and label should be rendered
+      expect(ctx.fill).toHaveBeenCalled();
+      expect(ctx.fillText).toHaveBeenCalledWith('AS7018', expect.any(Number), expect.any(Number));
+    });
+
+    it('label created by createGeomPolyhedron is rendered', () => {
+      const ctx = createMockCtx();
+      const canvas = createMockCanvas(ctx);
+      const pipeline = new CpuPipeline();
+      pipeline.initialize(canvas);
+
+      const { createGeomPolyhedron, cubeGeometry } = require('../src/geom-polyhedron');
+      const poly = createGeomPolyhedron('test-poly', { x: 0, y: 0, z: 0 }, {
+        geometry: cubeGeometry(),
+        scale: 1,
+        surfaceColor: { r: 0.5, g: 0.5, b: 0.5, a: 1 },
+        label: 'IX-1',
+        textColor: { r: 0, g: 1, b: 0, a: 1 },
+      });
+
+      const scene = new SceneGraph();
+      scene.register(poly);
+
+      const camera = new Camera({ position: { x: 0, y: 5, z: 10 } });
+      camera.lookAt({ x: 0, y: 0, z: 0 });
+      const viewport = new Viewport({ x: 0, y: 0, width: 800, height: 600, camera });
+      const lighting = new FlatShading();
+
+      pipeline.render(scene, camera, viewport, lighting);
+
+      expect(ctx.fill).toHaveBeenCalled();
+      expect(ctx.fillText).toHaveBeenCalledWith('IX-1', expect.any(Number), expect.any(Number));
     });
   });
 });

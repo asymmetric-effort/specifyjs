@@ -51,10 +51,9 @@ export function createGeomSphere(
   if (config.label && config.label.length > 0) {
     const labelObj = new SceneObject(`${id}-label`);
     labelObj.position = { x: 0, y: 0, z: 0 };
-    // Store label info on a lightweight marker material
+    labelObj.label = config.label;
     const textColor = config.textColor ?? { r: 1, g: 1, b: 1, a: 1 };
     labelObj.material = createMaterial(textColor);
-    const _labelScale = config.labelScale ?? 0.3;
     obj.addChild(labelObj);
   }
 

@@ -59,6 +59,7 @@ describe('createGeomSphere', () => {
       });
       expect(obj.children.length).toBe(1);
       expect(obj.children[0]!.id).toBe('s-label');
+      expect(obj.children[0]!.label).toBe('Hello');
     });
 
     it('does not create label child when label is omitted', () => {

@@ -20,8 +20,14 @@ export function ForceGraph3DDebug() {
   const cleanupRef = useRef<(() => void) | null>(null);
 
   const containerCallback = (node: HTMLDivElement | null) => {
+    if (typeof console !== 'undefined') {
+      console.log('[3dFGDebug] containerCallback called, node:', node ? 'present' : 'null', 'initialized:', initializedRef.current);
+    }
     if (!node || initializedRef.current) return;
     initializedRef.current = true;
+    if (typeof console !== 'undefined') {
+      console.log('[3dFGDebug] initializing canvas + pipeline');
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = W;
@@ -57,11 +63,16 @@ export function ForceGraph3DDebug() {
 
     let lastTime = performance.now();
     let raf = 0;
+    let _frameCount = 0;
 
     const frame = (timestamp: number) => {
       const _dt = (timestamp - lastTime) / 1000;
       lastTime = timestamp;
       pipeline.render(scene, cam, vp, lighting);
+      if (typeof console !== 'undefined' && _frameCount < 3) {
+        console.log('[3dFGDebug] frame rendered, objects:', scene.getVisibleObjects().length);
+      }
+      _frameCount++;
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);

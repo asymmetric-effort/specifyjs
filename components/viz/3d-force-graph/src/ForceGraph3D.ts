@@ -253,7 +253,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
   const edgeStatesRef = useRef<Map<string, EdgeState>>(new Map());
   const simNodesRef = useRef<Map<string, SimNode>>(new Map());
   const simEdgesRef = useRef<SimEdge[]>([]);
-  const sceneGraphRef = useRef<SceneGraph | null>(null);
+  const sceneGraphRef = useRef<SceneGraph>(new SceneGraph());
   const initializedRef = useRef<boolean>(false);
   const runningRef = useRef<boolean>(running);
   const simConfigRef = useRef<SimConfig>({
@@ -640,7 +640,7 @@ export function ForceGraph3D(props: ForceGraph3DProps) {
 
   // ---- Render ---------------------------------------------------------------
 
-  return Space3D({
+  return createElement(Space3D, {
     width,
     height,
     onFrame,

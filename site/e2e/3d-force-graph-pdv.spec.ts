@@ -8,9 +8,7 @@ import { test, expect } from '@playwright/test';
  * dataset presence, and absence of JS errors.
  */
 
-// Skip entire suite until #80 (ForceGraph3D runtime crash) is resolved.
-// The component crashes during render, preventing the dialog from mounting.
-test.describe.skip('3D Force Graph AS Topology PDV', () => {
+test.describe('3D Force Graph AS Topology PDV', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('./#/3dForcedGraph');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });

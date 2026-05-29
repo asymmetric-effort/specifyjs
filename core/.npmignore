@@ -1,0 +1,24 @@
+# Source maps — reduces package size, source is public on GitHub
+**/*.map
+
+# Source code — consumers use the built bundles
+src/
+tests/
+examples/
+
+# Build tooling
+build.mjs
+tsconfig.json
+tsconfig.*.json
+vitest.config.ts
+playwright.config.ts
+bun.lock
+.eslintrc*
+.prettierrc*
+
+# Development files
+.vite/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo

@@ -34,7 +34,7 @@ const specifyAlias = {
 const sharedOptions = {
   bundle: true,
   minify: true,
-  sourcemap: true,
+  sourcemap: false,
   target: 'es2020',
   banner: { js: banner },
   alias: specifyAlias,

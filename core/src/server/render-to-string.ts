@@ -305,10 +305,11 @@ function renderStyle(style: Record<string, string | number>): string {
         : String(value);
 
     // L-6: Reject CSS values containing dangerous patterns.
-    // Normalize unicode escapes and strip CSS comments before checking
-    // to prevent bypass via \65xpression( or exp/**/ression( patterns.
+    // Decode CSS unicode escapes and strip comments before checking,
+    // to prevent bypass via \65xpression(, exp/**/ression(, etc.
     const normalizedCss = cssValue
-      .replace(/\\[0-9a-fA-F]{1,6}\s?/g, '_')
+      .replace(/\\([0-9a-fA-F]{1,6})\s?/g, (_m, hex) => String.fromCodePoint(parseInt(hex, 16)))
+      .replace(/\\/g, '')
       .replace(/\/\*[\s\S]*?\*\//g, '');
     if (/expression\s*\(|javascript\s*:|behavior\s*:|moz-binding|-o-link/i.test(normalizedCss)) {
       cssValue = '';

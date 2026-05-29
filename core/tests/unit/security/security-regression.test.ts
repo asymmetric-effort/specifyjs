@@ -39,17 +39,42 @@ describe('C-1: SSR attribute name validation', () => {
 
 // ── C-2/L-6: CSS injection in SSR ────────────────────────────────────
 
-describe('C-2/L-6: CSS value sanitization in SSR', () => {
-  it('strips expression() from style values', () => {
+describe('C-2/L-6/PT-003: CSS value sanitization in SSR', () => {
+  it('rejects expression() in style values', () => {
     const el = createElement('div', { style: { color: 'expression(alert(1))' } });
     const html = renderToString(el);
-    expect(html).not.toContain('expression(');
+    expect(html).not.toContain('expression');
+    expect(html).not.toContain('alert');
   });
 
-  it('strips url(javascript:) from style values', () => {
+  it('rejects url(javascript:) in style values', () => {
     const el = createElement('div', { style: { background: 'url(javascript:alert(1))' } });
     const html = renderToString(el);
     expect(html).not.toContain('javascript:');
+  });
+
+  it('rejects CSS unicode escape bypass (\\65xpression)', () => {
+    const el = createElement('div', { style: { color: '\\65xpression(alert(1))' } });
+    const html = renderToString(el);
+    expect(html).not.toContain('alert');
+  });
+
+  it('rejects CSS comment bypass (exp/**/ression)', () => {
+    const el = createElement('div', { style: { color: 'exp/**/ression(alert(1))' } });
+    const html = renderToString(el);
+    expect(html).not.toContain('alert');
+  });
+
+  it('rejects behavior: pattern', () => {
+    const el = createElement('div', { style: { color: 'behavior:url(xss.htc)' } });
+    const html = renderToString(el);
+    expect(html).not.toContain('behavior');
+  });
+
+  it('rejects -moz-binding pattern', () => {
+    const el = createElement('div', { style: { color: '-moz-binding:url(xss.xml)' } });
+    const html = renderToString(el);
+    expect(html).not.toContain('moz-binding');
   });
 
   it('allows normal CSS values', () => {
@@ -66,27 +91,29 @@ describe('H-1/H-2/H-3: Prototype pollution prevention', () => {
   it('createElement filters __proto__ from config', () => {
     const config = JSON.parse('{"__proto__":{"polluted":true},"title":"safe"}');
     const el = createElement('div', config);
-    expect(el.props).not.toHaveProperty('__proto__');
+    // Check own property — __proto__ should not be copied as an own prop
+    expect(Object.prototype.hasOwnProperty.call(el.props, '__proto__')).toBe(false);
     expect(el.props).toHaveProperty('title', 'safe');
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
   it('createElement filters constructor from config', () => {
     const el = createElement('div', { constructor: 'bad', title: 'ok' });
-    expect(el.props).not.toHaveProperty('constructor');
+    // constructor exists on prototype of all objects, so check own property
+    expect(Object.prototype.hasOwnProperty.call(el.props, 'constructor')).toBe(false);
     expect(el.props).toHaveProperty('title', 'ok');
   });
 
   it('createElement filters prototype from config', () => {
     const el = createElement('div', { prototype: 'bad', title: 'ok' });
-    expect(el.props).not.toHaveProperty('prototype');
+    expect(Object.prototype.hasOwnProperty.call(el.props, 'prototype')).toBe(false);
   });
 
   it('cloneElement filters __proto__ from config', () => {
     const original = createElement('div', { title: 'orig' });
     const config = JSON.parse('{"__proto__":{"polluted":true},"title":"cloned"}');
     const cloned = cloneElement(original, config);
-    expect(cloned.props).not.toHaveProperty('__proto__');
+    expect(Object.prototype.hasOwnProperty.call(cloned.props, '__proto__')).toBe(false);
     expect(cloned.props).toHaveProperty('title', 'cloned');
   });
 });
@@ -206,33 +233,39 @@ describe('M-7 additional: secure-fetch edge cases', () => {
     expect(() => assertSecureUrl('http://127.0.0.1:8080')).not.toThrow();
   });
 
-  it('allows unparseable URLs (treated as relative paths)', () => {
-    // URL constructor throws on malformed URLs without a base — these are treated as relative
-    expect(() => assertSecureUrl('://')).not.toThrow();
+  it('PT-001: rejects unparseable URLs instead of silently allowing', () => {
+    expect(() => assertSecureUrl('://')).toThrow('unable to validate URL');
   });
 });
 
 // ── M-8: gql template tag metacharacter warning ───────────────────────
 
-describe('M-8: gql metacharacter warning', () => {
-  it('warns when interpolated value contains GraphQL metacharacters', async () => {
+describe('M-8/PT-002: gql metacharacter injection prevention', () => {
+  it('throws when interpolated value contains GraphQL metacharacters', async () => {
     const { gql } = await import('../../../src/client/graphql');
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    const query = gql`query { user(id: ${'{injected}'}) { name } }`;
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('GraphQL metacharacters'));
-    expect(query).toContain('{injected}');
-    consoleSpy.mockRestore();
+    expect(() => gql`query { user(id: ${'{injected}'}) { name } }`).toThrow(
+      'GraphQL metacharacters',
+    );
   });
 
-  it('does not warn for safe interpolated values', async () => {
+  it('throws for colon metacharacter', async () => {
     const { gql } = await import('../../../src/client/graphql');
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => gql`query { user(id: ${'key:value'}) { name } }`).toThrow(
+      'GraphQL metacharacters',
+    );
+  });
+
+  it('throws for parenthesis metacharacter', async () => {
+    const { gql } = await import('../../../src/client/graphql');
+    expect(() => gql`query { user(id: ${'fn()'}) { name } }`).toThrow('GraphQL metacharacters');
+  });
+
+  it('allows safe interpolated values without metacharacters', async () => {
+    const { gql } = await import('../../../src/client/graphql');
 
     const frag = 'UserFields';
-    gql`query { user { ...${frag} } }`;
-    // The fragment name "UserFields" has no metacharacters
-    expect(consoleSpy).not.toHaveBeenCalled();
-    consoleSpy.mockRestore();
+    const query = gql`query { user { ...${frag} } }`;
+    expect(query).toContain('UserFields');
   });
 });

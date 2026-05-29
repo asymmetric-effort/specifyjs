@@ -30,18 +30,23 @@ export function assertSecureUrl(url: string): void {
     return;
   }
 
-  // Data URLs are allowed
+  // Data URIs: allow but limit size to prevent memory exhaustion
   if (url.startsWith('data:')) {
+    if (url.length > 1024 * 1024) {
+      throw new Error('[SpecifyJS] secureFetch: data: URI exceeds 1MB limit');
+    }
     return;
   }
 
-  // Parse absolute URLs
+  // Parse absolute URLs — reject if unparseable
   let parsed: URL;
   try {
     parsed = new URL(url, typeof window !== 'undefined' ? window.location.href : undefined);
   } catch {
-    /* v8 ignore next 2 -- URL parse failure is environment-specific; jsdom always provides a base */
-    return;
+    throw new Error(
+      `[SpecifyJS] secureFetch: unable to validate URL "${url}". ` +
+        `Provide a valid absolute HTTPS URL or a relative path.`,
+    );
   }
 
   // Allow HTTPS
@@ -49,8 +54,14 @@ export function assertSecureUrl(url: string): void {
     return;
   }
 
-  // Allow localhost/127.0.0.1 for development (any protocol)
-  if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+  // Allow localhost for development (any protocol) — covers IPv4/IPv6 loopback
+  if (
+    parsed.hostname === 'localhost' ||
+    parsed.hostname === '127.0.0.1' ||
+    parsed.hostname === '[::1]' ||
+    parsed.hostname === '0.0.0.0' ||
+    parsed.hostname.startsWith('127.')
+  ) {
     return;
   }
 
@@ -70,5 +81,7 @@ export function assertSecureUrl(url: string): void {
 export function secureFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
   assertSecureUrl(url);
-  return fetch(input, init);
+  // Default to rejecting redirects to prevent redirect-based SSRF.
+  // Callers can override with { redirect: 'follow' } if they trust the target.
+  return fetch(input, { redirect: 'error', ...init });
 }

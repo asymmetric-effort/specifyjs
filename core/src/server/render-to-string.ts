@@ -304,10 +304,15 @@ function renderStyle(style: Record<string, string | number>): string {
         ? `${value}px`
         : String(value);
 
-    // L-6: Sanitize CSS values — strip dangerous patterns
-    cssValue = cssValue
-      .replace(/expression\s*\(/gi, '')
-      .replace(/url\s*\(\s*javascript:/gi, 'url(');
+    // L-6: Reject CSS values containing dangerous patterns.
+    // Normalize unicode escapes and strip CSS comments before checking
+    // to prevent bypass via \65xpression( or exp/**/ression( patterns.
+    const normalizedCss = cssValue
+      .replace(/\\[0-9a-fA-F]{1,6}\s?/g, '_')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    if (/expression\s*\(|javascript\s*:|behavior\s*:|moz-binding|-o-link/i.test(normalizedCss)) {
+      cssValue = '';
+    }
 
     parts.push(`${cssProp}:${cssValue}`);
   }

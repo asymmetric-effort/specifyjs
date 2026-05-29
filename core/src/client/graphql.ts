@@ -65,13 +65,12 @@ export function gql(strings: TemplateStringsArray, ...values: unknown[]): string
     result += strings[i];
     if (i < values.length) {
       const val = String(values[i]);
-      // M-8: Warn if interpolated values contain GraphQL metacharacters
+      // Reject interpolated values with GraphQL metacharacters to prevent injection
       if (/[{}():]/.test(val)) {
-        if (typeof console !== 'undefined') {
-          console.warn(
-            '[SpecifyJS] gql: Interpolated value contains GraphQL metacharacters. Use variables parameter instead of string interpolation to prevent injection.',
-          );
-        }
+        throw new Error(
+          `[SpecifyJS] gql: Interpolated value "${val}" contains GraphQL metacharacters ({, }, (, ), :). ` +
+            'Use the variables parameter instead of string interpolation to prevent injection.',
+        );
       }
       result += val;
     }

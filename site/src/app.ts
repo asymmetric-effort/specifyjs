@@ -203,8 +203,8 @@ export function App() {
   const dismissBanner = useCallback(() => setBannerDismissed(true), []);
 
   return createElement(
-    FeatureFlagProvider,
-    { url: "./features.json" },
+    "div",
+    null,
     showBannerParam && !bannerDismissed
       ? createElement(Banner, {
           severity: "info" as const,
@@ -214,10 +214,14 @@ export function App() {
         })
       : null,
     createElement(
-      Router,
-      null,
-      createElement(NavBar, null),
-      createElement(AppContent, null),
+      FeatureFlagProvider,
+      { url: "./features.json" },
+      createElement(
+        Router,
+        null,
+        createElement(NavBar, null),
+        createElement(AppContent, null),
+      ),
     ),
   );
 }

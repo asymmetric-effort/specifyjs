@@ -1,0 +1,9 @@
+{
+  "name": "@specifyjs/feedback-banner",
+  "version": "0.0.1",
+  "description": "Dismissible banner component for SpecifyJS — info, warning, and alert severity levels",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" },
+  "keywords": ["specifyjs", "component", "banner", "feedback", "ui"]
+}

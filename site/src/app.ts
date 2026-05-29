@@ -27,6 +27,8 @@ import { WumpusWorld } from "./screens/wumpus-world";
 import { Space3DDemo } from "./screens/3d-space";
 import { Space3DWebGLDemo } from "./screens/3d-space-webgl";
 import { ForceGraph3DDemo } from "./screens/3d-force-graph";
+import { Banner } from "../../components/feedback/banner/src/index";
+import { useState, useCallback } from "specifyjs/hooks";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -194,9 +196,23 @@ function AppContent() {
 }
 
 export function App() {
+  const showBannerParam =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("banner") === "true";
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const dismissBanner = useCallback(() => setBannerDismissed(true), []);
+
   return createElement(
     FeatureFlagProvider,
     { url: "./features.json" },
+    showBannerParam && !bannerDismissed
+      ? createElement(Banner, {
+          severity: "info" as const,
+          message:
+            "Welcome to the SpecifyJS showcase. This banner demonstrates the Banner component.",
+          onDismiss: dismissBanner,
+        })
+      : null,
     createElement(
       Router,
       null,

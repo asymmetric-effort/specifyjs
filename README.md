@@ -1,7 +1,11 @@
+<img src="docs/img/logo.png" alt="SpecifyJS" width="128" align="left" style="margin-right: 16px;" />
+
 # SpecifyJS
 
 [![npm version](https://img.shields.io/npm/v/@asymmetric-effort/specifyjs.svg)](https://www.npmjs.com/package/@asymmetric-effort/specifyjs)
 [![license](https://img.shields.io/npm/l/@asymmetric-effort/specifyjs.svg)](https://github.com/asymmetric-effort/specifyjs/blob/main/LICENSE)
+
+<br clear="both" />
 
 A declarative TypeScript UI framework built for performance, browser compatibility, and developer simplicity.
 

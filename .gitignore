@@ -15,3 +15,4 @@ tools/*/__debug_bin*
 bin/
 .certs/
 site/public/version.txt
+PentestReport.md

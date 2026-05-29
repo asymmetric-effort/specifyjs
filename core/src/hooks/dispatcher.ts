@@ -96,7 +96,10 @@ export function useStateImpl<T>(
     const lane = requestUpdateLane();
     /* v8 ignore start -- overflow guard tested in security regression tests */
     if (queue.length >= 10000) {
-      if (typeof console !== 'undefined')
+      if (
+        typeof console !== 'undefined' &&
+        !(typeof process !== 'undefined' && process.env?.NODE_ENV === 'production')
+      )
         console.warn('[SpecifyJS] Hook update queue exceeded 10000 — dropping oldest updates');
       queue.splice(0, queue.length - 5000);
     }

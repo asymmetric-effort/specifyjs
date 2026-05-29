@@ -19,7 +19,10 @@ let pendingTasks: Task[] = [];
 export function scheduleUpdate(task: Task): void {
   if (isBatchingUpdates) {
     if (pendingTasks.length >= MAX_PENDING_TASKS) {
-      if (typeof console !== 'undefined')
+      if (
+        typeof console !== 'undefined' &&
+        !(typeof process !== 'undefined' && process.env?.NODE_ENV === 'production')
+      )
         console.warn(
           '[SpecifyJS] Scheduler: pending task queue exceeded 10000 — dropping oldest tasks',
         );

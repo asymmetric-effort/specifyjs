@@ -28,7 +28,7 @@ import { Space3DDemo } from "./screens/3d-space";
 import { Space3DWebGLDemo } from "./screens/3d-space-webgl";
 import { ForceGraph3DDemo } from "./screens/3d-force-graph";
 import { Banner } from "../../components/feedback/banner/src/index";
-import { useState, useCallback } from "specifyjs/hooks";
+import { useState } from "specifyjs/hooks";
 
 function AppContent() {
   const { pathname, navigate } = useRouter();
@@ -195,22 +195,22 @@ function AppContent() {
   );
 }
 
+/** Check once at module load — query params don't change during SPA lifecycle */
+const SHOW_BANNER =
+  typeof window !== "undefined" && window.location.href.includes("banner=true");
+
 export function App() {
-  const showBannerParam =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("banner") === "true";
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  const dismissBanner = useCallback(() => setBannerDismissed(true), []);
+  const [bannerVisible, setBannerVisible] = useState(SHOW_BANNER);
 
   return createElement(
     "div",
     null,
-    showBannerParam && !bannerDismissed
+    bannerVisible
       ? createElement(Banner, {
           severity: "info" as const,
           message:
             "Welcome to the SpecifyJS showcase. This banner demonstrates the Banner component.",
-          onDismiss: dismissBanner,
+          onDismiss: () => setBannerVisible(false),
         })
       : null,
     createElement(

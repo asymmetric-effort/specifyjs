@@ -5,7 +5,7 @@
     "": {
       "name": "@asymmetric-effort/specifyjs",
       "devDependencies": {
-        "@asymmetric-effort/nogginlessdom": "^0.0.16",
+        "@asymmetric-effort/nogginlessdom": "^0.0.22",
         "@playwright/test": "^1.59.0",
         "@types/node": "^25.6.2",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
@@ -19,7 +19,7 @@
     },
   },
   "packages": {
-    "@asymmetric-effort/nogginlessdom": ["@asymmetric-effort/nogginlessdom@0.0.16", "", {}, "sha512-4/j35+QoE+rNWDTQYwA1W3rxKNvqYLt+uDNXKS9bZ3Ywf8sE6tOeFB0AXMrE3vwjgb8uxZTYKMe/WTGL02agQg=="],
+    "@asymmetric-effort/nogginlessdom": ["@asymmetric-effort/nogginlessdom@0.0.22", "", {}, "sha512-jU2l2B6wTAq9HUbDPJH3EVzlxXfhp7uHxQK71jJcPlJNM2TaKL2TIFZMkg6rL+tH2yEf7t+ZTeQp2HlmxsWDZw=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 

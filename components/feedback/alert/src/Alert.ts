@@ -56,7 +56,7 @@ interface TypeTheme {
 }
 
 const TYPE_THEMES: Record<string, TypeTheme> = {
-  info: { icon: '\u2139\uFE0F', bg: '#eff6ff', border: '#3b82f6', text: '#2563eb', filledBg: '#3b82f6', filledText: '#ffffff' },
+  info: { icon: '\u2139\uFE0F', bg: '#eff6ff', border: '#3b82f6', text: '#1e40af', filledBg: '#3b82f6', filledText: '#ffffff' },
   success: { icon: '\u2705', bg: '#f0fdf4', border: '#22c55e', text: '#166534', filledBg: '#22c55e', filledText: '#ffffff' },
   warning: { icon: '\u26A0\uFE0F', bg: '#fffbeb', border: '#f59e0b', text: '#92400e', filledBg: '#f59e0b', filledText: '#ffffff' },
   error: { icon: '\u274C', bg: '#fef2f2', border: '#ef4444', text: '#991b1b', filledBg: '#ef4444', filledText: '#ffffff' },

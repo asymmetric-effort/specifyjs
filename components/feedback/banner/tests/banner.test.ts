@@ -375,7 +375,7 @@ describe('Banner -- message pane', () => {
     const el = Banner({ severity: 'info', message: 'Test' });
     const children = getChildren(el);
     const messagePane = children[1];
-    expect(messagePane.props.style.color).toBe('#1e40af');
+    expect(messagePane.props.style.color).toBe('#2563eb');
   });
 
   it('warning message has dark amber text color', () => {

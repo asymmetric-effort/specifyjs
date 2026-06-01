@@ -41,7 +41,7 @@ interface SeverityTheme {
 }
 
 const SEVERITY_THEMES: Record<BannerSeverity, SeverityTheme> = {
-  info: { background: '#eff6ff', borderColor: '#3b82f6', iconColor: '#3b82f6', textColor: '#1e40af' },
+  info: { background: '#eff6ff', borderColor: '#3b82f6', iconColor: '#3b82f6', textColor: '#2563eb' },
   warning: { background: '#fffbeb', borderColor: '#f59e0b', iconColor: '#f59e0b', textColor: '#92400e' },
   alert: { background: '#fef2f2', borderColor: '#ef4444', iconColor: '#ef4444', textColor: '#991b1b' },
 };

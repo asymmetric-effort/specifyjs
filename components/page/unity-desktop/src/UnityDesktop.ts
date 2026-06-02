@@ -10,7 +10,7 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'specifyjs/hooks';
-import { WindowManagerProvider } from '../../../layout/window-manager/src/index';
+import { WindowManagerProvider, useWindowManager } from '../../../layout/window-manager/src/index';
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
@@ -19,6 +19,7 @@ import { WordProcessor } from '../../../page/word-processor/src/index';
 import { IDE } from '../../../page/ide/src/index';
 import { TradingDashboard } from '../../../page/trading-dashboard/src/index';
 import type { DockItem } from '../../../nav/dock/src/index';
+import type { DockSignal } from '../../../layout/window-manager/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -222,6 +223,14 @@ function UnityDesktopInner(props: {
   const { apps, user, onAppOpen, onLogout, theme = 'dark', children } = props;
 
   // -----------------------------------------------------------------------
+  // Read signals from WindowManager context
+  // -----------------------------------------------------------------------
+
+  const wm = useWindowManager();
+  const wmActiveMenuBar = wm.activeMenuBar;
+  const wmDockSignals = wm.dockSignals;
+
+  // -----------------------------------------------------------------------
   // Local window state (direct state, not context-dependent)
   // -----------------------------------------------------------------------
 
@@ -295,22 +304,58 @@ function UnityDesktopInner(props: {
       };
       return [...prev.map((w: InternalOpenWindow) => ({ ...w, focused: false })), newWin];
     });
+
+    // Register demo menu bars and dock signals for specific apps
+    if (id === 'files') {
+      wm.setMenuBar('files', {
+        menus: [
+          {
+            label: 'File',
+            items: [
+              { label: 'New', shortcut: 'Ctrl+N', onClick: () => {} },
+              { label: 'Open', shortcut: 'Ctrl+O', onClick: () => {} },
+              { label: 'Save', shortcut: 'Ctrl+S', onClick: () => {} },
+            ],
+          },
+          {
+            label: 'Edit',
+            items: [
+              { label: 'Cut', shortcut: 'Ctrl+X', onClick: () => {} },
+              { label: 'Copy', shortcut: 'Ctrl+C', onClick: () => {} },
+              { label: 'Paste', shortcut: 'Ctrl+V', onClick: () => {} },
+            ],
+          },
+        ],
+      });
+    }
+    if (id === 'terminal') {
+      wm.signalDock('terminal', { badge: 3 });
+    }
+
     if (onAppOpenRef.current) onAppOpenRef.current(id);
-  }, []);
+  }, [wm]);
 
   // -----------------------------------------------------------------------
   // Build dock items from apps + running state
   // -----------------------------------------------------------------------
 
   // Compute dock items directly (no useMemo — openWindows reference changes cause staleness issues)
+  // Merge dock signals from WindowManager into items
   const dockItems: DockItem[] = apps.map((app: UnityDesktopApp) => {
     const isRunning = openWindows.some((w: InternalOpenWindow) => w.id === app.id);
-    return {
+    const signal: DockSignal | undefined = wmDockSignals.get(app.id);
+    const item: DockItem = {
       id: app.id,
       icon: app.icon,
-      label: app.label,
+      label: signal?.tooltip || app.label,
       active: isRunning,
     };
+    if (signal) {
+      if (signal.badge != null) item.badge = signal.badge > 0 ? signal.badge : undefined;
+      if (signal.progress != null) item.progress = signal.progress > 0 ? signal.progress : undefined;
+      if (signal.urgent) item.urgent = true;
+    }
+    return item;
   });
 
   // -----------------------------------------------------------------------
@@ -397,6 +442,7 @@ function UnityDesktopInner(props: {
   const systemTrayEl = createElement(SystemTray, {
     activeAppName,
     activitiesButton: { label: 'Activities', onClick: toggleAppsGrid },
+    appMenuBar: wmActiveMenuBar || undefined,
     clockFormat: '24h' as const,
     showSeconds: true,
     showDate: true,

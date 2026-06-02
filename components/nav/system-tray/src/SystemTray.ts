@@ -33,6 +33,28 @@ export interface SystemTrayUser {
   avatar?: string;
 }
 
+export interface AppMenuBarDef {
+  menus: Array<{
+    label: string;
+    items: Array<{
+      label?: string;
+      onClick?: () => void;
+      shortcut?: string;
+      disabled?: boolean;
+      divider?: boolean;
+      children?: Array<{
+        label?: string;
+        onClick?: () => void;
+        shortcut?: string;
+        disabled?: boolean;
+        divider?: boolean;
+        checked?: boolean;
+      }>;
+      checked?: boolean;
+    }>;
+  }>;
+}
+
 export interface SystemTrayProps {
   /** Text shown on the left -- typically the active application name */
   activeAppName?: string;
@@ -42,6 +64,9 @@ export interface SystemTrayProps {
     label: string;
     onClick: () => void;
   };
+
+  /** App menu bar from the focused application */
+  appMenuBar?: AppMenuBarDef;
 
   /** Clock format. Default: '24h'. Options: '12h', '24h' */
   clockFormat?: '12h' | '24h';
@@ -469,12 +494,166 @@ function UserMenu(props: {
   );
 }
 
+// -- Internal: AppMenuDropdown -----------------------------------------------
+
+function AppMenuDropdown(props: {
+  menu: AppMenuBarDef['menus'][0];
+}) {
+  const { menu } = props;
+  const { hover, onMouseEnter, onMouseLeave } = useHover();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  const handleToggle = useCallback(() => {
+    setOpen((prev: boolean) => !prev);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handleKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter' || ke.key === ' ') {
+      ke.preventDefault();
+      setOpen((prev: boolean) => !prev);
+    }
+    if (ke.key === 'Escape') {
+      setOpen(false);
+    }
+  }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handleDocClick = (e: Event) => {
+      const container = containerRef.current;
+      if (container && !container.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('click', handleDocClick, true);
+    return () => {
+      document.removeEventListener('click', handleDocClick, true);
+    };
+  }, [open]);
+
+  const dropdown = open && menu.items.length > 0
+    ? createElement('div', {
+        role: 'menu',
+        'aria-label': menu.label + ' menu',
+        style: {
+          position: 'absolute',
+          top: '100%',
+          left: '0',
+          marginTop: '2px',
+          backgroundColor: 'var(--panel-bg, #2c2c2c)',
+          border: '1px solid var(--panel-divider, #555555)',
+          borderRadius: '6px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          padding: '4px 0',
+          minWidth: '180px',
+          zIndex: '1000',
+        },
+      },
+        ...menu.items.map(
+          (item: AppMenuBarDef['menus'][0]['items'][0], i: number) => {
+            if (item.divider) {
+              return createElement('div', {
+                key: 'div-' + String(i),
+                role: 'separator',
+                style: {
+                  height: '1px',
+                  backgroundColor: 'var(--panel-divider, #555555)',
+                  margin: '4px 0',
+                },
+              });
+            }
+            return createElement('button', {
+              key: String(i),
+              type: 'button',
+              role: 'menuitem',
+              tabIndex: -1,
+              disabled: item.disabled ?? false,
+              onClick: () => {
+                if (item.onClick) item.onClick();
+                handleClose();
+              },
+              style: {
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '6px 16px',
+                border: 'none',
+                outline: 'none',
+                backgroundColor: 'transparent',
+                color: item.disabled ? 'rgba(255,255,255,0.4)' : 'var(--panel-text, #ffffff)',
+                fontFamily: 'inherit',
+                fontSize: '13px',
+                textAlign: 'left',
+                cursor: item.disabled ? 'default' : 'pointer',
+                boxSizing: 'border-box',
+              },
+            },
+              createElement('span', null,
+                item.checked ? '\u2713 ' : '',
+                item.label || '',
+              ),
+              item.shortcut
+                ? createElement('span', {
+                    style: { fontSize: '11px', opacity: '0.6', marginLeft: '16px' },
+                  }, item.shortcut)
+                : null,
+            );
+          },
+        ),
+      )
+    : null;
+
+  return createElement('div', {
+    ref: containerRef,
+    className: 'system-tray__app-menu',
+    style: { position: 'relative', display: 'inline-flex', height: '100%' },
+  },
+    createElement('button', {
+      type: 'button',
+      'aria-haspopup': 'true',
+      'aria-expanded': String(open),
+      tabIndex: 0,
+      onClick: handleToggle,
+      onKeyDown: handleKeyDown,
+      onMouseEnter,
+      onMouseLeave,
+      style: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '0 10px',
+        height: '100%',
+        border: 'none',
+        outline: 'none',
+        backgroundColor: hover || open
+          ? 'rgba(255,255,255,0.15)'
+          : 'transparent',
+        color: 'inherit',
+        fontFamily: 'inherit',
+        fontSize: '13px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'background-color 0.15s',
+      },
+    }, menu.label),
+    dropdown,
+  );
+}
+
 // -- Main SystemTray component ----------------------------------------------
 
 export function SystemTray(props: SystemTrayProps) {
   const {
     activeAppName,
     activitiesButton,
+    appMenuBar,
     clockFormat = '24h',
     showSeconds = true,
     showDate = true,
@@ -515,6 +694,18 @@ export function SystemTray(props: SystemTrayProps) {
         },
       }, activeAppName),
     );
+  }
+
+  // App menu bar dropdowns (between Activities/app name and center)
+  if (appMenuBar && appMenuBar.menus.length > 0) {
+    for (let mi = 0; mi < appMenuBar.menus.length; mi++) {
+      leftChildren.push(
+        createElement(AppMenuDropdown, {
+          key: 'appmenu-' + String(mi),
+          menu: appMenuBar.menus[mi],
+        }),
+      );
+    }
   }
 
   const leftSection = createElement('div', {

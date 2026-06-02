@@ -6,4 +6,5 @@ export type {
   SystemTrayProps,
   SystemTrayIndicator,
   SystemTrayUser,
+  AppMenuBarDef,
 } from './SystemTray';

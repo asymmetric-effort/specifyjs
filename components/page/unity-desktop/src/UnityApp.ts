@@ -10,10 +10,10 @@
  */
 
 import { createElement } from 'specifyjs';
-import { useCallback, useMemo } from 'specifyjs/hooks';
+import { useCallback, useMemo, useEffect, useRef } from 'specifyjs/hooks';
 import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import { useWindowManager } from '../../../layout/window-manager/src/index';
-import type { WindowManagerContextValue, WindowState } from '../../../layout/window-manager/src/index';
+import type { WindowManagerContextValue, WindowState, AppMenuBar } from '../../../layout/window-manager/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,6 +36,12 @@ export interface UnityAppProps {
   resizable?: boolean;
   /** Called when the window is closed */
   onClose?: () => void;
+  /** Menu bar definition; registered with WindowManager when provided */
+  menuBar?: AppMenuBar;
+  /** Called when this window gains focus */
+  onActivate?: () => void;
+  /** Called when this window loses focus */
+  onDeactivate?: () => void;
   /** Application content */
   children?: unknown;
 }
@@ -54,6 +60,9 @@ export function UnityApp(props: UnityAppProps) {
     minSize,
     resizable = true,
     onClose,
+    menuBar,
+    onActivate,
+    onDeactivate,
     children,
   } = props;
 
@@ -64,24 +73,41 @@ export function UnityApp(props: UnityAppProps) {
     return windowManager.windows.find((w: WindowState) => w.id === id);
   }, [windowManager.windows, id]);
 
-  // If the window isn't tracked by the manager yet, register it on first render
-  // (this handles the case where UnityApp is rendered as a child of UnityDesktop
-  // without an explicit openWindow call)
-  if (!windowState) {
-    // Open the window in the manager
-    windowManager.openWindow({
-      id,
-      title,
-      icon,
-      position: defaultPosition,
-      size: defaultSize,
-    });
-    // Return null for this render; next render will have the state
-    return null;
-  }
+  // -----------------------------------------------------------------------
+  // Menu bar registration (must be before early return to satisfy hooks rules)
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    if (menuBar) {
+      windowManager.setMenuBar(id, menuBar);
+    } else {
+      windowManager.clearMenuBar(id);
+    }
+    return () => {
+      windowManager.clearMenuBar(id);
+    };
+  }, [menuBar, id, windowManager]);
 
   // -----------------------------------------------------------------------
-  // Handlers
+  // Focus lifecycle callbacks (onActivate / onDeactivate)
+  // -----------------------------------------------------------------------
+
+  const wasFocusedRef = useRef(false);
+  const isFocused = windowState ? windowState.focused : false;
+
+  useEffect(() => {
+    const wasFocused = wasFocusedRef.current;
+    wasFocusedRef.current = isFocused;
+
+    if (isFocused && !wasFocused) {
+      if (onActivate) onActivate();
+    } else if (!isFocused && wasFocused) {
+      if (onDeactivate) onDeactivate();
+    }
+  }, [isFocused, onActivate, onDeactivate]);
+
+  // -----------------------------------------------------------------------
+  // Handlers (all hooks must be called before any early return)
   // -----------------------------------------------------------------------
 
   const handleClose = useCallback(() => {
@@ -112,6 +138,23 @@ export function UnityApp(props: UnityAppProps) {
       windowManager.maximizeWindow(id);
     }
   }, [windowManager, id, windowState]);
+
+  // -----------------------------------------------------------------------
+  // Early return: register window if not yet tracked
+  // -----------------------------------------------------------------------
+
+  if (!windowState) {
+    // Open the window in the manager
+    windowManager.openWindow({
+      id,
+      title,
+      icon,
+      position: defaultPosition,
+      size: defaultSize,
+    });
+    // Return null for this render; next render will have the state
+    return null;
+  }
 
   // -----------------------------------------------------------------------
   // Render DraggableWindow with state from WindowManager

@@ -15,6 +15,36 @@ import { useState, useCallback, useMemo, useContext } from 'specifyjs/hooks';
 import type { SpecNode } from 'specifyjs';
 
 // ---------------------------------------------------------------------------
+// App-to-Shell signaling types
+// ---------------------------------------------------------------------------
+
+export interface AppMenuItem {
+  label?: string;
+  onClick?: () => void;
+  shortcut?: string;
+  disabled?: boolean;
+  divider?: boolean;
+  children?: AppMenuItem[];
+  checked?: boolean;
+}
+
+export interface AppMenu {
+  label: string;
+  items: AppMenuItem[];
+}
+
+export interface AppMenuBar {
+  menus: AppMenu[];
+}
+
+export interface DockSignal {
+  badge?: number | null;
+  progress?: number | null;
+  urgent?: boolean;
+  tooltip?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -73,6 +103,16 @@ export interface WindowManagerContextValue {
   minimizeAll(): void;
   /** Currently focused window ID, or null */
   focusedWindowId: string | null;
+  /** Register or update a menu bar for an app */
+  setMenuBar(appId: string, menuBar: AppMenuBar): void;
+  /** Clear (deregister) a menu bar for an app */
+  clearMenuBar(appId: string): void;
+  /** The active (focused) app's menu bar, or null */
+  activeMenuBar: AppMenuBar | null;
+  /** Send a dock signal (badge, progress, urgent, tooltip) from an app */
+  signalDock(appId: string, signal: DockSignal): void;
+  /** Current dock signals keyed by app ID */
+  dockSignals: Map<string, DockSignal>;
 }
 
 export interface WindowManagerProps {
@@ -116,6 +156,11 @@ const WindowManagerContext = createContext<WindowManagerContextValue>({
   cascadeWindows: () => {},
   minimizeAll: () => {},
   focusedWindowId: null,
+  setMenuBar: () => {},
+  clearMenuBar: () => {},
+  activeMenuBar: null,
+  signalDock: () => {},
+  dockSignals: new Map(),
 });
 /* v8 ignore stop */
 
@@ -280,6 +325,23 @@ export function WindowManagerProvider(props: WindowManagerProps): SpecNode {
   const closeWindow = useCallback(
     ((...args: unknown[]) => {
       const id = args[0] as string;
+      // Clean up menu bar and dock signals for the closing app
+      setMenuBars((prev: Record<string, AppMenuBar>) => {
+        if (prev[id]) {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        }
+        return prev;
+      });
+      setDockSignals((prev: Map<string, DockSignal>) => {
+        if (prev.has(id)) {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        }
+        return prev;
+      });
       setWindows((prev: WindowState[]) => {
         const closing = prev.find((w: WindowState) => w.id === id);
         if (!closing) return prev;
@@ -569,6 +631,55 @@ export function WindowManagerProvider(props: WindowManagerProps): SpecNode {
     return focused ? focused.id : null;
   }, [windows]);
 
+  // -------------------------------------------------------------------------
+  // App-to-Shell signaling state
+  // -------------------------------------------------------------------------
+
+  const [menuBars, setMenuBars] = useState<Record<string, AppMenuBar>>({});
+  const [dockSignals, setDockSignals] = useState<Map<string, DockSignal>>(new Map());
+
+  const setMenuBar = useCallback(
+    ((...args: unknown[]) => {
+      const appId = args[0] as string;
+      const menuBar = args[1] as AppMenuBar;
+      setMenuBars((prev: Record<string, AppMenuBar>) => ({ ...prev, [appId]: menuBar }));
+    }) as (...args: unknown[]) => unknown,
+    [],
+  ) as WindowManagerContextValue['setMenuBar'];
+
+  const clearMenuBar = useCallback(
+    ((...args: unknown[]) => {
+      const appId = args[0] as string;
+      setMenuBars((prev: Record<string, AppMenuBar>) => {
+        const next = { ...prev };
+        delete next[appId];
+        return next;
+      });
+    }) as (...args: unknown[]) => unknown,
+    [],
+  ) as WindowManagerContextValue['clearMenuBar'];
+
+  const activeMenuBar = useMemo(() => {
+    if (focusedWindowId && menuBars[focusedWindowId]) {
+      return menuBars[focusedWindowId];
+    }
+    return null;
+  }, [focusedWindowId, menuBars]);
+
+  const signalDock = useCallback(
+    ((...args: unknown[]) => {
+      const appId = args[0] as string;
+      const signal = args[1] as DockSignal;
+      setDockSignals((prev: Map<string, DockSignal>) => {
+        const next = new Map(prev);
+        const existing = next.get(appId);
+        next.set(appId, { ...existing, ...signal });
+        return next;
+      });
+    }) as (...args: unknown[]) => unknown,
+    [],
+  ) as WindowManagerContextValue['signalDock'];
+
   const value: WindowManagerContextValue = useMemo(
     () => ({
       windows,
@@ -584,6 +695,11 @@ export function WindowManagerProvider(props: WindowManagerProps): SpecNode {
       cascadeWindows,
       minimizeAll,
       focusedWindowId,
+      setMenuBar,
+      clearMenuBar,
+      activeMenuBar,
+      signalDock,
+      dockSignals,
     }),
     [
       windows,
@@ -599,6 +715,11 @@ export function WindowManagerProvider(props: WindowManagerProps): SpecNode {
       cascadeWindows,
       minimizeAll,
       focusedWindowId,
+      setMenuBar,
+      clearMenuBar,
+      activeMenuBar,
+      signalDock,
+      dockSignals,
     ],
   );
 

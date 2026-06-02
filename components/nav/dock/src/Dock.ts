@@ -27,6 +27,10 @@ export interface DockItem {
   badge?: number;
   /** Whether this icon is disabled (greyed out, non-clickable). Default: false */
   disabled?: boolean;
+  /** Optional progress bar (0-1). Renders a thin bar at the bottom of the icon. */
+  progress?: number;
+  /** Whether to animate (pulse/bounce) the icon to request attention. Default: false */
+  urgent?: boolean;
 }
 
 export interface DockProps {
@@ -252,6 +256,35 @@ function DockItemComponent(props: {
       })
     : null;
 
+  // Progress bar
+  const progressEl = (item.progress != null && item.progress > 0)
+    ? createElement('div', {
+        style: {
+          position: 'absolute',
+          bottom: '2px',
+          left: '6px',
+          right: '6px',
+          height: '3px',
+          backgroundColor: 'rgba(255,255,255,0.2)',
+          borderRadius: '2px',
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          zIndex: '2',
+        },
+        'aria-hidden': 'true',
+      },
+        createElement('div', {
+          style: {
+            width: `${Math.min(1, Math.max(0, item.progress)) * 100}%`,
+            height: '100%',
+            backgroundColor: 'var(--dock-progress-color, #3b82f6)',
+            borderRadius: '2px',
+            transition: 'width 200ms ease',
+          },
+        }),
+      )
+    : null;
+
   // Tooltip
   const tooltipEl = hover
     ? createElement('div', {
@@ -287,6 +320,7 @@ function DockItemComponent(props: {
     borderRadius: '8px',
     outline: 'none',
     ...(hover && !disabled ? { transform: 'scale(1.1)', backgroundColor: 'rgba(255,255,255,0.15)' } : {}),
+    ...(item.urgent && !disabled ? { animation: 'dock-urgent-pulse 0.6s ease-in-out infinite alternate' } : {}),
   };
 
   return createElement(
@@ -304,10 +338,12 @@ function DockItemComponent(props: {
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
       'data-dock-item-id': item.id,
+      'data-urgent': item.urgent ? 'true' : undefined,
     },
     iconEl,
     badgeEl,
     activeDotEl,
+    progressEl,
     tooltipEl,
   );
 }

@@ -16,3 +16,4 @@ bin/
 .certs/
 site/public/version.txt
 PentestReport.md
+*.tgz

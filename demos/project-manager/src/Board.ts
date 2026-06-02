@@ -26,6 +26,7 @@ export interface BoardProps {
   selectedCardId: string | null;
   onSelectCard: (cardId: string | null) => void;
   colorFilter?: string | null;
+  showConnections?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +114,8 @@ function generateConnectionId(): string {
 }
 
 export function Board(props: BoardProps) {
-  const { state, dispatch, searchQuery, gridEnabled, selectedCardId, onSelectCard, colorFilter } = props;
+  const { state, dispatch, searchQuery, gridEnabled, selectedCardId, onSelectCard, colorFilter, showConnections } = props;
+  const shouldShowConnections = showConnections !== false;
   const { cards, connections, viewport } = state;
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -201,6 +203,80 @@ export function Board(props: BoardProps) {
     const delta = we.deltaY > 0 ? -0.1 : 0.1;
     dispatch({ type: 'ZOOM', zoom: viewport.zoom + delta });
   }, [viewport.zoom, dispatch]);
+
+  // -----------------------------------------------------------------------
+  // Touch handlers (two-finger pan + pinch-to-zoom)
+  // -----------------------------------------------------------------------
+
+  const touchStartRef = useRef<{ touches: Array<{ x: number; y: number }>; panX: number; panY: number; zoom: number; dist: number } | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const getTouchPoints = (e: TouchEvent) => {
+      const pts: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i < e.touches.length; i++) {
+        pts.push({ x: e.touches[i].clientX, y: e.touches[i].clientY });
+      }
+      return pts;
+    };
+
+    const getDist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+
+    const handleTouchStart = (e: Event) => {
+      const te = e as TouchEvent;
+      if (te.touches.length === 2) {
+        te.preventDefault();
+        const pts = getTouchPoints(te);
+        touchStartRef.current = {
+          touches: pts,
+          panX: viewport.panX,
+          panY: viewport.panY,
+          zoom: viewport.zoom,
+          dist: getDist(pts[0], pts[1]),
+        };
+      }
+    };
+
+    const handleTouchMove = (e: Event) => {
+      const te = e as TouchEvent;
+      if (te.touches.length !== 2 || !touchStartRef.current) return;
+      te.preventDefault();
+      const pts = getTouchPoints(te);
+      const start = touchStartRef.current;
+
+      // Pan: average movement of two fingers
+      const startMidX = (start.touches[0].x + start.touches[1].x) / 2;
+      const startMidY = (start.touches[0].y + start.touches[1].y) / 2;
+      const curMidX = (pts[0].x + pts[1].x) / 2;
+      const curMidY = (pts[0].y + pts[1].y) / 2;
+      const dx = curMidX - startMidX;
+      const dy = curMidY - startMidY;
+      dispatch({ type: 'PAN', panX: start.panX + dx, panY: start.panY + dy });
+
+      // Pinch: zoom proportional to distance change
+      const curDist = getDist(pts[0], pts[1]);
+      if (start.dist > 0) {
+        const scale = curDist / start.dist;
+        dispatch({ type: 'ZOOM', zoom: start.zoom * scale });
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchStartRef.current = null;
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [viewport.panX, viewport.panY, viewport.zoom, dispatch]);
 
   // -----------------------------------------------------------------------
   // Keyboard handler (Delete removes selected connection)
@@ -495,7 +571,7 @@ export function Board(props: BoardProps) {
       style: transformStyle,
       'data-testid': 'board-canvas-inner',
     },
-      createElement(ConnectionsOverlay, {
+      shouldShowConnections ? createElement(ConnectionsOverlay, {
         connections,
         cards,
         selectedConnectionId,
@@ -503,7 +579,7 @@ export function Board(props: BoardProps) {
         onDeleteConnection: handleDeleteConnection,
         canvasWidth: CANVAS_SIZE,
         canvasHeight: CANVAS_SIZE,
-      }),
+      }) : null,
       connectionDragLine,
       ...cardElements,
     ),

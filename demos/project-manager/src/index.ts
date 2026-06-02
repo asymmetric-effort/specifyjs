@@ -47,10 +47,10 @@ const storage = new LocalBoardStorage();
 // ---------------------------------------------------------------------------
 
 const SAMPLE_CARDS: ProjectCard[] = [
-  { id: 'sample-1', title: 'Auth API', description: 'Design the auth flow', color: '#3b82f6', position: { x: 50, y: 50 }, size: { width: 180, height: 120 }, priority: 'high', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'sample-2', title: 'Dashboard', description: 'Build the main dashboard', color: '#22c55e', position: { x: 300, y: 80 }, size: { width: 180, height: 120 }, priority: 'medium', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-1', title: 'Auth API', description: 'Design the auth flow', color: '#3b82f6', position: { x: 50, y: 50 }, size: { width: 180, height: 120 }, priority: 'high', assignee: 'Alice', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-2', title: 'Dashboard', description: 'Build the main dashboard', color: '#22c55e', position: { x: 300, y: 80 }, size: { width: 180, height: 120 }, priority: 'medium', assignee: 'Bob', createdAt: Date.now(), updatedAt: Date.now() },
   { id: 'sample-3', title: 'Deploy', description: 'Set up CI pipeline', color: '#f59e0b', position: { x: 150, y: 250 }, size: { width: 180, height: 120 }, priority: 'low', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'sample-4', title: 'Docs', description: 'Write API reference', color: '#a855f7', position: { x: 400, y: 280 }, size: { width: 180, height: 120 }, priority: 'medium', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-4', title: 'Docs', description: 'Write API reference', color: '#a855f7', position: { x: 400, y: 280 }, size: { width: 180, height: 120 }, priority: 'medium', assignee: 'Carol', createdAt: Date.now(), updatedAt: Date.now() },
 ];
 
 const SAMPLE_BOARD: BoardState = {
@@ -82,6 +82,7 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<string | null>(null);
+  const [showConnections, setShowConnections] = useState(true);
   const sampleLoadedRef = useRef(false);
 
   // -----------------------------------------------------------------------
@@ -172,6 +173,46 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     URL.revokeObjectURL(url);
   }, [state, boardId]);
 
+  const handleImportJSON = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result as string);
+          if (parsed && parsed.cards && parsed.viewport) {
+            dispatch({ type: 'SET_BOARD', state: parsed as BoardState });
+          }
+        } catch (_e) {
+          // Invalid JSON, ignore silently
+        }
+      };
+      reader.readAsText(file);
+    });
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+  }, [dispatch]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (state.cards.length > 0) {
+      setSelectedCardId(state.cards[0].id);
+    }
+  }, [state.cards]);
+
+  const handleToggleConnections = useCallback(() => {
+    setShowConnections((prev: boolean) => !prev);
+  }, []);
+
   const handleDeleteSelected = useCallback(() => {
     if (selectedCardId) {
       dispatch({ type: 'REMOVE_CARD', cardId: selectedCardId });
@@ -203,12 +244,15 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         { label: 'File', items: [
           { label: 'New Board', onClick: handleNewBoard },
           { label: 'Export JSON', onClick: handleExportJSON },
+          { label: 'Import JSON', onClick: handleImportJSON },
           { divider: true },
+          { label: 'Print', onClick: handlePrint },
         ]},
         { label: 'Edit', items: [
           { label: 'Undo', shortcut: 'Ctrl+Z', onClick: undo, disabled: !canUndo },
           { label: 'Redo', shortcut: 'Ctrl+Y', onClick: redo, disabled: !canRedo },
           { divider: true },
+          { label: 'Select All', shortcut: 'Ctrl+A', onClick: handleSelectAll },
           { label: 'Delete Selected', onClick: handleDeleteSelected },
         ]},
         { label: 'View', items: [
@@ -217,12 +261,13 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
           { label: 'Fit All', onClick: handleFitAll },
           { divider: true },
           { label: 'Toggle Grid', onClick: handleGridToggle },
+          { label: showConnections ? 'Hide Connections' : 'Show Connections', onClick: handleToggleConnections },
         ]},
       ],
     };
     // Menu bar registration is handled if a WindowManager context wraps this app.
     // The menu bar object is kept in sync for when the integration is active.
-  }, [handleNewBoard, handleExportJSON, undo, redo, canUndo, canRedo, handleDeleteSelected, handleZoomIn, handleZoomOut, handleFitAll, handleGridToggle]);
+  }, [handleNewBoard, handleExportJSON, handleImportJSON, handlePrint, undo, redo, canUndo, canRedo, handleSelectAll, handleDeleteSelected, handleZoomIn, handleZoomOut, handleFitAll, handleGridToggle, handleToggleConnections, showConnections]);
 
   // -----------------------------------------------------------------------
   // Keyboard shortcuts
@@ -312,6 +357,7 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         selectedCardId,
         onSelectCard: handleSelectCard,
         colorFilter,
+        showConnections,
       }),
     ),
   );

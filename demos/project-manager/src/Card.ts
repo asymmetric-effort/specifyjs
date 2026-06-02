@@ -7,6 +7,7 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useRef, useEffect } from 'specifyjs/hooks';
+import { useDraggable } from '../../../components/layout/app-drag-drop/src/index';
 import type { ProjectCard } from './types';
 import { CARD_COLORS } from './Toolbar';
 
@@ -72,6 +73,15 @@ export function Card(props: CardProps) {
   const contextMenuRef = useRef<HTMLElement | null>(null);
 
   const priorityColor = card.priority ? PRIORITY_COLORS[card.priority] || '#94a3b8' : 'transparent';
+
+  // -----------------------------------------------------------------------
+  // Inter-app draggable (export drag handle)
+  // -----------------------------------------------------------------------
+
+  const { onMouseDown: onDragHandleMouseDown, isDragging: isExportDragging } = useDraggable(
+    'application/project-card',
+    { id: card.id, title: card.title, description: card.description, color: card.color },
+  );
 
   // -----------------------------------------------------------------------
   // Context menu
@@ -172,7 +182,7 @@ export function Card(props: CardProps) {
     const me = e as MouseEvent;
     // Don't start drag if clicking delete button or resize handle
     const target = me.target as HTMLElement;
-    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'anchor')) return;
+    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'anchor' || target.dataset.role === 'drag-handle')) return;
 
     me.preventDefault();
     me.stopPropagation();
@@ -357,6 +367,63 @@ export function Card(props: CardProps) {
         ),
       )
     : null;
+
+  // -----------------------------------------------------------------------
+  // Assignee display
+  // -----------------------------------------------------------------------
+
+  const assigneeEl = card.assignee
+    ? createElement('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          marginTop: '4px',
+          fontSize: '10px',
+          color: '#555',
+        },
+        'data-testid': `card-assignee-${card.id}`,
+      },
+        createElement('span', {
+          style: {
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            backgroundColor: '#3b82f6',
+            color: '#fff',
+            fontSize: '9px',
+            fontWeight: '700',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: '0',
+          },
+        }, card.assignee.charAt(0).toUpperCase()),
+        createElement('span', {}, card.assignee),
+      )
+    : null;
+
+  // -----------------------------------------------------------------------
+  // Export drag handle style
+  // -----------------------------------------------------------------------
+
+  const dragHandleStyle: Record<string, string> = {
+    position: 'absolute',
+    top: '4px',
+    right: '24px',
+    width: '18px',
+    height: '18px',
+    borderRadius: '3px',
+    backgroundColor: isExportDragging ? 'rgba(59,130,246,0.4)' : 'rgba(0,0,0,0.1)',
+    color: '#333',
+    fontSize: '10px',
+    lineHeight: '18px',
+    textAlign: 'center',
+    cursor: 'grab',
+    display: hovered ? 'block' : 'none',
+    border: 'none',
+    padding: '0',
+  };
 
   // -----------------------------------------------------------------------
   // Anchor styles (connection creation points)
@@ -546,6 +613,15 @@ export function Card(props: CardProps) {
     createElement('div', { style: titleStyle }, card.title || 'Untitled'),
     createElement('div', { style: descStyle }, card.description || ''),
     tagsEl,
+    assigneeEl,
+    createElement('div', {
+      style: dragHandleStyle,
+      'data-role': 'drag-handle',
+      'data-testid': `card-drag-handle-${card.id}`,
+      onMouseDown: (e: Event) => { e.stopPropagation(); onDragHandleMouseDown(e); },
+      'aria-label': `Export drag handle for ${card.title}`,
+      title: 'Drag to export card',
+    }, '\u2630'),
     createElement('button', {
       style: deleteStyle,
       'data-role': 'delete',

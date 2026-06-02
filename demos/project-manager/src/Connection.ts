@@ -72,14 +72,27 @@ export function ConnectionsOverlay(props: ConnectionsOverlayProps) {
     const strokeColor = isSelected ? '#3b82f6' : '#94a3b8';
     const dashArray = getStrokeDasharray(conn.style);
 
+    // Compute a perpendicular offset for the quadratic bezier control point
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const curveOffset = Math.min(40, dist * 0.15);
+    // Perpendicular direction (normalized)
+    const nx = dist > 0 ? -dy / dist : 0;
+    const ny = dist > 0 ? dx / dist : 0;
+    // Control point at midpoint offset perpendicular
+    const midX = (from.x + to.x) / 2;
+    const midY = (from.y + to.y) / 2;
+    const cpX = midX + nx * curveOffset;
+    const cpY = midY + ny * curveOffset;
+    const pathD = `M ${from.x} ${from.y} Q ${cpX} ${cpY} ${to.x} ${to.y}`;
+
     // Invisible hit area (wider)
     lineElements.push(
-      createElement('line', {
+      createElement('path', {
         key: `hit-${conn.id}`,
-        x1: String(from.x),
-        y1: String(from.y),
-        x2: String(to.x),
-        y2: String(to.y),
+        d: pathD,
+        fill: 'none',
         stroke: 'transparent',
         'stroke-width': '12',
         style: { cursor: 'pointer' },
@@ -88,14 +101,12 @@ export function ConnectionsOverlay(props: ConnectionsOverlayProps) {
       }),
     );
 
-    // Visible line
+    // Visible curve
     lineElements.push(
-      createElement('line', {
+      createElement('path', {
         key: conn.id,
-        x1: String(from.x),
-        y1: String(from.y),
-        x2: String(to.x),
-        y2: String(to.y),
+        d: pathD,
+        fill: 'none',
         stroke: strokeColor,
         'stroke-width': isSelected ? '3' : '2',
         'stroke-dasharray': dashArray,
@@ -104,15 +115,13 @@ export function ConnectionsOverlay(props: ConnectionsOverlayProps) {
       }),
     );
 
-    // Label at midpoint
+    // Label at midpoint (slightly above the curve)
     if (conn.label) {
-      const midX = (from.x + to.x) / 2;
-      const midY = (from.y + to.y) / 2;
       lineElements.push(
         createElement('text', {
           key: `label-${conn.id}`,
-          x: String(midX),
-          y: String(midY - 6),
+          x: String(cpX),
+          y: String(cpY - 6),
           'text-anchor': 'middle',
           fill: '#64748b',
           'font-size': '11',

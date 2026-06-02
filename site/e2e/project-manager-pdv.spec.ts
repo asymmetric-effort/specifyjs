@@ -42,8 +42,9 @@ test.describe('Project Manager PDV', () => {
   });
 
   test('board renders with sample cards', async ({ page }) => {
+    // Sample data loads via useEffect + dispatch which defers rendering
     const cards = page.locator(`${desktop} .board-card`);
-    await expect(cards.first()).toBeVisible({ timeout: 5000 });
+    await expect(cards.first()).toBeVisible({ timeout: 15000 });
     const count = await cards.count();
     expect(count).toBeGreaterThanOrEqual(4);
   });

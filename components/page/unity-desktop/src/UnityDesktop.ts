@@ -11,6 +11,9 @@
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'specifyjs/hooks';
 import { WindowManagerProvider, useWindowManager } from '../../../layout/window-manager/src/index';
+import { MessageBusProvider, useMessageBus, useChannel, AppContextProvider } from '../../../layout/app-message-bus/src/index';
+import { DragDropProvider, useDragDrop } from '../../../layout/app-drag-drop/src/index';
+import type { AppMessage } from '../../../layout/app-message-bus/src/index';
 import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
@@ -131,6 +134,111 @@ function ToastContainer(props: { toasts: ToastNotification[]; onDismiss: (id: nu
 }
 
 // ---------------------------------------------------------------------------
+// Demo components for message bus and drag-drop
+// ---------------------------------------------------------------------------
+
+/**
+ * TerminalContent -- Publishes a message on "terminal-output" when mounted.
+ */
+function TerminalContent() {
+  const bus = useMessageBus();
+  const publishedRef = useRef(false);
+
+  useEffect(() => {
+    if (!publishedRef.current) {
+      publishedRef.current = true;
+      bus.publish('terminal-output', { text: 'Terminal session started', pid: 1 });
+    }
+  }, [bus]);
+
+  const contentStyle: Record<string, string> = {
+    padding: '16px',
+    fontSize: '12px',
+    color: '#00ff41',
+    height: '100%',
+    overflow: 'auto',
+    backgroundColor: '#1a1a2e',
+    fontFamily: 'monospace',
+  };
+
+  return createElement('div', { style: contentStyle },
+    createElement('div', null, '$ whoami'),
+    createElement('div', null, 'operator'),
+    createElement('div', null, '$ uname -a'),
+    createElement('div', null, 'Linux specifyjs 6.1.0 #1 SMP x86_64 GNU/Linux'),
+    createElement('div', { style: { opacity: '0.6', marginTop: '8px', fontSize: '10px' } },
+      '[Published terminal-output message]'),
+    createElement('div', null, '$ _'),
+  );
+}
+
+/**
+ * FilesContent -- Subscribes to "terminal-output" and displays received messages.
+ * Also includes a draggable file card with type "application/file".
+ */
+function FilesContent() {
+  const [messages, setMessages] = useState<string[]>([]);
+  const dragDrop = useDragDrop();
+
+  useChannel<{ text: string }>('terminal-output', (msg: AppMessage<{ text: string }>) => {
+    setMessages((prev: string[]) => [...prev, `[terminal] ${msg.payload.text}`]);
+  });
+
+  const handleDragFile = useCallback((e: Event) => {
+    e.preventDefault();
+    dragDrop.startDrag({
+      type: 'application/file',
+      data: { name: 'readme.txt', size: 1024 },
+      sourceAppId: 'files',
+      preview: 'readme.txt',
+    });
+  }, [dragDrop]);
+
+  const contentStyle: Record<string, string> = {
+    padding: '16px',
+    fontSize: '13px',
+    color: 'var(--color-text, #333)',
+    height: '100%',
+    overflow: 'auto',
+  };
+
+  return createElement('div', { style: contentStyle },
+    createElement('div', { style: { fontWeight: '600', marginBottom: '12px' } }, 'Home'),
+    createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+      ...['\u{1F4C1} Documents', '\u{1F4C1} Downloads', '\u{1F4C1} Music', '\u{1F4C1} Pictures', '\u{1F4C1} Videos'].map(
+        (f) => createElement('span', { style: { cursor: 'pointer' } }, f),
+      ),
+      createElement('span', {
+        style: {
+          cursor: 'grab',
+          padding: '4px 8px',
+          border: '1px dashed #94a3b8',
+          borderRadius: '4px',
+          backgroundColor: 'rgba(148, 163, 184, 0.1)',
+        },
+        onMouseDown: handleDragFile,
+        'aria-label': 'Drag readme.txt',
+      }, '\u{1F4C4} readme.txt (drag me)'),
+    ),
+    messages.length > 0 ? createElement('div', {
+      style: {
+        marginTop: '12px',
+        padding: '8px',
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: '4px',
+        fontSize: '11px',
+        fontFamily: 'monospace',
+      },
+    },
+      createElement('div', { style: { fontWeight: '600', marginBottom: '4px' } }, 'Messages received:'),
+      ...messages.map((m: string, i: number) =>
+        createElement('div', { key: String(i), style: { color: '#64748b' } }, m),
+      ),
+    ) : null,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Mock app content for demo windows
 // ---------------------------------------------------------------------------
 
@@ -144,20 +252,12 @@ function getMockContent(title: string): unknown {
   };
   switch (title) {
     case 'Files':
-      return createElement('div', { style: contentStyle },
-        createElement('div', { style: { fontWeight: '600', marginBottom: '12px' } }, 'Home'),
-        createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
-          ...['\u{1F4C1} Documents', '\u{1F4C1} Downloads', '\u{1F4C1} Music', '\u{1F4C1} Pictures', '\u{1F4C1} Videos', '\u{1F4C4} readme.txt']
-            .map((f) => createElement('span', { style: { cursor: 'pointer' } }, f)),
-        ),
+      return createElement(AppContextProvider, { appId: 'files' },
+        createElement(FilesContent, null),
       );
     case 'Terminal':
-      return createElement('div', { style: { ...contentStyle, backgroundColor: '#1a1a2e', color: '#00ff41', fontFamily: 'monospace', fontSize: '12px' } },
-        createElement('div', null, '$ whoami'),
-        createElement('div', null, 'operator'),
-        createElement('div', null, '$ uname -a'),
-        createElement('div', null, 'Linux specifyjs 6.1.0 #1 SMP x86_64 GNU/Linux'),
-        createElement('div', null, '$ _'),
+      return createElement(AppContextProvider, { appId: 'terminal' },
+        createElement(TerminalContent, null),
       );
     case 'Browser':
       return createElement('div', { style: contentStyle },
@@ -705,13 +805,21 @@ export function UnityDesktop(props: UnityDesktopProps) {
     {
       onWindowOpen: onAppOpen,
     },
-    createElement(UnityDesktopInner, {
-      apps,
-      user,
-      onAppOpen,
-      onLogout,
-      theme,
-      children,
-    }),
+    createElement(
+      MessageBusProvider,
+      null,
+      createElement(
+        DragDropProvider,
+        null,
+        createElement(UnityDesktopInner, {
+          apps,
+          user,
+          onAppOpen,
+          onLogout,
+          theme,
+          children,
+        }),
+      ),
+    ),
   );
 }

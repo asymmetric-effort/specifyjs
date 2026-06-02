@@ -13,6 +13,7 @@ import { createElement } from 'specifyjs';
 import { useCallback, useMemo, useEffect, useRef } from 'specifyjs/hooks';
 import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import { useWindowManager } from '../../../layout/window-manager/src/index';
+import { AppContextProvider } from '../../../layout/app-message-bus/src/index';
 import type { WindowManagerContextValue, WindowState, AppMenuBar } from '../../../layout/window-manager/src/index';
 
 // ---------------------------------------------------------------------------
@@ -160,23 +161,27 @@ export function UnityApp(props: UnityAppProps) {
   // Render DraggableWindow with state from WindowManager
   // -----------------------------------------------------------------------
 
-  return createElement(DraggableWindow, {
-    id,
-    title,
-    icon,
-    defaultPosition: windowState.position,
-    defaultSize: windowState.size,
-    minSize,
-    resizable,
-    windowState: windowState.windowState,
-    focused: windowState.focused,
-    zIndex: windowState.zIndex,
-    onClose: handleClose,
-    onFocus: handleFocus,
-    onMove: handleMove,
-    onResize: handleResize,
-    onMinimize: handleMinimize,
-    onMaximize: handleMaximize,
-    children,
-  });
+  return createElement(
+    AppContextProvider,
+    { appId: id },
+    createElement(DraggableWindow, {
+      id,
+      title,
+      icon,
+      defaultPosition: windowState.position,
+      defaultSize: windowState.size,
+      minSize,
+      resizable,
+      windowState: windowState.windowState,
+      focused: windowState.focused,
+      zIndex: windowState.zIndex,
+      onClose: handleClose,
+      onFocus: handleFocus,
+      onMove: handleMove,
+      onResize: handleResize,
+      onMinimize: handleMinimize,
+      onMaximize: handleMaximize,
+      children,
+    }),
+  );
 }

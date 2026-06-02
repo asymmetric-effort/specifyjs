@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/layout-app-message-bus",
+  "version": "0.0.1",
+  "description": "Inter-app message bus for SpecifyJS Unity Desktop",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

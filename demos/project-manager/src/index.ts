@@ -103,16 +103,18 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   // -----------------------------------------------------------------------
 
   const handleNewCard = useCallback(() => {
-    // Create a card at the viewport center
+    // Create a card at a random position within 50% offset from viewport center
     const cx = (-state.viewport.panX + 300) / state.viewport.zoom;
     const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
+    const offsetX = (Math.random() - 0.5) * 300; // ±150px (50% of 300)
+    const offsetY = (Math.random() - 0.5) * 200; // ±100px (50% of 200)
 
     const newCard: ProjectCard = {
       id: generateCardId(),
       title: 'New Card',
       description: '',
       color: selectedColor,
-      position: { x: Math.round(cx), y: Math.round(cy) },
+      position: { x: Math.round(cx + offsetX), y: Math.round(cy + offsetY) },
       size: { width: 180, height: 120 },
       priority: 'medium',
       createdAt: Date.now(),
@@ -308,12 +310,14 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const handleCardDropped = useCallback((title: string, description: string) => {
     const cx = (-state.viewport.panX + 300) / state.viewport.zoom;
     const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
+    const offsetX = (Math.random() - 0.5) * 300;
+    const offsetY = (Math.random() - 0.5) * 200;
     const newCard: ProjectCard = {
       id: generateCardId(),
       title,
       description,
       color: selectedColor,
-      position: { x: Math.round(cx), y: Math.round(cy) },
+      position: { x: Math.round(cx + offsetX), y: Math.round(cy + offsetY) },
       size: { width: 180, height: 120 },
       priority: 'medium',
       createdAt: Date.now(),

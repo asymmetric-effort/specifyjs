@@ -105,14 +105,21 @@ export function Card(props: CardProps) {
 
   useEffect(() => {
     if (editingTitle && titleInputRef.current) {
-      titleInputRef.current.focus();
-      titleInputRef.current.select();
+      const input = titleInputRef.current;
+      input.focus();
+      // Place cursor at end so existing text remains visible
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
     }
   }, [editingTitle]);
 
   useEffect(() => {
     if (editingDescription && descTextareaRef.current) {
-      descTextareaRef.current.focus();
+      const textarea = descTextareaRef.current;
+      textarea.focus();
+      // Place cursor at end so existing text remains visible
+      const len = textarea.value.length;
+      textarea.setSelectionRange(len, len);
     }
   }, [editingDescription]);
 

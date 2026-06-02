@@ -8,7 +8,7 @@
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useRef, useEffect } from 'specifyjs/hooks';
 import type { ProjectCard } from './types';
-import { Card } from './Card';
+import { Card, CONTEXT_MENU_COLORS, PRIORITY_OPTIONS, PRIORITY_COLORS } from './Card';
 import { CardEditor } from './CardEditor';
 import { ConnectionsOverlay } from './Connection';
 import type { BoardState } from './types';
@@ -120,6 +120,9 @@ export function Board(props: BoardProps) {
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
+  const [cardContextMenu, setCardContextMenu] = useState<{ cardId: string; x: number; y: number } | null>(null);
+  const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
+  const [prioritySubmenuOpen, setPrioritySubmenuOpen] = useState(false);
   const containerRef = useRef<HTMLElement | null>(null);
   const isPanningRef = useRef(false);
   const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
@@ -374,6 +377,82 @@ export function Board(props: BoardProps) {
   }, [dispatch]);
 
   // -----------------------------------------------------------------------
+  // Card context menu (rendered outside CSS transform container)
+  // -----------------------------------------------------------------------
+
+  const handleCardContextMenu = useCallback((cardId: string, pos: { x: number; y: number }) => {
+    setCardContextMenu({ cardId, x: pos.x, y: pos.y });
+    setColorSubmenuOpen(false);
+    setPrioritySubmenuOpen(false);
+  }, []);
+
+  const closeCardContextMenu = useCallback(() => {
+    setCardContextMenu(null);
+    setColorSubmenuOpen(false);
+    setPrioritySubmenuOpen(false);
+  }, []);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    if (!cardContextMenu) return;
+    const handleClick = () => {
+      closeCardContextMenu();
+    };
+    // Delay to avoid closing immediately on the same click
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClick);
+      document.addEventListener('contextmenu', handleClick);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('contextmenu', handleClick);
+    };
+  }, [cardContextMenu, closeCardContextMenu]);
+
+  const handleCtxDuplicateClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    if (cardContextMenu) {
+      const newId = `card-${Date.now()}-dup`;
+      dispatch({ type: 'DUPLICATE_CARD', cardId: cardContextMenu.cardId, newId });
+    }
+    closeCardContextMenu();
+  }, [cardContextMenu, dispatch, closeCardContextMenu]);
+
+  const handleCtxDeleteClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    if (cardContextMenu) {
+      dispatch({ type: 'REMOVE_CARD', cardId: cardContextMenu.cardId });
+      if (selectedCardId === cardContextMenu.cardId) onSelectCard(null);
+    }
+    closeCardContextMenu();
+  }, [cardContextMenu, dispatch, selectedCardId, onSelectCard, closeCardContextMenu]);
+
+  const handleCtxColorMenuEnter = useCallback(() => {
+    setColorSubmenuOpen(true);
+    setPrioritySubmenuOpen(false);
+  }, []);
+
+  const handleCtxPriorityMenuEnter = useCallback(() => {
+    setPrioritySubmenuOpen(true);
+    setColorSubmenuOpen(false);
+  }, []);
+
+  const handleCtxColorSelect = useCallback((color: string) => {
+    if (cardContextMenu) {
+      dispatch({ type: 'UPDATE_CARD', cardId: cardContextMenu.cardId, updates: { color } });
+    }
+    closeCardContextMenu();
+  }, [cardContextMenu, dispatch, closeCardContextMenu]);
+
+  const handleCtxPrioritySelect = useCallback((priority: 'low' | 'medium' | 'high' | 'critical') => {
+    if (cardContextMenu) {
+      dispatch({ type: 'UPDATE_CARD', cardId: cardContextMenu.cardId, updates: { priority } });
+    }
+    closeCardContextMenu();
+  }, [cardContextMenu, dispatch, closeCardContextMenu]);
+
+  // -----------------------------------------------------------------------
   // Connection creation via anchor drag
   // -----------------------------------------------------------------------
 
@@ -503,6 +582,7 @@ export function Board(props: BoardProps) {
       onChangeColor: handleChangeColor,
       onChangePriority: handleChangePriority,
       onAnchorDragStart: handleAnchorDragStart,
+      onCardContextMenu: handleCardContextMenu,
     });
 
     if (isDimmed) {
@@ -562,6 +642,153 @@ export function Board(props: BoardProps) {
     }),
   ) : null;
 
+  // -----------------------------------------------------------------------
+  // Context menu element (rendered OUTSIDE the CSS transform container)
+  // -----------------------------------------------------------------------
+
+  const ctxMenuItemStyle: Record<string, string> = {
+    padding: '6px 12px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    whiteSpace: 'nowrap',
+  };
+
+  const ctxSubmenuContainerStyle: Record<string, string> = {
+    position: 'absolute',
+    left: '100%',
+    top: '0',
+    backgroundColor: '#ffffff',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+    padding: '4px 0',
+    minWidth: '120px',
+  };
+
+  const contextMenuCard = cardContextMenu ? cards.find((c: ProjectCard) => c.id === cardContextMenu.cardId) : null;
+
+  const contextMenuEl = cardContextMenu ? createElement('div', {
+    className: 'card-context-menu',
+    style: {
+      position: 'fixed',
+      left: `${cardContextMenu.x}px`,
+      top: `${cardContextMenu.y}px`,
+      backgroundColor: '#ffffff',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      padding: '4px 0',
+      zIndex: '10000',
+      minWidth: '160px',
+      fontSize: '13px',
+      color: '#1a1a1a',
+    },
+    'data-testid': `context-menu-${cardContextMenu.cardId}`,
+    role: 'menu',
+    'aria-label': 'Card context menu',
+  },
+    // Duplicate
+    createElement('div', {
+      style: ctxMenuItemStyle,
+      onClick: handleCtxDuplicateClick,
+      role: 'menuitem',
+      'data-testid': `context-menu-duplicate-${cardContextMenu.cardId}`,
+    }, 'Duplicate'),
+    // Delete
+    createElement('div', {
+      style: ctxMenuItemStyle,
+      onClick: handleCtxDeleteClick,
+      role: 'menuitem',
+      'data-testid': `context-menu-delete-${cardContextMenu.cardId}`,
+    }, 'Delete'),
+    // Change Color submenu
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, position: 'relative' as string },
+      onMouseEnter: handleCtxColorMenuEnter,
+      role: 'menuitem',
+      'aria-haspopup': 'true',
+      'data-testid': `context-menu-color-${cardContextMenu.cardId}`,
+    },
+      'Change Color',
+      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
+      colorSubmenuOpen ? createElement('div', {
+        style: ctxSubmenuContainerStyle,
+        role: 'menu',
+        'data-testid': `context-submenu-color-${cardContextMenu.cardId}`,
+      },
+        ...CONTEXT_MENU_COLORS.map((color: string) =>
+          createElement('div', {
+            key: color,
+            style: {
+              ...ctxMenuItemStyle,
+              gap: '8px',
+            },
+            onClick: (e: Event) => { e.stopPropagation(); handleCtxColorSelect(color); },
+            role: 'menuitem',
+            'data-testid': `context-color-${color}`,
+          },
+            createElement('span', {
+              style: {
+                width: '14px',
+                height: '14px',
+                borderRadius: '50%',
+                backgroundColor: color,
+                border: '1px solid rgba(0,0,0,0.15)',
+                display: 'inline-block',
+                flexShrink: '0',
+              },
+            }),
+            contextMenuCard && color === contextMenuCard.color ? '\u2713' : '',
+          ),
+        ),
+      ) : null,
+    ),
+    // Set Priority submenu
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, position: 'relative' as string },
+      onMouseEnter: handleCtxPriorityMenuEnter,
+      role: 'menuitem',
+      'aria-haspopup': 'true',
+      'data-testid': `context-menu-priority-${cardContextMenu.cardId}`,
+    },
+      'Set Priority',
+      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
+      prioritySubmenuOpen ? createElement('div', {
+        style: ctxSubmenuContainerStyle,
+        role: 'menu',
+        'data-testid': `context-submenu-priority-${cardContextMenu.cardId}`,
+      },
+        ...PRIORITY_OPTIONS.map((opt: { label: string; value: string }) =>
+          createElement('div', {
+            key: opt.value,
+            style: {
+              ...ctxMenuItemStyle,
+              gap: '8px',
+            },
+            onClick: (e: Event) => { e.stopPropagation(); handleCtxPrioritySelect(opt.value as 'low' | 'medium' | 'high' | 'critical'); },
+            role: 'menuitem',
+            'data-testid': `context-priority-${opt.value}`,
+          },
+            createElement('span', {
+              style: {
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: PRIORITY_COLORS[opt.value] || '#94a3b8',
+                display: 'inline-block',
+                flexShrink: '0',
+              },
+            }),
+            opt.label,
+            contextMenuCard && opt.value === contextMenuCard.priority ? ' \u2713' : '',
+          ),
+        ),
+      ) : null,
+    ),
+  ) : null;
+
   return createElement('div', {
     ref: containerRef,
     className: 'board-canvas',
@@ -591,5 +818,6 @@ export function Board(props: BoardProps) {
       ...cardElements,
     ),
     editorEl,
+    contextMenuEl,
   );
 }

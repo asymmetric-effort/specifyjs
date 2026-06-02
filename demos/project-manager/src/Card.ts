@@ -15,7 +15,7 @@ import { CARD_COLORS } from './Toolbar';
 // Priority colors
 // ---------------------------------------------------------------------------
 
-const PRIORITY_COLORS: Record<string, string> = {
+export const PRIORITY_COLORS: Record<string, string> = {
   low: '#22c55e',
   medium: '#f59e0b',
   high: '#f97316',
@@ -30,9 +30,9 @@ const PRIORITY_COLORS: Record<string, string> = {
 // Context menu color options
 // ---------------------------------------------------------------------------
 
-const CONTEXT_MENU_COLORS = CARD_COLORS;
+export const CONTEXT_MENU_COLORS = CARD_COLORS;
 
-const PRIORITY_OPTIONS: Array<{ label: string; value: 'low' | 'medium' | 'high' | 'critical' }> = [
+export const PRIORITY_OPTIONS: Array<{ label: string; value: 'low' | 'medium' | 'high' | 'critical' }> = [
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
@@ -53,6 +53,7 @@ export interface CardProps {
   onChangeColor?: (cardId: string, color: string) => void;
   onChangePriority?: (cardId: string, priority: 'low' | 'medium' | 'high' | 'critical') => void;
   onAnchorDragStart?: (cardId: string, anchor: string, x: number, y: number) => void;
+  onCardContextMenu?: (cardId: string, pos: { x: number; y: number }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -63,17 +64,14 @@ export function Card(props: CardProps) {
   const {
     card, selected, onSelect, onMove, onResize, onDelete, onDoubleClick, onUpdate,
     onDragStart, onDuplicate, onChangeColor, onChangePriority, onAnchorDragStart,
+    onCardContextMenu,
   } = props;
   const [hovered, setHovered] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
-  const [prioritySubmenuOpen, setPrioritySubmenuOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; cardX: number; cardY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
-  const contextMenuRef = useRef<HTMLElement | null>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -96,66 +94,10 @@ export function Card(props: CardProps) {
     const me = e as MouseEvent;
     me.preventDefault();
     me.stopPropagation();
-    setContextMenu({ x: me.clientX, y: me.clientY });
-    setColorSubmenuOpen(false);
-    setPrioritySubmenuOpen(false);
-  }, []);
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenu(null);
-    setColorSubmenuOpen(false);
-    setPrioritySubmenuOpen(false);
-  }, []);
-
-  // Close context menu on click outside
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handleClick = () => {
-      closeContextMenu();
-    };
-    // Delay to avoid closing immediately on the same click
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClick);
-      document.addEventListener('contextmenu', handleClick);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleClick);
-      document.removeEventListener('contextmenu', handleClick);
-    };
-  }, [contextMenu, closeContextMenu]);
-
-  const handleDuplicateClick = useCallback((e: Event) => {
-    e.stopPropagation();
-    closeContextMenu();
-    if (onDuplicate) onDuplicate(card.id);
-  }, [card.id, onDuplicate, closeContextMenu]);
-
-  const handleContextDeleteClick = useCallback((e: Event) => {
-    e.stopPropagation();
-    closeContextMenu();
-    onDelete(card.id);
-  }, [card.id, onDelete, closeContextMenu]);
-
-  const handleColorMenuEnter = useCallback(() => {
-    setColorSubmenuOpen(true);
-    setPrioritySubmenuOpen(false);
-  }, []);
-
-  const handlePriorityMenuEnter = useCallback(() => {
-    setPrioritySubmenuOpen(true);
-    setColorSubmenuOpen(false);
-  }, []);
-
-  const handleColorSelect = useCallback((color: string) => {
-    closeContextMenu();
-    if (onChangeColor) onChangeColor(card.id, color);
-  }, [card.id, onChangeColor, closeContextMenu]);
-
-  const handlePrioritySelect = useCallback((priority: 'low' | 'medium' | 'high' | 'critical') => {
-    closeContextMenu();
-    if (onChangePriority) onChangePriority(card.id, priority);
-  }, [card.id, onChangePriority, closeContextMenu]);
+    if (onCardContextMenu) {
+      onCardContextMenu(card.id, { x: me.clientX, y: me.clientY });
+    }
+  }, [card.id, onCardContextMenu]);
 
   // -----------------------------------------------------------------------
   // Inline editing: focus inputs when editing state changes
@@ -527,154 +469,6 @@ export function Card(props: CardProps) {
   const anchorBottom: Record<string, string> = { ...anchorBaseStyle, bottom: '-5px', left: '50%', transform: 'translateX(-50%)' };
   const anchorLeft: Record<string, string> = { ...anchorBaseStyle, top: '50%', left: '-5px', transform: 'translateY(-50%)' };
 
-  // -----------------------------------------------------------------------
-  // Context menu rendering
-  // -----------------------------------------------------------------------
-
-  const contextMenuStyle: Record<string, string> = {
-    position: 'fixed',
-    left: contextMenu ? `${contextMenu.x}px` : '0',
-    top: contextMenu ? `${contextMenu.y}px` : '0',
-    backgroundColor: '#ffffff',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-    padding: '4px 0',
-    zIndex: '10000',
-    minWidth: '160px',
-    fontSize: '13px',
-    color: '#1a1a1a',
-  };
-
-  const menuItemStyle: Record<string, string> = {
-    padding: '6px 12px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    whiteSpace: 'nowrap',
-  };
-
-  const submenuContainerStyle: Record<string, string> = {
-    position: 'absolute',
-    left: '100%',
-    top: '0',
-    backgroundColor: '#ffffff',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-    padding: '4px 0',
-    minWidth: '120px',
-  };
-
-  const contextMenuEl = contextMenu ? createElement('div', {
-    ref: contextMenuRef,
-    className: 'card-context-menu',
-    style: contextMenuStyle,
-    'data-testid': `context-menu-${card.id}`,
-    role: 'menu',
-    'aria-label': 'Card context menu',
-  },
-    // Duplicate
-    createElement('div', {
-      style: menuItemStyle,
-      onClick: handleDuplicateClick,
-      role: 'menuitem',
-      'data-testid': `context-menu-duplicate-${card.id}`,
-    }, 'Duplicate'),
-    // Delete
-    createElement('div', {
-      style: menuItemStyle,
-      onClick: handleContextDeleteClick,
-      role: 'menuitem',
-      'data-testid': `context-menu-delete-${card.id}`,
-    }, 'Delete'),
-    // Change Color submenu
-    createElement('div', {
-      style: { ...menuItemStyle, position: 'relative' as string },
-      onMouseEnter: handleColorMenuEnter,
-      role: 'menuitem',
-      'aria-haspopup': 'true',
-      'data-testid': `context-menu-color-${card.id}`,
-    },
-      'Change Color',
-      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
-      colorSubmenuOpen ? createElement('div', {
-        style: submenuContainerStyle,
-        role: 'menu',
-        'data-testid': `context-submenu-color-${card.id}`,
-      },
-        ...CONTEXT_MENU_COLORS.map((color: string) =>
-          createElement('div', {
-            key: color,
-            style: {
-              ...menuItemStyle,
-              gap: '8px',
-            },
-            onClick: (e: Event) => { e.stopPropagation(); handleColorSelect(color); },
-            role: 'menuitem',
-            'data-testid': `context-color-${color}`,
-          },
-            createElement('span', {
-              style: {
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: color,
-                border: '1px solid rgba(0,0,0,0.15)',
-                display: 'inline-block',
-                flexShrink: '0',
-              },
-            }),
-            color === card.color ? '\u2713' : '',
-          ),
-        ),
-      ) : null,
-    ),
-    // Set Priority submenu
-    createElement('div', {
-      style: { ...menuItemStyle, position: 'relative' as string },
-      onMouseEnter: handlePriorityMenuEnter,
-      role: 'menuitem',
-      'aria-haspopup': 'true',
-      'data-testid': `context-menu-priority-${card.id}`,
-    },
-      'Set Priority',
-      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
-      prioritySubmenuOpen ? createElement('div', {
-        style: submenuContainerStyle,
-        role: 'menu',
-        'data-testid': `context-submenu-priority-${card.id}`,
-      },
-        ...PRIORITY_OPTIONS.map((opt: { label: string; value: string }) =>
-          createElement('div', {
-            key: opt.value,
-            style: {
-              ...menuItemStyle,
-              gap: '8px',
-            },
-            onClick: (e: Event) => { e.stopPropagation(); handlePrioritySelect(opt.value as 'low' | 'medium' | 'high' | 'critical'); },
-            role: 'menuitem',
-            'data-testid': `context-priority-${opt.value}`,
-          },
-            createElement('span', {
-              style: {
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: PRIORITY_COLORS[opt.value] || '#94a3b8',
-                display: 'inline-block',
-                flexShrink: '0',
-              },
-            }),
-            opt.label,
-            opt.value === card.priority ? ' \u2713' : '',
-          ),
-        ),
-      ) : null,
-    ),
-  ) : null;
-
   return createElement('div', {
     ref: cardRef,
     className: 'board-card',
@@ -801,6 +595,5 @@ export function Card(props: CardProps) {
       onMouseDown: (e: Event) => handleAnchorMouseDown('left', e),
       'aria-label': 'Connection anchor left',
     }),
-    contextMenuEl,
   );
 }

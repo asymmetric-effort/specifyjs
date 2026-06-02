@@ -14,6 +14,7 @@ import { UnityDesktop } from "../../../components/page/unity-desktop/src/index";
 import { WordProcessor } from "../../../components/page/word-processor/src/index";
 import { IDE } from "../../../components/page/ide/src/index";
 import { TradingDashboard } from "../../../components/page/trading-dashboard/src/index";
+import { ProjectManagerApp } from "../../../demos/project-manager/src/index";
 // Form components
 import { Button } from "../../../components/form/button/src/index";
 import { Toggle } from "../../../components/form/toggle/src/index";
@@ -3141,6 +3142,7 @@ const PAGE_LAYOUTS = [
         { id: 'word', icon: 'W', label: 'Word Processor' },
         { id: 'ide', icon: 'I', label: 'IDE' },
         { id: 'trading', icon: 'T', label: 'Trading' },
+        { id: 'board', icon: 'B', label: 'Project Board' },
       ],
       user: { name: 'Demo User' },
       theme: 'dark' as const,

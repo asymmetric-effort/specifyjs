@@ -21,6 +21,7 @@ import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import { WordProcessor } from '../../../page/word-processor/src/index';
 import { IDE } from '../../../page/ide/src/index';
 import { TradingDashboard } from '../../../page/trading-dashboard/src/index';
+import { ProjectManagerApp } from '../../../../demos/project-manager/src/index';
 import type { DockItem } from '../../../nav/dock/src/index';
 import type { DockSignal } from '../../../layout/window-manager/src/index';
 
@@ -284,6 +285,8 @@ function getMockContent(title: string): unknown {
       return createElement(IDE, null);
     case 'Trading':
       return createElement(TradingDashboard, null);
+    case 'Project Board':
+      return createElement(ProjectManagerApp, null);
     default:
       return createElement('div', { style: contentStyle },
         createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#94a3b8' } }, `${title} application content`),

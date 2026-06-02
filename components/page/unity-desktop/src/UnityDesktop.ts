@@ -348,6 +348,9 @@ function UnityDesktopInner(props: {
   const wm = useWindowManager();
   const wmActiveMenuBar = wm.activeMenuBar;
   const wmDockSignals = wm.dockSignals;
+  // Stable refs for WM methods to avoid dependency churn in useCallbacks
+  const wmRef = useRef(wm);
+  wmRef.current = wm;
 
   // -----------------------------------------------------------------------
   // Local window state (direct state, not context-dependent)
@@ -428,7 +431,7 @@ function UnityDesktopInner(props: {
 
     // Register demo menu bars and dock signals for specific apps
     if (appId === 'files') {
-      wm.setMenuBar('files', {
+      wmRef.current.setMenuBar('files', {
         menus: [
           {
             label: 'File',
@@ -450,11 +453,11 @@ function UnityDesktopInner(props: {
       });
     }
     if (appId === 'terminal') {
-      wm.signalDock('terminal', { badge: 3 });
+      wmRef.current.signalDock('terminal', { badge: 3 });
     }
 
     if (onAppOpenRef.current) onAppOpenRef.current(appId);
-  }, [wm]);
+  }, []);
 
   /**
    * Focus/restore a specific window instance by its unique window id.
@@ -517,7 +520,7 @@ function UnityDesktopInner(props: {
 
         // Side-effects for demo menu bars / dock signals
         if (appId === 'files') {
-          wm.setMenuBar('files', {
+          wmRef.current.setMenuBar('files', {
             menus: [
               {
                 label: 'File',
@@ -539,7 +542,7 @@ function UnityDesktopInner(props: {
           });
         }
         if (appId === 'terminal') {
-          wm.signalDock('terminal', { badge: 3 });
+          wmRef.current.signalDock('terminal', { badge: 3 });
         }
         if (onAppOpenRef.current) onAppOpenRef.current(appId);
 
@@ -547,7 +550,7 @@ function UnityDesktopInner(props: {
       }
       return prev;
     });
-  }, [wm]);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Build dock items from apps + running state

@@ -488,7 +488,7 @@ export function Card(props: CardProps) {
       ? createElement('input', {
           ref: titleInputRef,
           type: 'text',
-          value: card.title || '',
+          defaultValue: card.title || '',
           style: {
             ...titleStyle,
             width: '100%',
@@ -514,7 +514,7 @@ export function Card(props: CardProps) {
     editingDescription
       ? createElement('textarea', {
           ref: descTextareaRef,
-          value: card.description || '',
+          defaultValue: card.description || '',
           style: {
             ...descStyle,
             width: '100%',

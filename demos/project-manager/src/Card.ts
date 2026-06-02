@@ -47,6 +47,7 @@ export interface CardProps {
   onResize: (cardId: string, size: { width: number; height: number }) => void;
   onDelete: (cardId: string) => void;
   onDoubleClick: (cardId: string) => void;
+  onUpdate?: (cardId: string, updates: { title?: string; description?: string }) => void;
   onDragStart?: (cardId: string, e: Event) => void;
   onDuplicate?: (cardId: string) => void;
   onChangeColor?: (cardId: string, color: string) => void;
@@ -60,17 +61,21 @@ export interface CardProps {
 
 export function Card(props: CardProps) {
   const {
-    card, selected, onSelect, onMove, onResize, onDelete, onDoubleClick, onDragStart,
-    onDuplicate, onChangeColor, onChangePriority, onAnchorDragStart,
+    card, selected, onSelect, onMove, onResize, onDelete, onDoubleClick, onUpdate,
+    onDragStart, onDuplicate, onChangeColor, onChangePriority, onAnchorDragStart,
   } = props;
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
   const [prioritySubmenuOpen, setPrioritySubmenuOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; cardX: number; cardY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const contextMenuRef = useRef<HTMLElement | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const priorityColor = card.priority ? PRIORITY_COLORS[card.priority] || '#94a3b8' : 'transparent';
 
@@ -153,6 +158,81 @@ export function Card(props: CardProps) {
   }, [card.id, onChangePriority, closeContextMenu]);
 
   // -----------------------------------------------------------------------
+  // Inline editing: focus inputs when editing state changes
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    if (editingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [editingTitle]);
+
+  useEffect(() => {
+    if (editingDescription && descTextareaRef.current) {
+      descTextareaRef.current.focus();
+    }
+  }, [editingDescription]);
+
+  const handleTitleDoubleClick = useCallback((e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingTitle(true);
+  }, []);
+
+  const handleTitleKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter') {
+      ke.preventDefault();
+      const input = ke.target as HTMLInputElement;
+      const newTitle = input.value.trim();
+      if (newTitle && newTitle !== card.title && onUpdate) {
+        onUpdate(card.id, { title: newTitle });
+      }
+      setEditingTitle(false);
+    } else if (ke.key === 'Escape') {
+      ke.preventDefault();
+      setEditingTitle(false);
+    }
+  }, [card.id, card.title, onUpdate]);
+
+  const handleTitleBlur = useCallback((e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const newTitle = input.value.trim();
+    if (newTitle && newTitle !== card.title && onUpdate) {
+      onUpdate(card.id, { title: newTitle });
+    }
+    setEditingTitle(false);
+  }, [card.id, card.title, onUpdate]);
+
+  const handleDescriptionClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    setEditingDescription(true);
+  }, []);
+
+  const handleDescriptionKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Escape') {
+      ke.preventDefault();
+      const textarea = ke.target as HTMLTextAreaElement;
+      const newDesc = textarea.value;
+      if (newDesc !== card.description && onUpdate) {
+        onUpdate(card.id, { description: newDesc });
+      }
+      setEditingDescription(false);
+    }
+  }, [card.id, card.description, onUpdate]);
+
+  const handleDescriptionBlur = useCallback((e: Event) => {
+    const textarea = e.target as HTMLTextAreaElement;
+    const newDesc = textarea.value;
+    if (newDesc !== card.description && onUpdate) {
+      onUpdate(card.id, { description: newDesc });
+    }
+    setEditingDescription(false);
+  }, [card.id, card.description, onUpdate]);
+
+  // -----------------------------------------------------------------------
   // Anchor drag (for connection creation)
   // -----------------------------------------------------------------------
 
@@ -182,7 +262,7 @@ export function Card(props: CardProps) {
     const me = e as MouseEvent;
     // Don't start drag if clicking delete button or resize handle
     const target = me.target as HTMLElement;
-    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'anchor' || target.dataset.role === 'drag-handle')) return;
+    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'anchor' || target.dataset.role === 'drag-handle' || target.dataset.role === 'inline-edit')) return;
 
     me.preventDefault();
     me.stopPropagation();
@@ -260,8 +340,8 @@ export function Card(props: CardProps) {
   const handleDoubleClick = useCallback((e: Event) => {
     e.preventDefault();
     e.stopPropagation();
-    onDoubleClick(card.id);
-  }, [card.id, onDoubleClick]);
+    // No longer opens modal — inline editing handles title/description edits directly
+  }, []);
 
   const handleDeleteClick = useCallback((e: Event) => {
     e.preventDefault();
@@ -610,8 +690,60 @@ export function Card(props: CardProps) {
     'aria-label': `Card: ${card.title}`,
     tabIndex: 0,
   },
-    createElement('div', { style: titleStyle }, card.title || 'Untitled'),
-    createElement('div', { style: descStyle }, card.description || ''),
+    editingTitle
+      ? createElement('input', {
+          ref: titleInputRef,
+          type: 'text',
+          value: card.title || '',
+          style: {
+            ...titleStyle,
+            width: '100%',
+            border: 'none',
+            outline: 'none',
+            backgroundColor: 'transparent',
+            padding: '0',
+            margin: '0',
+            fontFamily: 'inherit',
+            boxSizing: 'border-box',
+          },
+          'data-role': 'inline-edit',
+          'data-testid': `card-title-input-${card.id}`,
+          onKeyDown: handleTitleKeyDown,
+          onBlur: handleTitleBlur,
+          onMouseDown: (e: Event) => e.stopPropagation(),
+        })
+      : createElement('div', {
+          style: titleStyle,
+          onDblClick: handleTitleDoubleClick,
+          'data-testid': `card-title-${card.id}`,
+        }, card.title || 'Untitled'),
+    editingDescription
+      ? createElement('textarea', {
+          ref: descTextareaRef,
+          value: card.description || '',
+          style: {
+            ...descStyle,
+            width: '100%',
+            border: 'none',
+            outline: 'none',
+            backgroundColor: 'transparent',
+            padding: '0',
+            margin: '0',
+            fontFamily: 'inherit',
+            resize: 'none',
+            boxSizing: 'border-box',
+          },
+          'data-role': 'inline-edit',
+          'data-testid': `card-desc-input-${card.id}`,
+          onKeyDown: handleDescriptionKeyDown,
+          onBlur: handleDescriptionBlur,
+          onMouseDown: (e: Event) => e.stopPropagation(),
+        })
+      : createElement('div', {
+          style: descStyle,
+          onClick: handleDescriptionClick,
+          'data-testid': `card-desc-${card.id}`,
+        }, card.description || ''),
     tagsEl,
     assigneeEl,
     createElement('div', {

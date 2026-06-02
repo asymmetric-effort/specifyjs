@@ -328,9 +328,15 @@ export function Board(props: BoardProps) {
     if (selectedCardId === cardId) onSelectCard(null);
   }, [dispatch, selectedCardId, onSelectCard]);
 
-  const handleDoubleClickCard = useCallback((cardId: string) => {
-    setEditingCardId(cardId);
+  const handleDoubleClickCard = useCallback((_cardId: string) => {
+    // No longer opens CardEditor modal on double-click.
+    // Inline editing on the Card component handles title/description edits directly.
+    // The CardEditor overlay remains available for potential menu-based "Edit Card" action.
   }, []);
+
+  const handleUpdateCard = useCallback((cardId: string, updates: { title?: string; description?: string }) => {
+    dispatch({ type: 'UPDATE_CARD', cardId, updates });
+  }, [dispatch]);
 
   const handleEditorSave = useCallback((cardId: string, updates: { title: string; description: string }) => {
     dispatch({ type: 'UPDATE_CARD', cardId, updates });
@@ -492,6 +498,7 @@ export function Board(props: BoardProps) {
       onResize: handleResizeCard,
       onDelete: handleDeleteCard,
       onDoubleClick: handleDoubleClickCard,
+      onUpdate: handleUpdateCard,
       onDuplicate: handleDuplicateCard,
       onChangeColor: handleChangeColor,
       onChangePriority: handleChangePriority,

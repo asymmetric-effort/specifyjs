@@ -9,6 +9,7 @@ import {
 } from '../src/BoardState';
 import type { BoardAction, HistoryState } from '../src/BoardState';
 import type { BoardState, ProjectCard, CardConnection } from '../src/types';
+import { snapToGrid, screenToCanvas, computeFitAll } from '../src/Board';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -558,5 +559,221 @@ describe('historyReducer', () => {
       const result = historyReducer(history, { type: 'UNKNOWN' } as unknown as { type: 'UNDO' });
       expect(result).toBe(history);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DUPLICATE_CARD tests
+// ---------------------------------------------------------------------------
+
+describe('boardReducer DUPLICATE_CARD', () => {
+  it('should duplicate an existing card with offset', () => {
+    const card = makeCard({ id: 'card-1', position: { x: 100, y: 100 } });
+    const state = makeState({ cards: [card] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'card-1',
+      newId: 'card-dup',
+    });
+    expect(result.cards).toHaveLength(2);
+    expect(result.cards[1].id).toBe('card-dup');
+    // Default offset is 20,20
+    expect(result.cards[1].position.x).toBe(120);
+    expect(result.cards[1].position.y).toBe(120);
+  });
+
+  it('should duplicate with custom offset', () => {
+    const card = makeCard({ id: 'card-1', position: { x: 50, y: 50 } });
+    const state = makeState({ cards: [card] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'card-1',
+      newId: 'card-dup',
+      offset: { x: 40, y: 40 },
+    });
+    expect(result.cards[1].position).toEqual({ x: 90, y: 90 });
+  });
+
+  it('should preserve card properties in duplicate', () => {
+    const card = makeCard({
+      id: 'card-1',
+      title: 'Original',
+      description: 'Desc',
+      color: '#ff0000',
+      priority: 'high',
+      tags: ['tag1'],
+    });
+    const state = makeState({ cards: [card] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'card-1',
+      newId: 'card-dup',
+    });
+    const dup = result.cards[1];
+    expect(dup.title).toBe('Original');
+    expect(dup.description).toBe('Desc');
+    expect(dup.color).toBe('#ff0000');
+    expect(dup.priority).toBe('high');
+  });
+
+  it('should set new createdAt and updatedAt on duplicate', () => {
+    const card = makeCard({ id: 'card-1', createdAt: 1000, updatedAt: 1000 });
+    const state = makeState({ cards: [card] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'card-1',
+      newId: 'card-dup',
+    });
+    expect(result.cards[1].createdAt).toBeGreaterThan(1000);
+    expect(result.cards[1].updatedAt).toBeGreaterThan(1000);
+  });
+
+  it('should return same state if source card not found', () => {
+    const state = makeState({ cards: [makeCard({ id: 'card-1' })] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'nonexistent',
+      newId: 'card-dup',
+    });
+    expect(result.cards).toHaveLength(1);
+    expect(result).toBe(state);
+  });
+
+  it('should not duplicate connections', () => {
+    const card1 = makeCard({ id: 'card-1' });
+    const card2 = makeCard({ id: 'card-2' });
+    const conn = makeConnection({ fromCardId: 'card-1', toCardId: 'card-2' });
+    const state = makeState({ cards: [card1, card2], connections: [conn] });
+    const result = boardReducer(state, {
+      type: 'DUPLICATE_CARD',
+      cardId: 'card-1',
+      newId: 'card-dup',
+    });
+    expect(result.connections).toHaveLength(1);
+    expect(result.cards).toHaveLength(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// snapToGrid tests
+// ---------------------------------------------------------------------------
+
+describe('snapToGrid', () => {
+  it('should snap to nearest grid point', () => {
+    expect(snapToGrid({ x: 13, y: 27 }, 20)).toEqual({ x: 20, y: 20 });
+  });
+
+  it('should snap exact grid point to itself', () => {
+    expect(snapToGrid({ x: 40, y: 60 }, 20)).toEqual({ x: 40, y: 60 });
+  });
+
+  it('should snap zero to zero', () => {
+    expect(snapToGrid({ x: 0, y: 0 }, 20)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('should snap negative values correctly', () => {
+    expect(snapToGrid({ x: -13, y: -27 }, 20)).toEqual({ x: -20, y: -20 });
+  });
+
+  it('should snap values just below midpoint down', () => {
+    expect(snapToGrid({ x: 9, y: 9 }, 20)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('should snap values at midpoint up (round half up)', () => {
+    expect(snapToGrid({ x: 10, y: 10 }, 20)).toEqual({ x: 20, y: 20 });
+  });
+
+  it('should work with different grid sizes', () => {
+    expect(snapToGrid({ x: 17, y: 33 }, 10)).toEqual({ x: 20, y: 30 });
+  });
+
+  it('should work with grid size 1', () => {
+    expect(snapToGrid({ x: 13.7, y: 27.3 }, 1)).toEqual({ x: 14, y: 27 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// screenToCanvas tests
+// ---------------------------------------------------------------------------
+
+describe('screenToCanvas', () => {
+  it('should convert screen coords with no pan or zoom', () => {
+    const result = screenToCanvas(100, 200, { panX: 0, panY: 0, zoom: 1 });
+    expect(result).toEqual({ x: 100, y: 200 });
+  });
+
+  it('should account for pan offset', () => {
+    const result = screenToCanvas(100, 200, { panX: 50, panY: 100, zoom: 1 });
+    expect(result).toEqual({ x: 50, y: 100 });
+  });
+
+  it('should account for zoom', () => {
+    const result = screenToCanvas(200, 400, { panX: 0, panY: 0, zoom: 2 });
+    expect(result).toEqual({ x: 100, y: 200 });
+  });
+
+  it('should account for both pan and zoom', () => {
+    const result = screenToCanvas(100, 100, { panX: 50, panY: 50, zoom: 0.5 });
+    expect(result).toEqual({ x: 100, y: 100 });
+  });
+
+  it('should handle negative pan', () => {
+    const result = screenToCanvas(0, 0, { panX: -100, panY: -200, zoom: 1 });
+    expect(result).toEqual({ x: 100, y: 200 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeFitAll tests
+// ---------------------------------------------------------------------------
+
+describe('computeFitAll', () => {
+  it('should return default viewport for empty cards', () => {
+    const result = computeFitAll([], 800, 600);
+    expect(result).toEqual({ panX: 0, panY: 0, zoom: 1 });
+  });
+
+  it('should fit a single card', () => {
+    const cards = [makeCard({ position: { x: 100, y: 100 }, size: { width: 180, height: 120 } })];
+    const result = computeFitAll(cards, 800, 600);
+    expect(result.zoom).toBeGreaterThan(0);
+    expect(result.zoom).toBeLessThanOrEqual(4.0);
+  });
+
+  it('should fit multiple cards', () => {
+    const cards = [
+      makeCard({ id: 'c1', position: { x: 0, y: 0 }, size: { width: 100, height: 100 } }),
+      makeCard({ id: 'c2', position: { x: 500, y: 500 }, size: { width: 100, height: 100 } }),
+    ];
+    const result = computeFitAll(cards, 800, 600);
+    expect(result.zoom).toBeGreaterThan(0);
+    expect(result.zoom).toBeLessThanOrEqual(4.0);
+  });
+
+  it('should clamp zoom to minimum 0.25', () => {
+    // Cards spread very far apart
+    const cards = [
+      makeCard({ id: 'c1', position: { x: 0, y: 0 }, size: { width: 100, height: 100 } }),
+      makeCard({ id: 'c2', position: { x: 100000, y: 100000 }, size: { width: 100, height: 100 } }),
+    ];
+    const result = computeFitAll(cards, 800, 600);
+    expect(result.zoom).toBeGreaterThanOrEqual(0.25);
+  });
+
+  it('should clamp zoom to maximum 4.0', () => {
+    // Single small card in a very large container
+    const cards = [
+      makeCard({ position: { x: 0, y: 0 }, size: { width: 1, height: 1 } }),
+    ];
+    const result = computeFitAll(cards, 80000, 60000);
+    expect(result.zoom).toBeLessThanOrEqual(4.0);
+  });
+
+  it('should use custom padding', () => {
+    const cards = [makeCard({ position: { x: 100, y: 100 }, size: { width: 180, height: 120 } })];
+    const result1 = computeFitAll(cards, 800, 600, 0);
+    const result2 = computeFitAll(cards, 800, 600, 100);
+    // More padding = smaller zoom to fit
+    expect(result2.zoom).toBeLessThanOrEqual(result1.zoom);
   });
 });

@@ -31,11 +31,13 @@ export interface ToolbarProps {
   zoom: number;
   gridEnabled: boolean;
   selectedColor: string;
+  colorFilter?: string | null;
   onNewCard: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onZoomReset: () => void;
   onColorSelect: (color: string) => void;
+  onColorFilter?: (color: string | null) => void;
   onGridToggle: () => void;
   onSearch: (query: string) => void;
 }
@@ -46,9 +48,9 @@ export interface ToolbarProps {
 
 export function BoardToolbar(props: ToolbarProps) {
   const {
-    zoom, gridEnabled, selectedColor,
+    zoom, gridEnabled, selectedColor, colorFilter,
     onNewCard, onZoomIn, onZoomOut, onZoomReset,
-    onColorSelect, onGridToggle, onSearch,
+    onColorSelect, onColorFilter, onGridToggle, onSearch,
   } = props;
 
   const [searchText, setSearchText] = useState('');
@@ -117,9 +119,28 @@ export function BoardToolbar(props: ToolbarProps) {
     outline: 'none',
   };
 
-  // Color swatches
+  // Color swatches — click selects color for new cards; if already selected,
+  // toggles color filter. Click active filter to clear.
   const swatches = CARD_COLORS.map((color: string) => {
     const isActive = color === selectedColor;
+    const isFiltered = color === colorFilter;
+
+    const handleSwatchClick = () => {
+      if (isActive && onColorFilter) {
+        // Already selected: toggle filter
+        onColorFilter(isFiltered ? null : color);
+      } else {
+        onColorSelect(color);
+      }
+    };
+
+    let borderStyle = '1px solid rgba(0,0,0,0.15)';
+    if (isFiltered) {
+      borderStyle = '3px solid #ef4444';
+    } else if (isActive) {
+      borderStyle = '2px solid #3b82f6';
+    }
+
     return createElement('button', {
       key: color,
       style: {
@@ -127,13 +148,14 @@ export function BoardToolbar(props: ToolbarProps) {
         height: '18px',
         borderRadius: '50%',
         backgroundColor: color,
-        border: isActive ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.15)',
+        border: borderStyle,
         cursor: 'pointer',
         padding: '0',
         flexShrink: '0',
+        opacity: isFiltered ? '1' : (colorFilter ? '0.5' : '1'),
       },
-      onClick: () => onColorSelect(color),
-      'aria-label': `Select color ${color}`,
+      onClick: handleSwatchClick,
+      'aria-label': isFiltered ? `Clear color filter ${color}` : `Select color ${color}`,
       'data-testid': `color-swatch-${color}`,
     });
   });

@@ -20,6 +20,7 @@ export type BoardAction =
   | { type: 'MOVE_CARD'; cardId: string; position: { x: number; y: number } }
   | { type: 'RESIZE_CARD'; cardId: string; size: { width: number; height: number } }
   | { type: 'UPDATE_CARD'; cardId: string; updates: Partial<ProjectCard> }
+  | { type: 'DUPLICATE_CARD'; cardId: string; newId: string; offset?: { x: number; y: number } }
   | { type: 'ADD_CONNECTION'; connection: CardConnection }
   | { type: 'REMOVE_CONNECTION'; connectionId: string }
   | { type: 'PAN'; panX: number; panY: number }
@@ -95,6 +96,26 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
             : c,
         ),
       };
+
+    case 'DUPLICATE_CARD': {
+      const source = state.cards.find((c: ProjectCard) => c.id === action.cardId);
+      if (!source) return state;
+      const offset = action.offset || { x: 20, y: 20 };
+      const duplicate: ProjectCard = {
+        ...source,
+        id: action.newId,
+        position: {
+          x: source.position.x + offset.x,
+          y: source.position.y + offset.y,
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      return {
+        ...state,
+        cards: [...state.cards, duplicate],
+      };
+    }
 
     case 'ADD_CONNECTION':
       return {

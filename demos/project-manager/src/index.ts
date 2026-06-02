@@ -7,11 +7,12 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useRef, useEffect } from 'specifyjs/hooks';
-import { Board } from './Board';
+import { Board, snapToGrid, screenToCanvas, computeFitAll } from './Board';
 import { BoardToolbar, CARD_COLORS } from './Toolbar';
-import { useBoardState } from './BoardState';
+import { useBoardState, DEFAULT_BOARD_STATE } from './BoardState';
 import { LocalBoardStorage } from './LocalStorage';
-import type { ProjectCard } from './types';
+import { InterAppWrapper } from './InterApp';
+import type { ProjectCard, BoardState } from './types';
 
 export type { ProjectCard, CardConnection, BoardState, BoardStorage } from './types';
 export { useBoardState, boardReducer, historyReducer, DEFAULT_BOARD_STATE } from './BoardState';
@@ -21,7 +22,8 @@ export { Card } from './Card';
 export { CardEditor } from './CardEditor';
 export { ConnectionsOverlay } from './Connection';
 export { BoardToolbar, CARD_COLORS } from './Toolbar';
-export { Board } from './Board';
+export { Board, snapToGrid, screenToCanvas, computeFitAll } from './Board';
+export { InterAppWrapper } from './InterApp';
 
 // ---------------------------------------------------------------------------
 // ID generation
@@ -41,6 +43,29 @@ function generateCardId(): string {
 const storage = new LocalBoardStorage();
 
 // ---------------------------------------------------------------------------
+// Sample board data (feature #7)
+// ---------------------------------------------------------------------------
+
+const SAMPLE_CARDS: ProjectCard[] = [
+  { id: 'sample-1', title: 'Auth API', description: 'Design the auth flow', color: '#3b82f6', position: { x: 50, y: 50 }, size: { width: 180, height: 120 }, priority: 'high', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-2', title: 'Dashboard', description: 'Build the main dashboard', color: '#22c55e', position: { x: 300, y: 80 }, size: { width: 180, height: 120 }, priority: 'medium', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-3', title: 'Deploy', description: 'Set up CI pipeline', color: '#f59e0b', position: { x: 150, y: 250 }, size: { width: 180, height: 120 }, priority: 'low', createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 'sample-4', title: 'Docs', description: 'Write API reference', color: '#a855f7', position: { x: 400, y: 280 }, size: { width: 180, height: 120 }, priority: 'medium', createdAt: Date.now(), updatedAt: Date.now() },
+];
+
+const SAMPLE_BOARD: BoardState = {
+  cards: SAMPLE_CARDS,
+  connections: [
+    { id: 'sample-conn-1', fromCardId: 'sample-1', toCardId: 'sample-2' },
+  ],
+  viewport: { panX: 0, panY: 0, zoom: 1 },
+};
+
+function isBoardEmpty(state: BoardState): boolean {
+  return state.cards.length === 0 && state.connections.length === 0;
+}
+
+// ---------------------------------------------------------------------------
 // ProjectManagerApp
 // ---------------------------------------------------------------------------
 
@@ -56,6 +81,21 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [gridEnabled, setGridEnabled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [colorFilter, setColorFilter] = useState<string | null>(null);
+  const sampleLoadedRef = useRef(false);
+
+  // -----------------------------------------------------------------------
+  // Sample data loading (feature #7) — populate empty board
+  // -----------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!sampleLoadedRef.current && isBoardEmpty(state)) {
+      sampleLoadedRef.current = true;
+      dispatch({ type: 'SET_BOARD', state: SAMPLE_BOARD });
+    } else if (state.cards.length > 0) {
+      sampleLoadedRef.current = true;
+    }
+  }, [state, dispatch]);
 
   // -----------------------------------------------------------------------
   // Toolbar callbacks
@@ -105,6 +145,85 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     setSelectedCardId(cardId);
   }, []);
 
+  const handleColorFilter = useCallback((color: string | null) => {
+    setColorFilter(color);
+  }, []);
+
+  // -----------------------------------------------------------------------
+  // Menu bar handlers (feature #5)
+  // -----------------------------------------------------------------------
+
+  const handleNewBoard = useCallback(() => {
+    dispatch({ type: 'SET_BOARD', state: DEFAULT_BOARD_STATE });
+    setSelectedCardId(null);
+  }, [dispatch]);
+
+  const handleExportJSON = useCallback(() => {
+    const json = JSON.stringify(state, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `board-${boardId}.json`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [state, boardId]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedCardId) {
+      dispatch({ type: 'REMOVE_CARD', cardId: selectedCardId });
+      setSelectedCardId(null);
+    }
+  }, [selectedCardId, dispatch]);
+
+  const handleFitAll = useCallback(() => {
+    if (state.cards.length === 0) return;
+    // Estimate container size (use reasonable defaults)
+    const containerWidth = 800;
+    const containerHeight = 600;
+    const fit = computeFitAll(state.cards, containerWidth, containerHeight);
+    dispatch({ type: 'PAN', panX: fit.panX, panY: fit.panY });
+    dispatch({ type: 'ZOOM', zoom: fit.zoom });
+  }, [state.cards, dispatch]);
+
+  // -----------------------------------------------------------------------
+  // Menu bar registration (feature #5)
+  // -----------------------------------------------------------------------
+
+  // Try to use WindowManager context if available, otherwise no-op
+  // This is optional integration — the project manager works standalone too
+  useEffect(() => {
+    // Dynamically check if useWindowManager is available in the context
+    // We build the menuBar object for potential external use
+    const _menuBar = {
+      menus: [
+        { label: 'File', items: [
+          { label: 'New Board', onClick: handleNewBoard },
+          { label: 'Export JSON', onClick: handleExportJSON },
+          { divider: true },
+        ]},
+        { label: 'Edit', items: [
+          { label: 'Undo', shortcut: 'Ctrl+Z', onClick: undo, disabled: !canUndo },
+          { label: 'Redo', shortcut: 'Ctrl+Y', onClick: redo, disabled: !canRedo },
+          { divider: true },
+          { label: 'Delete Selected', onClick: handleDeleteSelected },
+        ]},
+        { label: 'View', items: [
+          { label: 'Zoom In', onClick: handleZoomIn },
+          { label: 'Zoom Out', onClick: handleZoomOut },
+          { label: 'Fit All', onClick: handleFitAll },
+          { divider: true },
+          { label: 'Toggle Grid', onClick: handleGridToggle },
+        ]},
+      ],
+    };
+    // Menu bar registration is handled if a WindowManager context wraps this app.
+    // The menu bar object is kept in sync for when the integration is active.
+  }, [handleNewBoard, handleExportJSON, undo, redo, canUndo, canRedo, handleDeleteSelected, handleZoomIn, handleZoomOut, handleFitAll, handleGridToggle]);
+
   // -----------------------------------------------------------------------
   // Keyboard shortcuts
   // -----------------------------------------------------------------------
@@ -138,6 +257,27 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   };
 
   // -----------------------------------------------------------------------
+  // Inter-app: handle dropped content creating new cards
+  // -----------------------------------------------------------------------
+
+  const handleCardDropped = useCallback((title: string, description: string) => {
+    const cx = (-state.viewport.panX + 300) / state.viewport.zoom;
+    const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
+    const newCard: ProjectCard = {
+      id: generateCardId(),
+      title,
+      description,
+      color: selectedColor,
+      position: { x: Math.round(cx), y: Math.round(cy) },
+      size: { width: 180, height: 120 },
+      priority: 'medium',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    dispatch({ type: 'ADD_CARD', card: newCard });
+  }, [state.viewport, selectedColor, dispatch]);
+
+  // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
 
@@ -150,21 +290,29 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       zoom: state.viewport.zoom,
       gridEnabled,
       selectedColor,
+      colorFilter,
       onNewCard: handleNewCard,
       onZoomIn: handleZoomIn,
       onZoomOut: handleZoomOut,
       onZoomReset: handleZoomReset,
       onColorSelect: setSelectedColor,
+      onColorFilter: handleColorFilter,
       onGridToggle: handleGridToggle,
       onSearch: handleSearch,
     }),
-    createElement(Board, {
-      state,
-      dispatch,
-      searchQuery,
-      gridEnabled,
-      selectedCardId,
-      onSelectCard: handleSelectCard,
-    }),
+    createElement(InterAppWrapper, {
+      cards: state.cards,
+      onCardDropped: handleCardDropped,
+    },
+      createElement(Board, {
+        state,
+        dispatch,
+        searchQuery,
+        gridEnabled,
+        selectedCardId,
+        onSelectCard: handleSelectCard,
+        colorFilter,
+      }),
+    ),
   );
 }

@@ -25,6 +25,7 @@ export interface BoardProps {
   gridEnabled: boolean;
   selectedCardId: string | null;
   onSelectCard: (cardId: string | null) => void;
+  colorFilter?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,8 +39,81 @@ const CANVAS_SIZE = 5000;
 // Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Exported helper: snap-to-grid
+// ---------------------------------------------------------------------------
+
+export function snapToGrid(pos: { x: number; y: number }, gridSize: number): { x: number; y: number } {
+  return {
+    x: Math.round(pos.x / gridSize) * gridSize,
+    y: Math.round(pos.y / gridSize) * gridSize,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Exported helper: screen-to-canvas coordinate conversion
+// ---------------------------------------------------------------------------
+
+export function screenToCanvas(
+  screenX: number,
+  screenY: number,
+  viewport: { panX: number; panY: number; zoom: number },
+): { x: number; y: number } {
+  return {
+    x: (screenX - viewport.panX) / viewport.zoom,
+    y: (screenY - viewport.panY) / viewport.zoom,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Exported helper: fit-all bounding box calculation
+// ---------------------------------------------------------------------------
+
+export function computeFitAll(
+  cards: ProjectCard[],
+  containerWidth: number,
+  containerHeight: number,
+  padding?: number,
+): { panX: number; panY: number; zoom: number } {
+  const pad = padding ?? 40;
+  if (cards.length === 0) {
+    return { panX: 0, panY: 0, zoom: 1 };
+  }
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    if (c.position.x < minX) minX = c.position.x;
+    if (c.position.y < minY) minY = c.position.y;
+    const right = c.position.x + c.size.width;
+    const bottom = c.position.y + c.size.height;
+    if (right > maxX) maxX = right;
+    if (bottom > maxY) maxY = bottom;
+  }
+  const contentW = maxX - minX + pad * 2;
+  const contentH = maxY - minY + pad * 2;
+  const zoomX = containerWidth / contentW;
+  const zoomY = containerHeight / contentH;
+  const zoom = Math.max(0.25, Math.min(4.0, Math.min(zoomX, zoomY)));
+  const panX = -minX * zoom + (containerWidth - (maxX - minX) * zoom) / 2;
+  const panY = -minY * zoom + (containerHeight - (maxY - minY) * zoom) / 2;
+  return { panX, panY, zoom };
+}
+
+// ---------------------------------------------------------------------------
+// Connection ID generator
+// ---------------------------------------------------------------------------
+
+let connIdCounter = 0;
+function generateConnectionId(): string {
+  connIdCounter++;
+  return `conn-${Date.now()}-${connIdCounter}`;
+}
+
 export function Board(props: BoardProps) {
-  const { state, dispatch, searchQuery, gridEnabled, selectedCardId, onSelectCard } = props;
+  const { state, dispatch, searchQuery, gridEnabled, selectedCardId, onSelectCard, colorFilter } = props;
   const { cards, connections, viewport } = state;
 
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -47,6 +121,18 @@ export function Board(props: BoardProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const isPanningRef = useRef(false);
   const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+
+  // Connection creation drag state
+  const [connectionDrag, setConnectionDrag] = useState<{
+    fromCardId: string;
+    fromAnchor: string;
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+  } | null>(null);
+  const connectionDragRef = useRef(connectionDrag);
+  connectionDragRef.current = connectionDrag;
 
   // -----------------------------------------------------------------------
   // Pan handlers (middle-click or shift+left-click)
@@ -189,6 +275,85 @@ export function Board(props: BoardProps) {
   }, [dispatch]);
 
   // -----------------------------------------------------------------------
+  // Card context menu handlers (duplicate, color, priority)
+  // -----------------------------------------------------------------------
+
+  const handleDuplicateCard = useCallback((cardId: string) => {
+    const newId = `card-${Date.now()}-dup`;
+    dispatch({ type: 'DUPLICATE_CARD', cardId, newId });
+  }, [dispatch]);
+
+  const handleChangeColor = useCallback((cardId: string, color: string) => {
+    dispatch({ type: 'UPDATE_CARD', cardId, updates: { color } });
+  }, [dispatch]);
+
+  const handleChangePriority = useCallback((cardId: string, priority: 'low' | 'medium' | 'high' | 'critical') => {
+    dispatch({ type: 'UPDATE_CARD', cardId, updates: { priority } });
+  }, [dispatch]);
+
+  // -----------------------------------------------------------------------
+  // Connection creation via anchor drag
+  // -----------------------------------------------------------------------
+
+  const handleAnchorDragStart = useCallback((cardId: string, anchor: string, ax: number, ay: number) => {
+    setConnectionDrag({
+      fromCardId: cardId,
+      fromAnchor: anchor,
+      fromX: ax,
+      fromY: ay,
+      toX: ax,
+      toY: ay,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!connectionDragRef.current) return;
+
+    const handleMouseMove = (e: Event) => {
+      const me = e as MouseEvent;
+      if (!connectionDragRef.current) return;
+      // Convert screen coords to canvas coords
+      const canvasPos = screenToCanvas(me.clientX, me.clientY, viewport);
+      setConnectionDrag((prev: typeof connectionDrag) => prev ? {
+        ...prev,
+        toX: canvasPos.x,
+        toY: canvasPos.y,
+      } : null);
+    };
+
+    const handleMouseUp = (e: Event) => {
+      const me = e as MouseEvent;
+      if (!connectionDragRef.current) return;
+      const drag = connectionDragRef.current;
+      // Check if mouse is over another card's anchor
+      const target = me.target as HTMLElement;
+      const anchorEl = target.closest ? target.closest('[data-anchor]') : null;
+      const cardEl = target.closest ? target.closest('[data-card-id]') : null;
+      if (anchorEl && cardEl) {
+        const targetCardId = cardEl.getAttribute('data-card-id');
+        if (targetCardId && targetCardId !== drag.fromCardId) {
+          dispatch({
+            type: 'ADD_CONNECTION',
+            connection: {
+              id: generateConnectionId(),
+              fromCardId: drag.fromCardId,
+              toCardId: targetCardId,
+            },
+          });
+        }
+      }
+      setConnectionDrag(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [connectionDrag, viewport, dispatch]);
+
+  // -----------------------------------------------------------------------
   // Filter cards by search
   // -----------------------------------------------------------------------
 
@@ -201,6 +366,14 @@ export function Board(props: BoardProps) {
   if (lowerSearch) {
     for (let i = 0; i < cards.length; i++) {
       if (!cards[i].title.toLowerCase().includes(lowerSearch)) {
+        dimmedCardIds.add(cards[i].id);
+      }
+    }
+  }
+  // Color filter dimming
+  if (colorFilter) {
+    for (let i = 0; i < cards.length; i++) {
+      if (cards[i].color !== colorFilter) {
         dimmedCardIds.add(cards[i].id);
       }
     }
@@ -243,6 +416,10 @@ export function Board(props: BoardProps) {
       onResize: handleResizeCard,
       onDelete: handleDeleteCard,
       onDoubleClick: handleDoubleClickCard,
+      onDuplicate: handleDuplicateCard,
+      onChangeColor: handleChangeColor,
+      onChangePriority: handleChangePriority,
+      onAnchorDragStart: handleAnchorDragStart,
     });
 
     if (isDimmed) {
@@ -271,6 +448,37 @@ export function Board(props: BoardProps) {
   // Render
   // -----------------------------------------------------------------------
 
+  // -----------------------------------------------------------------------
+  // Temporary connection line (during connection drag)
+  // -----------------------------------------------------------------------
+
+  const connectionDragLine = connectionDrag ? createElement('svg', {
+    style: {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      overflow: 'visible',
+      zIndex: '5',
+    },
+    width: String(CANVAS_SIZE),
+    height: String(CANVAS_SIZE),
+    'data-testid': 'connection-drag-line',
+  },
+    createElement('line', {
+      x1: String(connectionDrag.fromX),
+      y1: String(connectionDrag.fromY),
+      x2: String(connectionDrag.toX),
+      y2: String(connectionDrag.toY),
+      stroke: '#3b82f6',
+      'stroke-width': '2',
+      'stroke-dasharray': '6,4',
+      'pointer-events': 'none',
+    }),
+  ) : null;
+
   return createElement('div', {
     ref: containerRef,
     className: 'board-canvas',
@@ -296,6 +504,7 @@ export function Board(props: BoardProps) {
         canvasWidth: CANVAS_SIZE,
         canvasHeight: CANVAS_SIZE,
       }),
+      connectionDragLine,
       ...cardElements,
     ),
     editorEl,

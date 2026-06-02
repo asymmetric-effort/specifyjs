@@ -73,6 +73,20 @@ export interface ToastNotification {
 const PANEL_HEIGHT = 28;
 const TOAST_TIMEOUT = 5000;
 let toastIdCounter = 0;
+let instanceCounter = 0;
+
+function nextInstanceId(appId: string): string {
+  instanceCounter++;
+  return `${appId}-${instanceCounter}`;
+}
+
+/**
+ * Derive the base app label from `getMockContent`-compatible title.
+ * Instance titles may look like "Files (2)" — strip the trailing " (N)".
+ */
+function baseLabel(title: string): string {
+  return title.replace(/\s*\(\d+\)$/, '');
+}
 
 // ---------------------------------------------------------------------------
 // Internal: Toast Container
@@ -251,7 +265,8 @@ function getMockContent(title: string): unknown {
     height: '100%',
     overflow: 'auto',
   };
-  switch (title) {
+  const baseName = baseLabel(title);
+  switch (baseName) {
     case 'Files':
       return createElement(AppContextProvider, { appId: 'files' },
         createElement(FilesContent, null),
@@ -300,6 +315,7 @@ function getMockContent(title: string): unknown {
 
 interface InternalOpenWindow {
   id: string;
+  appId: string;
   title: string;
   icon?: string;
   x: number;
@@ -380,22 +396,24 @@ function UnityDesktopInner(props: {
   const onAppOpenRef = useRef(onAppOpen);
   onAppOpenRef.current = onAppOpen;
 
-  const handleDockItemClick = useCallback((id: string) => {
+  /**
+   * Open a brand-new instance of the given app.
+   */
+  const openNewInstance = useCallback((appId: string) => {
+    const currentApps = appsRef.current;
+    const app = currentApps.find((a: UnityDesktopApp) => a.id === appId);
+    if (!app) return;
+
     setOpenWindows((prev: InternalOpenWindow[]) => {
-      const existing = prev.find((w: InternalOpenWindow) => w.id === id);
-      if (existing) {
-        const maxZ = Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1;
-        return prev.map((w: InternalOpenWindow) => w.id === id
-          ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
-          : { ...w, focused: false });
-      }
-      const currentApps = appsRef.current;
-      const app = currentApps.find((a: UnityDesktopApp) => a.id === id);
-      if (!app) return prev;
+      const existingCount = prev.filter((w: InternalOpenWindow) => w.appId === appId).length;
+      const instanceNum = existingCount + 1;
+      const title = instanceNum === 1 ? app.label : `${app.label} (${instanceNum})`;
+      const winId = nextInstanceId(appId);
       const maxZ = prev.length > 0 ? Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1 : 1;
       const newWin: InternalOpenWindow = {
-        id: app.id,
-        title: app.label,
+        id: winId,
+        appId: app.id,
+        title,
         icon: app.icon,
         x: 60 + prev.length * 30,
         y: 40 + prev.length * 30,
@@ -409,7 +427,7 @@ function UnityDesktopInner(props: {
     });
 
     // Register demo menu bars and dock signals for specific apps
-    if (id === 'files') {
+    if (appId === 'files') {
       wm.setMenuBar('files', {
         menus: [
           {
@@ -431,11 +449,104 @@ function UnityDesktopInner(props: {
         ],
       });
     }
-    if (id === 'terminal') {
+    if (appId === 'terminal') {
       wm.signalDock('terminal', { badge: 3 });
     }
 
-    if (onAppOpenRef.current) onAppOpenRef.current(id);
+    if (onAppOpenRef.current) onAppOpenRef.current(appId);
+  }, [wm]);
+
+  /**
+   * Focus/restore a specific window instance by its unique window id.
+   */
+  const focusInstance = useCallback((winId: string) => {
+    setOpenWindows((prev: InternalOpenWindow[]) => {
+      const target = prev.find((w: InternalOpenWindow) => w.id === winId);
+      if (!target) return prev;
+      const maxZ = Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1;
+      return prev.map((w: InternalOpenWindow) => w.id === winId
+        ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
+        : { ...w, focused: false });
+    });
+  }, []);
+
+  const handleDockItemClick = useCallback((appId: string) => {
+    setOpenWindows((prev: InternalOpenWindow[]) => {
+      const instances = prev.filter((w: InternalOpenWindow) => w.appId === appId);
+      if (instances.length === 0) {
+        // No instances open — schedule opening a new one after this state update
+        // We cannot call openNewInstance inside setOpenWindows (it also calls setOpenWindows).
+        // Return prev unchanged; we will open below.
+        return prev;
+      }
+      // One or more instances: focus the most recently focused (highest zIndex)
+      const sorted = [...instances].sort((a: InternalOpenWindow, b: InternalOpenWindow) => b.zIndex - a.zIndex);
+      const target = sorted[0];
+      const maxZ = Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1;
+      return prev.map((w: InternalOpenWindow) => w.id === target.id
+        ? { ...w, focused: true, zIndex: maxZ, windowState: w.windowState === 'minimized' ? 'normal' as const : w.windowState }
+        : { ...w, focused: false });
+    });
+
+    // If no instances were open we need to create one. We read openWindows
+    // via a ref-like approach: schedule the open unconditionally and let
+    // openNewInstance's setOpenWindows check again.
+    // To keep it simple, we peek at current state via another updater.
+    setOpenWindows((prev: InternalOpenWindow[]) => {
+      const instances = prev.filter((w: InternalOpenWindow) => w.appId === appId);
+      if (instances.length === 0) {
+        // Open new instance inline (build the window here directly)
+        const currentApps = appsRef.current;
+        const app = currentApps.find((a: UnityDesktopApp) => a.id === appId);
+        if (!app) return prev;
+        const winId = nextInstanceId(appId);
+        const maxZ = prev.length > 0 ? Math.max(...prev.map((w: InternalOpenWindow) => w.zIndex)) + 1 : 1;
+        const newWin: InternalOpenWindow = {
+          id: winId,
+          appId: app.id,
+          title: app.label,
+          icon: app.icon,
+          x: 60 + prev.length * 30,
+          y: 40 + prev.length * 30,
+          width: 600,
+          height: 400,
+          zIndex: maxZ,
+          focused: true,
+          windowState: 'normal',
+        };
+
+        // Side-effects for demo menu bars / dock signals
+        if (appId === 'files') {
+          wm.setMenuBar('files', {
+            menus: [
+              {
+                label: 'File',
+                items: [
+                  { label: 'New', shortcut: 'Ctrl+N', onClick: () => {} },
+                  { label: 'Open', shortcut: 'Ctrl+O', onClick: () => {} },
+                  { label: 'Save', shortcut: 'Ctrl+S', onClick: () => {} },
+                ],
+              },
+              {
+                label: 'Edit',
+                items: [
+                  { label: 'Cut', shortcut: 'Ctrl+X', onClick: () => {} },
+                  { label: 'Copy', shortcut: 'Ctrl+C', onClick: () => {} },
+                  { label: 'Paste', shortcut: 'Ctrl+V', onClick: () => {} },
+                ],
+              },
+            ],
+          });
+        }
+        if (appId === 'terminal') {
+          wm.signalDock('terminal', { badge: 3 });
+        }
+        if (onAppOpenRef.current) onAppOpenRef.current(appId);
+
+        return [...prev.map((w: InternalOpenWindow) => ({ ...w, focused: false })), newWin];
+      }
+      return prev;
+    });
   }, [wm]);
 
   // -----------------------------------------------------------------------
@@ -445,7 +556,7 @@ function UnityDesktopInner(props: {
   // Compute dock items directly (no useMemo — openWindows reference changes cause staleness issues)
   // Merge dock signals from WindowManager into items
   const dockItems: DockItem[] = apps.map((app: UnityDesktopApp) => {
-    const isRunning = openWindows.some((w: InternalOpenWindow) => w.id === app.id);
+    const isRunning = openWindows.some((w: InternalOpenWindow) => w.appId === app.id);
     const signal: DockSignal | undefined = wmDockSignals.get(app.id);
     const item: DockItem = {
       id: app.id,
@@ -691,44 +802,91 @@ function UnityDesktopInner(props: {
     createElement('div', { style: { fontSize: '14px', opacity: '0.7' } }, 'Click to unlock'),
   ) : null;
 
-  // Context menu
-  const contextMenuEl = contextMenuAppId ? createElement('div', {
-    className: 'unity-desktop__context-menu-backdrop',
-    style: {
-      position: 'absolute',
-      inset: '0',
-      zIndex: '9000',
-    },
-    onClick: closeContextMenu,
-  },
-    createElement('div', {
-      className: 'unity-desktop__context-menu',
+  // Context menu — lists New, open instances, and About
+  const contextMenuEl = (() => {
+    if (!contextMenuAppId) return null;
+
+    const ctxApp = apps.find((a: UnityDesktopApp) => a.id === contextMenuAppId);
+    const ctxInstances = openWindows.filter((w: InternalOpenWindow) => w.appId === contextMenuAppId);
+
+    const menuItemStyle: Record<string, string> = { padding: '6px 14px', cursor: 'pointer' };
+    const menuItemHoverHandlers = {
+      onMouseEnter: (e: Event) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#444'; },
+      onMouseLeave: (e: Event) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; },
+    };
+    const separatorStyle: Record<string, string> = { borderBottom: '1px solid #444', margin: '4px 0' };
+
+    const menuChildren: unknown[] = [];
+
+    // "New" item — always first
+    menuChildren.push(createElement('div', {
+      key: 'new',
+      style: menuItemStyle,
+      ...menuItemHoverHandlers,
+      onClick: () => { openNewInstance(contextMenuAppId); setContextMenuAppId(null); },
+      role: 'menuitem',
+    }, '\u{25CF} New'));
+
+    // Separator + instance list (only if instances exist)
+    if (ctxInstances.length > 0) {
+      menuChildren.push(createElement('div', { key: 'sep-1', style: separatorStyle }));
+
+      // Renumber instances for display: 1-based order by zIndex (creation order is fine too)
+      ctxInstances.forEach((inst: InternalOpenWindow, idx: number) => {
+        const displayLabel = ctxInstances.length === 1
+          ? (ctxApp?.label || inst.title)
+          : `${ctxApp?.label || baseLabel(inst.title)} (${idx + 1})`;
+        menuChildren.push(createElement('div', {
+          key: `inst-${inst.id}`,
+          style: menuItemStyle,
+          ...menuItemHoverHandlers,
+          onClick: () => { focusInstance(inst.id); setContextMenuAppId(null); },
+          role: 'menuitem',
+        }, displayLabel));
+      });
+    }
+
+    // Separator before About
+    menuChildren.push(createElement('div', { key: 'sep-2', style: separatorStyle }));
+
+    // "About" item — always last
+    menuChildren.push(createElement('div', {
+      key: 'about',
+      style: menuItemStyle,
+      ...menuItemHoverHandlers,
+      onClick: () => { setAboutAppId(contextMenuAppId); setContextMenuAppId(null); },
+      role: 'menuitem',
+    }, 'About'));
+
+    return createElement('div', {
+      className: 'unity-desktop__context-menu-backdrop',
       style: {
         position: 'absolute',
-        top: `${contextMenuPos.y}px`,
-        left: `${contextMenuPos.x}px`,
-        backgroundColor: '#2d2d2d',
-        border: '1px solid #555',
-        borderRadius: '6px',
-        padding: '4px 0',
-        minWidth: '160px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-        zIndex: '9001',
-        color: '#ffffff',
-        fontSize: '13px',
+        inset: '0',
+        zIndex: '9000',
       },
-      onClick: (e: Event) => e.stopPropagation(),
+      onClick: closeContextMenu,
     },
       createElement('div', {
-        style: { padding: '6px 14px', fontWeight: '600', borderBottom: '1px solid #444', marginBottom: '4px' },
-      }, apps.find((a: UnityDesktopApp) => a.id === contextMenuAppId)?.label || contextMenuAppId),
-      createElement('div', {
-        style: { padding: '6px 14px', cursor: 'pointer' },
-        onClick: () => { setAboutAppId(contextMenuAppId); setContextMenuAppId(null); },
-        role: 'menuitem',
-      }, 'About'),
-    ),
-  ) : null;
+        className: 'unity-desktop__context-menu',
+        style: {
+          position: 'absolute',
+          top: `${contextMenuPos.y}px`,
+          left: `${contextMenuPos.x}px`,
+          backgroundColor: '#2d2d2d',
+          border: '1px solid #555',
+          borderRadius: '6px',
+          padding: '4px 0',
+          minWidth: '160px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          zIndex: '9001',
+          color: '#ffffff',
+          fontSize: '13px',
+        },
+        onClick: (e: Event) => e.stopPropagation(),
+      }, ...menuChildren),
+    );
+  })();
 
   // About dialog
   const aboutApp = aboutAppId ? apps.find((a: UnityDesktopApp) => a.id === aboutAppId) : null;

@@ -28,8 +28,15 @@ export interface CardConnection {
 }
 
 export interface BoardState {
+  /** Board UUID (v4) — unique identifier for this board instance */
+  id: string;
+  /** User-assigned board name (default: "Untitled") */
+  name: string;
+  /** Board contents — cards placed on the whiteboard */
   cards: ProjectCard[];
+  /** Connections between cards */
   connections: CardConnection[];
+  /** Viewport configuration */
   viewport: {
     panX: number;
     panY: number;

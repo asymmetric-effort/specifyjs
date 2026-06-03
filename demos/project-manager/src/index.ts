@@ -54,6 +54,8 @@ const SAMPLE_CARDS: ProjectCard[] = [
 ];
 
 const SAMPLE_BOARD: BoardState = {
+  id: 'sample-board-001',
+  name: 'Sample Project',
   cards: SAMPLE_CARDS,
   connections: [
     { id: 'sample-conn-1', fromCardId: 'sample-1', toCardId: 'sample-2' },
@@ -83,6 +85,9 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(true);
+  const [projectName, setProjectName] = useState(state.name || 'Untitled');
+  const [showRenameDialog, setShowRenameDialog] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
   const sampleLoadedRef = useRef(false);
 
   // -----------------------------------------------------------------------
@@ -233,6 +238,35 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   }, [state.cards, dispatch]);
 
   // -----------------------------------------------------------------------
+  // Rename project
+  // -----------------------------------------------------------------------
+
+  const handleRenameProject = useCallback(() => {
+    setRenameDraft(projectName);
+    setShowRenameDialog(true);
+  }, [projectName]);
+
+  const handleRenameConfirm = useCallback(() => {
+    const name = renameDraft.trim();
+    if (name) setProjectName(name);
+    setShowRenameDialog(false);
+  }, [renameDraft]);
+
+  const handleRenameCancel = useCallback(() => {
+    setShowRenameDialog(false);
+  }, []);
+
+  const handleRenameDraftChange = useCallback((e: Event) => {
+    setRenameDraft((e.target as HTMLInputElement).value);
+  }, []);
+
+  const handleRenameKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter') { ke.preventDefault(); handleRenameConfirm(); }
+    if (ke.key === 'Escape') { ke.preventDefault(); handleRenameCancel(); }
+  }, [handleRenameConfirm, handleRenameCancel]);
+
+  // -----------------------------------------------------------------------
   // Menu bar registration (feature #5)
   // -----------------------------------------------------------------------
 
@@ -330,11 +364,143 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   // Render
   // -----------------------------------------------------------------------
 
+  // -----------------------------------------------------------------------
+  // App menu bar (Project / Settings / Help)
+  // -----------------------------------------------------------------------
+
+  const menuBarStyle: Record<string, string> = {
+    display: 'flex',
+    alignItems: 'center',
+    height: '28px',
+    backgroundColor: '#f1f5f9',
+    borderBottom: '1px solid #e2e8f0',
+    padding: '0 8px',
+    fontSize: '13px',
+    flexShrink: '0',
+  };
+
+  const menuBtnStyle: Record<string, string> = {
+    padding: '2px 10px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+    fontSize: '13px',
+    color: '#334155',
+    borderRadius: '4px',
+    fontFamily: 'inherit',
+  };
+
+  const appMenuBar = createElement('div', {
+    style: menuBarStyle,
+    'data-testid': 'app-menu-bar',
+  },
+    createElement('button', {
+      style: menuBtnStyle,
+      onClick: handleRenameProject,
+      title: 'Project menu',
+    }, 'Project'),
+    createElement('button', {
+      style: menuBtnStyle,
+      title: 'Settings',
+    }, 'Settings'),
+    createElement('button', {
+      style: menuBtnStyle,
+      title: 'Help',
+    }, 'Help'),
+    createElement('span', {
+      style: { marginLeft: 'auto', fontSize: '12px', color: '#94a3b8' },
+    }, `Project Board: ${projectName}`),
+  );
+
+  // -----------------------------------------------------------------------
+  // Rename dialog
+  // -----------------------------------------------------------------------
+
+  const renameDialogEl = showRenameDialog ? createElement('div', {
+    style: {
+      position: 'absolute',
+      inset: '0',
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: '200',
+    },
+    onClick: handleRenameCancel,
+  },
+    createElement('div', {
+      style: {
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        padding: '20px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+        minWidth: '300px',
+      },
+      onClick: (e: Event) => e.stopPropagation(),
+      role: 'dialog',
+      'aria-label': 'Rename project',
+    },
+      createElement('div', {
+        style: { fontWeight: '600', fontSize: '14px', marginBottom: '12px', color: '#1a1a1a' },
+      }, 'Rename Project'),
+      createElement('input', {
+        type: 'text',
+        value: renameDraft,
+        onInput: handleRenameDraftChange,
+        onKeyDown: handleRenameKeyDown,
+        autoFocus: true,
+        style: {
+          width: '100%',
+          padding: '8px 10px',
+          border: '1px solid #d1d5db',
+          borderRadius: '6px',
+          fontSize: '14px',
+          boxSizing: 'border-box',
+          outline: 'none',
+          fontFamily: 'inherit',
+        },
+        'data-testid': 'rename-input',
+      }),
+      createElement('div', {
+        style: { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' },
+      },
+        createElement('button', {
+          onClick: handleRenameCancel,
+          style: {
+            padding: '6px 14px',
+            border: '1px solid #d1d5db',
+            borderRadius: '6px',
+            backgroundColor: '#ffffff',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontFamily: 'inherit',
+          },
+        }, 'Cancel'),
+        createElement('button', {
+          onClick: handleRenameConfirm,
+          style: {
+            padding: '6px 14px',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            fontFamily: 'inherit',
+          },
+          'data-testid': 'rename-confirm',
+        }, 'Rename'),
+      ),
+    ),
+  ) : null;
+
   return createElement('div', {
     className: 'project-manager-app',
     style: containerStyle,
     'data-testid': 'project-manager-app',
   },
+    appMenuBar,
     createElement(BoardToolbar, {
       zoom: state.viewport.zoom,
       gridEnabled,
@@ -364,5 +530,6 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         showConnections,
       }),
     ),
+    renameDialogEl,
   );
 }

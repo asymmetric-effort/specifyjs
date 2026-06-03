@@ -40,6 +40,8 @@ export interface HistoryState {
 const MAX_HISTORY = 50;
 
 export const DEFAULT_BOARD_STATE: BoardState = {
+  id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  name: 'Untitled',
   cards: [],
   connections: [],
   viewport: { panX: 0, panY: 0, zoom: 1 },

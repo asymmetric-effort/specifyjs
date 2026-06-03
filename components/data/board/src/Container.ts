@@ -18,6 +18,7 @@ import type { Container } from './types';
 export interface ContainerComponentProps {
   container: Container;
   selected?: boolean;
+  highlighted?: boolean;
   onSelect?: (containerId: string) => void;
   onMove?: (containerId: string, position: { x: number; y: number }) => void;
   onResize?: (containerId: string, size: { width: number; height: number }) => void;
@@ -30,7 +31,7 @@ export interface ContainerComponentProps {
 // ---------------------------------------------------------------------------
 
 export function ContainerComponent(props: ContainerComponentProps) {
-  const { container, selected = false, onSelect, onMove, onResize, onDrop, children } = props;
+  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDrop, children } = props;
   const [dragOver, setDragOver] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -143,16 +144,20 @@ export function ContainerComponent(props: ContainerComponentProps) {
   // Styles
   // -----------------------------------------------------------------------
 
+  const isHighlightedOrDragOver = highlighted || dragOver;
+
   const containerStyle: Record<string, string> = {
     position: 'absolute',
     left: `${container.position.x}px`,
     top: `${container.position.y}px`,
     width: `${container.size.width}px`,
     height: `${container.size.height}px`,
-    backgroundColor: '#ffffff',
-    border: selected ? '2px solid #3b82f6' : '2px solid #d1d5db',
+    backgroundColor: highlighted ? '#eff6ff' : '#ffffff',
+    border: highlighted
+      ? '2px dashed #3b82f6'
+      : selected ? '2px solid #3b82f6' : '2px solid #d1d5db',
     borderRadius: '8px',
-    boxShadow: dragOver
+    boxShadow: isHighlightedOrDragOver
       ? '0 0 0 3px rgba(59,130,246,0.3), 0 4px 16px rgba(0,0,0,0.1)'
       : '0 2px 8px rgba(0,0,0,0.08)',
     display: 'flex',
@@ -160,6 +165,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
     overflow: 'hidden',
     zIndex: '0',
     boxSizing: 'border-box',
+    transition: 'border 150ms ease, background-color 150ms ease, box-shadow 150ms ease',
   };
 
   const titleBarStyle: Record<string, string> = {

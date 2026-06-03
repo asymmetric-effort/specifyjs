@@ -402,6 +402,19 @@ function UnityDesktopInner(props: {
   const onAppOpenRef = useRef(onAppOpen);
   onAppOpenRef.current = onAppOpen;
 
+  // Stable title change callbacks per window — avoids recreating closures on every render
+  const titleChangeCallbacks = useRef<Record<string, (newTitle: string) => void>>({});
+  // Ensure each window has a stable callback
+  for (const w of openWindows) {
+    if (!titleChangeCallbacks.current[w.id]) {
+      const winId = w.id;
+      titleChangeCallbacks.current[winId] = (newTitle: string) => {
+        setOpenWindows((prev: InternalOpenWindow[]) =>
+          prev.map((ww: InternalOpenWindow) => ww.id === winId ? { ...ww, title: newTitle } : ww));
+      };
+    }
+  }
+
   /**
    * Open a brand-new instance of the given app.
    */
@@ -720,10 +733,11 @@ function UnityDesktopInner(props: {
             : ww));
       },
     },
-      getMockContent(w.title, w.id, (newTitle: string) => {
-        setOpenWindows((prev: InternalOpenWindow[]) =>
-          prev.map((ww: InternalOpenWindow) => ww.id === w.id ? { ...ww, title: newTitle } : ww));
-      }),
+      getMockContent(
+        apps.find((a: UnityDesktopApp) => a.id === w.appId)?.label || w.title,
+        w.id,
+        titleChangeCallbacks.current[w.id],
+      ),
     ));
 
   const desktopContentChildren: unknown[] = [];

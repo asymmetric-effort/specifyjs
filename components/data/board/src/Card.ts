@@ -48,6 +48,8 @@ export interface CardComponentProps {
   onOpenProject?: (projectId: string) => void;
   onCardContextMenu?: (cardId: string, pos: { x: number; y: number }) => void;
   onUpdate?: (cardId: string, updates: { card_title?: string; content?: unknown }) => void;
+  onDragStart?: (cardId: string) => void;
+  onDragEnd?: (cardId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +147,7 @@ function renderProjectContent(card: Card, onOpenProject?: (projectId: string) =>
 // ---------------------------------------------------------------------------
 
 export function CardComponent(props: CardComponentProps) {
-  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate } = props;
+  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate, onDragStart, onDragEnd } = props;
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
@@ -198,6 +200,8 @@ export function CardComponent(props: CardComponentProps) {
       cardY: card.position.y,
     };
 
+    if (onDragStart) onDragStart(card.card_id);
+
     const handleMouseMove = (ev: Event) => {
       const mev = ev as MouseEvent;
       if (!dragStartRef.current) return;
@@ -213,13 +217,14 @@ export function CardComponent(props: CardComponentProps) {
 
     const handleMouseUp = () => {
       dragStartRef.current = null;
+      if (onDragEnd) onDragEnd(card.card_id);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [card.card_id, card.position.x, card.position.y, onSelect, onMove]);
+  }, [card.card_id, card.position.x, card.position.y, onSelect, onMove, onDragStart, onDragEnd]);
 
   // -----------------------------------------------------------------------
   // Resize handle

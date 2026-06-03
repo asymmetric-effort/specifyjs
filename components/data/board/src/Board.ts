@@ -42,6 +42,32 @@ const CANVAS_SIZE = 5000;
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Find the first container whose bounding box contains the given point.
+ * Optionally excludes a specific item ID (e.g., the dragged item itself).
+ */
+export function findContainerAtPoint(
+  collection: BoardItem[],
+  x: number,
+  y: number,
+  excludeId?: string,
+): string | null {
+  for (let i = 0; i < collection.length; i++) {
+    const item = collection[i];
+    if (!isContainer(item)) continue;
+    if (item.container_id === excludeId) continue;
+    if (
+      x >= item.position.x &&
+      x <= item.position.x + item.size.width &&
+      y >= item.position.y &&
+      y <= item.position.y + item.size.height
+    ) {
+      return item.container_id;
+    }
+  }
+  return null;
+}
+
 export function snapToGrid(pos: { x: number; y: number }, gridSize: number): { x: number; y: number } {
   return {
     x: Math.round(pos.x / gridSize) * gridSize,
@@ -108,6 +134,13 @@ export function Board(props: BoardProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const isPanningRef = useRef(false);
   const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
+
+  // -----------------------------------------------------------------------
+  // Card-to-container drag-and-drop state
+  // -----------------------------------------------------------------------
+
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
 
   // -----------------------------------------------------------------------
   // Pan handlers (middle-click or shift+left-click)
@@ -259,7 +292,26 @@ export function Board(props: BoardProps) {
       pos = snapToGrid(position, GRID_SIZE);
     }
     dispatch({ type: 'MOVE_ITEM', itemId, position: pos });
-  }, [dispatch, gridEnabled]);
+
+    // During card drag, check for container overlap at the card's center
+    if (draggingCardId === itemId) {
+      // Find the card to get its size for center-point calculation
+      let cardWidth = 0;
+      let cardHeight = 0;
+      for (let i = 0; i < collection.length; i++) {
+        const item = collection[i];
+        if (isCard(item) && item.card_id === itemId) {
+          cardWidth = item.size.width;
+          cardHeight = item.size.height;
+          break;
+        }
+      }
+      const centerX = pos.x + cardWidth / 2;
+      const centerY = pos.y + cardHeight / 2;
+      const containerId = findContainerAtPoint(collection, centerX, centerY, itemId);
+      setDropTargetId(containerId);
+    }
+  }, [dispatch, gridEnabled, draggingCardId, collection]);
 
   const handleResizeItem = useCallback((itemId: string, size: { width: number; height: number }) => {
     dispatch({ type: 'RESIZE_ITEM', itemId, size });
@@ -273,6 +325,20 @@ export function Board(props: BoardProps) {
   const handleDropIntoContainer = useCallback((itemId: string, containerId: string) => {
     dispatch({ type: 'NEST_ITEM', itemId, containerId });
   }, [dispatch]);
+
+  const handleCardDragStart = useCallback((cardId: string) => {
+    setDraggingCardId(cardId);
+    setDropTargetId(null);
+  }, []);
+
+  const handleCardDragEnd = useCallback((cardId: string) => {
+    if (dropTargetId) {
+      // Card was released over a container -- nest it
+      dispatch({ type: 'NEST_ITEM', itemId: cardId, containerId: dropTargetId });
+    }
+    setDraggingCardId(null);
+    setDropTargetId(null);
+  }, [dropTargetId, dispatch]);
 
   // -----------------------------------------------------------------------
   // Filter/dim by search & color
@@ -338,6 +404,8 @@ export function Board(props: BoardProps) {
         onOpenProject,
         onCardContextMenu,
         onUpdate: onUpdateItem,
+        onDragStart: handleCardDragStart,
+        onDragEnd: handleCardDragEnd,
       });
     } else {
       const childElements = item.contents.map((child: BoardItem) => renderItem(child));
@@ -345,6 +413,7 @@ export function Board(props: BoardProps) {
         key: id,
         container: item,
         selected: id === selectedId,
+        highlighted: dropTargetId === item.container_id,
         onSelect: handleSelectItem,
         onMove: handleMoveItem,
         onResize: handleResizeItem,

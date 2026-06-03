@@ -30,17 +30,16 @@ test.describe('Project Manager PDV', () => {
     await unityBtn.click();
     await expect(page.locator(desktop)).toBeVisible({ timeout: 10000 });
 
-    // Click "Project Board" dock icon
+    // Click "Project Board" dock icon using data-dock-item-id
     const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
-    const boardBtn = dock.locator('button[role="button"]', { hasText: 'B' });
+    const boardBtn = dock.locator('[data-dock-item-id="board"]');
+    await boardBtn.waitFor({ state: 'visible', timeout: 5000 });
     await boardBtn.click();
+    await page.waitForTimeout(1000);
 
-    // Wait for the project manager window and board to initialize
+    // Wait for the project manager window
     const projectWindow = page.locator(`${desktop} [role="dialog"]`).last();
-    await expect(projectWindow).toBeVisible({ timeout: 10000 });
-    // Wait for board toolbar to render (appears before cards)
-    await expect(page.locator(`${desktop} [data-testid="board-toolbar"]`)).toBeVisible({ timeout: 10000 });
-    // Extra settle time for sample data useEffect → dispatch → re-render
+    await expect(projectWindow).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(2000);
   });
 

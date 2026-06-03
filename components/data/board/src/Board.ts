@@ -8,7 +8,7 @@
 import { createElement } from '../../../../core/src/index';
 import { useState, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
 import type { BoardState, BoardItem, Card as CardType, Container as ContainerType, CardLink as CardLinkType, CardType as CardTypeEnum } from './types';
-import { isCard, isContainer, getItemId } from './types';
+import { isCard, isContainer, getItemId, generateUUID } from './types';
 import type { BoardAction } from './BoardReducer';
 import { CardComponent, CARD_TYPE_OPTIONS } from './Card';
 import { ContainerComponent } from './Container';
@@ -156,6 +156,17 @@ export function Board(props: BoardProps) {
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+
+  // -----------------------------------------------------------------------
+  // Link-drag state (anchor-to-anchor link creation)
+  // -----------------------------------------------------------------------
+
+  const [linkDrag, setLinkDrag] = useState<{
+    fromCardId: string;
+    fromAnchor: string;
+    fromPos: { x: number; y: number };
+    currentPos: { x: number; y: number };
+  } | null>(null);
 
   // -----------------------------------------------------------------------
   // Card context menu state (managed by Board, rendered outside transform)
@@ -401,6 +412,73 @@ export function Board(props: BoardProps) {
   }, [dispatch]);
 
   // -----------------------------------------------------------------------
+  // Anchor drag start (link creation)
+  // -----------------------------------------------------------------------
+
+  const handleAnchorDragStart = useCallback((cardId: string, anchor: string, pos: { x: number; y: number }) => {
+    setLinkDrag({
+      fromCardId: cardId,
+      fromAnchor: anchor,
+      fromPos: pos,
+      currentPos: pos,
+    });
+  }, []);
+
+  // Keep a ref for linkDrag so the effect cleanup/listeners can read current value
+  const linkDragRef = useRef<typeof linkDrag>(null);
+  linkDragRef.current = linkDrag;
+
+  useEffect(() => {
+    if (!linkDrag) return;
+
+    const handleMouseMove = (e: Event) => {
+      const me = e as MouseEvent;
+      // Convert screen position to canvas coordinates
+      const canvasPos = screenToCanvas(me.clientX, me.clientY, viewport);
+      setLinkDrag((prev) => prev ? { ...prev, currentPos: canvasPos } : null);
+    };
+
+    const handleMouseUp = (e: Event) => {
+      const me = e as MouseEvent;
+      const current = linkDragRef.current;
+      if (!current) {
+        setLinkDrag(null);
+        return;
+      }
+
+      // Check if cursor is over another card's anchor
+      const el = document.elementFromPoint(me.clientX, me.clientY) as HTMLElement | null;
+      if (el && el.dataset && el.dataset.role === 'anchor' && el.dataset.anchor) {
+        // Find the card ID by walking up to the card element
+        const cardEl = el.closest('[data-card-id]') as HTMLElement | null;
+        if (cardEl && cardEl.dataset.cardId && cardEl.dataset.cardId !== current.fromCardId) {
+          const targetCardId = cardEl.dataset.cardId;
+          dispatch({
+            type: 'ADD_LINK',
+            cardId: current.fromCardId,
+            link: {
+              link_id: generateUUID(),
+              link_name: 'relates to',
+              target_card_id: targetCardId,
+              color: '#94a3b8',
+              attributes: {},
+            },
+          });
+        }
+      }
+
+      setLinkDrag(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [linkDrag !== null, viewport.panX, viewport.panY, viewport.zoom, dispatch]);
+
+  // -----------------------------------------------------------------------
   // Filter/dim by search & color
   // -----------------------------------------------------------------------
 
@@ -466,6 +544,7 @@ export function Board(props: BoardProps) {
         onUpdate: onUpdateItem,
         onDragStart: handleCardDragStart,
         onDragEnd: handleCardDragEnd,
+        onAnchorDragStart: handleAnchorDragStart,
       });
     } else {
       const childElements = item.contents.map((child: BoardItem) => renderItem(child));
@@ -686,6 +765,33 @@ export function Board(props: BoardProps) {
         canvasWidth: CANVAS_SIZE,
         canvasHeight: CANVAS_SIZE,
       }),
+      linkDrag ? createElement('svg', {
+        style: {
+          position: 'absolute',
+          top: '0',
+          left: '0',
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          overflow: 'visible',
+        },
+        width: String(CANVAS_SIZE),
+        height: String(CANVAS_SIZE),
+        className: 'link-drag-overlay',
+        'data-testid': 'link-drag-overlay',
+      },
+        createElement('line', {
+          x1: String(linkDrag.fromPos.x),
+          y1: String(linkDrag.fromPos.y),
+          x2: String(linkDrag.currentPos.x),
+          y2: String(linkDrag.currentPos.y),
+          stroke: '#3b82f6',
+          'stroke-width': '2',
+          'stroke-dasharray': '6 4',
+          'pointer-events': 'none',
+          'data-testid': 'link-drag-line',
+        }),
+      ) : null,
       ...itemElements,
     ),
     boardContextMenuEl,

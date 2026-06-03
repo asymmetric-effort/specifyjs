@@ -50,6 +50,7 @@ export interface CardComponentProps {
   onUpdate?: (cardId: string, updates: { card_title?: string; content?: unknown }) => void;
   onDragStart?: (cardId: string) => void;
   onDragEnd?: (cardId: string) => void;
+  onAnchorDragStart?: (cardId: string, anchor: string, pos: { x: number; y: number }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -147,7 +148,7 @@ function renderProjectContent(card: Card, onOpenProject?: (projectId: string) =>
 // ---------------------------------------------------------------------------
 
 export function CardComponent(props: CardComponentProps) {
-  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate, onDragStart, onDragEnd } = props;
+  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate, onDragStart, onDragEnd, onAnchorDragStart } = props;
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
@@ -187,7 +188,7 @@ export function CardComponent(props: CardComponentProps) {
   const handleMouseDown = useCallback((e: Event) => {
     const me = e as MouseEvent;
     const target = me.target as HTMLElement;
-    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'drag-handle' || target.dataset.role === 'inline-edit')) return;
+    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'drag-handle' || target.dataset.role === 'inline-edit' || target.dataset.role === 'anchor')) return;
 
     me.preventDefault();
     me.stopPropagation();
@@ -273,6 +274,33 @@ export function CardComponent(props: CardComponentProps) {
     e.stopPropagation();
     if (onDelete) onDelete(card.card_id);
   }, [card.card_id, onDelete]);
+
+  // -----------------------------------------------------------------------
+  // Anchor drag (link creation)
+  // -----------------------------------------------------------------------
+
+  const handleAnchorMouseDown = useCallback((e: Event) => {
+    const me = e as MouseEvent;
+    me.preventDefault();
+    me.stopPropagation();
+    const target = me.target as HTMLElement;
+    const anchor = target.dataset.anchor;
+    if (!anchor || !onAnchorDragStart) return;
+
+    // Compute anchor position in canvas coordinates (center of card edge)
+    const posX = card.position.x;
+    const posY = card.position.y;
+    const w = card.size.width;
+    const h = card.size.height;
+    let ax = posX + w / 2;
+    let ay = posY + h / 2;
+    if (anchor === 'top') { ax = posX + w / 2; ay = posY; }
+    else if (anchor === 'right') { ax = posX + w; ay = posY + h / 2; }
+    else if (anchor === 'bottom') { ax = posX + w / 2; ay = posY + h; }
+    else if (anchor === 'left') { ax = posX; ay = posY + h / 2; }
+
+    onAnchorDragStart(card.card_id, anchor, { x: ax, y: ay });
+  }, [card.card_id, card.position.x, card.position.y, card.size.width, card.size.height, onAnchorDragStart]);
 
   // -----------------------------------------------------------------------
   // Change type via context menu
@@ -499,6 +527,54 @@ export function CardComponent(props: CardComponentProps) {
     padding: '0',
   };
 
+  // -----------------------------------------------------------------------
+  // Anchor circles (visible on hover)
+  // -----------------------------------------------------------------------
+
+  const anchorSize = 8;
+  const anchorBaseStyle: Record<string, string> = {
+    position: 'absolute',
+    width: `${anchorSize}px`,
+    height: `${anchorSize}px`,
+    borderRadius: '50%',
+    backgroundColor: '#3b82f6',
+    border: '2px solid #fff',
+    boxSizing: 'border-box',
+    cursor: 'crosshair',
+    display: hovered ? 'block' : 'none',
+    zIndex: '10',
+  };
+
+  const anchorPositions: Array<{ anchor: string; style: Record<string, string> }> = [
+    {
+      anchor: 'top',
+      style: { ...anchorBaseStyle, top: `${-anchorSize / 2}px`, left: '50%', marginLeft: `${-anchorSize / 2}px` },
+    },
+    {
+      anchor: 'right',
+      style: { ...anchorBaseStyle, top: '50%', right: `${-anchorSize / 2}px`, marginTop: `${-anchorSize / 2}px` },
+    },
+    {
+      anchor: 'bottom',
+      style: { ...anchorBaseStyle, bottom: `${-anchorSize / 2}px`, left: '50%', marginLeft: `${-anchorSize / 2}px` },
+    },
+    {
+      anchor: 'left',
+      style: { ...anchorBaseStyle, top: '50%', left: `${-anchorSize / 2}px`, marginTop: `${-anchorSize / 2}px` },
+    },
+  ];
+
+  const anchorElements = anchorPositions.map((ap, i) =>
+    createElement('div', {
+      key: `anchor-${ap.anchor}`,
+      style: ap.style,
+      'data-role': 'anchor',
+      'data-anchor': ap.anchor,
+      'data-testid': `card-anchor-${ap.anchor}-${card.card_id}`,
+      onMouseDown: handleAnchorMouseDown,
+    }),
+  );
+
   // Assignee circle
   const assigneeEl = card.assignee
     ? createElement('div', {
@@ -669,6 +745,7 @@ export function CardComponent(props: CardComponentProps) {
         'aria-label': 'Export drag handle',
         title: 'Drag to export card',
       }, '\u2630'),
+      ...anchorElements,
       contextMenuEl,
     );
   }
@@ -742,6 +819,7 @@ export function CardComponent(props: CardComponentProps) {
       onMouseDown: handleResizeMouseDown,
       'aria-label': 'Resize card',
     }),
+    ...anchorElements,
     contextMenuEl,
   );
 }

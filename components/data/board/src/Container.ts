@@ -22,6 +22,7 @@ export interface ContainerComponentProps {
   onSelect?: (containerId: string) => void;
   onMove?: (containerId: string, position: { x: number; y: number }) => void;
   onResize?: (containerId: string, size: { width: number; height: number }) => void;
+  onDelete?: (containerId: string) => void;
   onDrop?: (itemId: string, containerId: string) => void;
   children?: unknown;
 }
@@ -31,10 +32,21 @@ export interface ContainerComponentProps {
 // ---------------------------------------------------------------------------
 
 export function ContainerComponent(props: ContainerComponentProps) {
-  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDrop, children } = props;
+  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, children } = props;
   const [dragOver, setDragOver] = useState(false);
+  const [minimized, setMinimized] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  const handleDeleteClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    if (onDelete) onDelete(container.container_id);
+  }, [container.container_id, onDelete]);
+
+  const handleMinimizeClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    setMinimized((prev: boolean) => !prev);
+  }, []);
 
   // -----------------------------------------------------------------------
   // Title bar drag (move container)
@@ -212,16 +224,38 @@ export function ContainerComponent(props: ContainerComponentProps) {
   },
     createElement('div', {
       className: 'board-container__title',
-      style: titleBarStyle,
+      style: { ...titleBarStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
       onMouseDown: handleTitleMouseDown,
       'data-testid': `container-title-${container.container_id}`,
-    }, container.name),
-    createElement('div', {
+    },
+      createElement('span', null, container.name),
+      createElement('span', { style: { display: 'flex', gap: '4px' } },
+        createElement('button', {
+          style: {
+            border: 'none', backgroundColor: 'transparent', cursor: 'pointer',
+            color: '#94a3b8', fontSize: '12px', padding: '0 2px', lineHeight: '1',
+          },
+          onClick: handleMinimizeClick,
+          'aria-label': minimized ? 'Expand container' : 'Minimize container',
+          title: minimized ? 'Expand' : 'Minimize',
+        }, minimized ? '\u25B2' : '\u2014'),
+        createElement('button', {
+          style: {
+            border: 'none', backgroundColor: 'transparent', cursor: 'pointer',
+            color: '#94a3b8', fontSize: '14px', padding: '0 2px', lineHeight: '1',
+          },
+          onClick: handleDeleteClick,
+          'aria-label': 'Delete container',
+          title: 'Delete',
+        }, '\u00D7'),
+      ),
+    ),
+    minimized ? null : createElement('div', {
       className: 'board-container__contents',
       style: contentsStyle,
       'data-testid': `container-contents-${container.container_id}`,
     }, children),
-    createElement('div', {
+    minimized ? null : createElement('div', {
       style: resizeHandleStyle,
       'data-role': 'resize',
       onMouseDown: handleResizeMouseDown,

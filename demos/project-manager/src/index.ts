@@ -150,6 +150,18 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [renameDraft, setRenameDraft] = useState('');
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(true);
+  const [graphAttributes, setGraphAttributes] = useState<Array<{ name: string; weight: number }>>([
+    { name: 'relates to', weight: 1 },
+    { name: 'depends on', weight: 2 },
+    { name: 'blocks', weight: 3 },
+    { name: 'is blocked by', weight: 3 },
+    { name: 'implements', weight: 2 },
+    { name: 'references', weight: 1 },
+  ]);
+  const [graphDialog, setGraphDialog] = useState<'add' | 'delete' | 'edit' | null>(null);
+  const [attrNameDraft, setAttrNameDraft] = useState('');
+  const [attrWeightDraft, setAttrWeightDraft] = useState('1');
+  const [editAttrs, setEditAttrs] = useState<Array<{ name: string; weight: number }>>([]);
   const sampleLoadedRef = useRef(false);
 
   // -----------------------------------------------------------------------
@@ -530,6 +542,30 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleNewCard(); setOpenMenu(null); } }, 'New Card'),
       ) : null,
     ),
+    // Graphs menu
+    createElement('div', { style: { position: 'relative', display: 'inline-flex' } },
+      createElement('button', {
+        style: menuBtnStyle,
+        onClick: () => setOpenMenu(openMenu === 'graphs' ? null : 'graphs'),
+      }, 'Graphs'),
+      openMenu === 'graphs' ? createElement('div', { style: menuDropdownStyle },
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => {
+          setAttrNameDraft('');
+          setAttrWeightDraft('1');
+          setGraphDialog('add');
+          setOpenMenu(null);
+        } }, 'Add Attribute...'),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => {
+          setGraphDialog('delete');
+          setOpenMenu(null);
+        } }, 'Delete Attribute...'),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => {
+          setEditAttrs(graphAttributes.map((a) => ({ ...a })));
+          setGraphDialog('edit');
+          setOpenMenu(null);
+        } }, 'Edit Attributes...'),
+      ) : null,
+    ),
     // Settings menu
     createElement('div', { style: { position: 'relative', display: 'inline-flex' } },
       createElement('button', {
@@ -642,6 +678,164 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     ),
   ) : null;
 
+  // -----------------------------------------------------------------------
+  // Graph attribute dialogs
+  // -----------------------------------------------------------------------
+
+  const dialogOverlayStyle: Record<string, string> = {
+    position: 'absolute', inset: '0', backgroundColor: 'rgba(0,0,0,0.3)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: '200',
+  };
+  const dialogBoxStyle: Record<string, string> = {
+    backgroundColor: '#ffffff', borderRadius: '8px', padding: '20px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.2)', minWidth: '320px', maxHeight: '400px',
+    overflow: 'auto',
+  };
+  const dialogTitleStyle: Record<string, string> = {
+    fontWeight: '600', fontSize: '14px', marginBottom: '12px', color: '#1a1a1a',
+  };
+  const dialogInputStyle: Record<string, string> = {
+    width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
+    borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
+  };
+  const dialogBtnPrimary: Record<string, string> = {
+    padding: '6px 14px', border: 'none', borderRadius: '6px',
+    backgroundColor: '#3b82f6', color: '#ffffff', cursor: 'pointer',
+    fontSize: '13px', fontWeight: '600', fontFamily: 'inherit',
+  };
+  const dialogBtnSecondary: Record<string, string> = {
+    padding: '6px 14px', border: '1px solid #d1d5db', borderRadius: '6px',
+    backgroundColor: '#ffffff', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit',
+  };
+
+  let graphDialogEl: unknown = null;
+
+  if (graphDialog === 'add') {
+    graphDialogEl = createElement('div', {
+      style: dialogOverlayStyle,
+      onClick: () => setGraphDialog(null),
+    },
+      createElement('div', {
+        style: dialogBoxStyle,
+        onClick: (e: Event) => e.stopPropagation(),
+        role: 'dialog', 'aria-label': 'Add edge attribute',
+      },
+        createElement('div', { style: dialogTitleStyle }, 'Add Edge Attribute'),
+        createElement('div', { style: { marginBottom: '8px' } },
+          createElement('label', { style: { fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' } }, 'Name'),
+          createElement('input', {
+            type: 'text', value: attrNameDraft, style: dialogInputStyle, placeholder: 'e.g. depends on',
+            onInput: (e: Event) => setAttrNameDraft((e.target as HTMLInputElement).value),
+          }),
+        ),
+        createElement('div', { style: { marginBottom: '12px' } },
+          createElement('label', { style: { fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' } }, 'Weight'),
+          createElement('input', {
+            type: 'number', value: attrWeightDraft, style: dialogInputStyle, min: '0', step: '1',
+            onInput: (e: Event) => setAttrWeightDraft((e.target as HTMLInputElement).value),
+          }),
+        ),
+        createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '8px' } },
+          createElement('button', { style: dialogBtnSecondary, onClick: () => setGraphDialog(null) }, 'Cancel'),
+          createElement('button', { style: dialogBtnPrimary, onClick: () => {
+            const name = attrNameDraft.trim();
+            const weight = parseFloat(attrWeightDraft) || 1;
+            if (name) {
+              setGraphAttributes((prev) => [...prev, { name, weight }]);
+            }
+            setGraphDialog(null);
+          } }, 'Add'),
+        ),
+      ),
+    );
+  }
+
+  if (graphDialog === 'delete') {
+    graphDialogEl = createElement('div', {
+      style: dialogOverlayStyle,
+      onClick: () => setGraphDialog(null),
+    },
+      createElement('div', {
+        style: dialogBoxStyle,
+        onClick: (e: Event) => e.stopPropagation(),
+        role: 'dialog', 'aria-label': 'Delete edge attribute',
+      },
+        createElement('div', { style: dialogTitleStyle }, 'Delete Edge Attribute'),
+        graphAttributes.length === 0
+          ? createElement('div', { style: { color: '#94a3b8', padding: '8px 0' } }, 'No attributes defined.')
+          : createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+              ...graphAttributes.map((attr, idx) =>
+                createElement('div', {
+                  key: String(idx),
+                  style: {
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '6px 8px', borderRadius: '4px', border: '1px solid #e5e7eb',
+                  },
+                },
+                  createElement('span', { style: { fontSize: '13px' } }, `${attr.name} (weight: ${attr.weight})`),
+                  createElement('button', {
+                    style: { border: 'none', backgroundColor: 'transparent', color: '#ef4444', cursor: 'pointer', fontSize: '16px' },
+                    onClick: () => setGraphAttributes((prev) => prev.filter((_, i) => i !== idx)),
+                  }, '\u00D7'),
+                ),
+              ),
+            ),
+        createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: '12px' } },
+          createElement('button', { style: dialogBtnSecondary, onClick: () => setGraphDialog(null) }, 'Done'),
+        ),
+      ),
+    );
+  }
+
+  if (graphDialog === 'edit') {
+    graphDialogEl = createElement('div', {
+      style: dialogOverlayStyle,
+      onClick: () => setGraphDialog(null),
+    },
+      createElement('div', {
+        style: { ...dialogBoxStyle, minWidth: '400px' },
+        onClick: (e: Event) => e.stopPropagation(),
+        role: 'dialog', 'aria-label': 'Edit edge attributes',
+      },
+        createElement('div', { style: dialogTitleStyle }, 'Edit Edge Attributes'),
+        editAttrs.length === 0
+          ? createElement('div', { style: { color: '#94a3b8', padding: '8px 0' } }, 'No attributes defined.')
+          : createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } },
+              ...editAttrs.map((attr, idx) =>
+                createElement('div', {
+                  key: String(idx),
+                  style: { display: 'flex', alignItems: 'center', gap: '8px' },
+                },
+                  createElement('input', {
+                    type: 'text', value: attr.name,
+                    style: { ...dialogInputStyle, flex: '1' },
+                    onInput: (e: Event) => {
+                      const val = (e.target as HTMLInputElement).value;
+                      setEditAttrs((prev) => prev.map((a, i) => i === idx ? { ...a, name: val } : a));
+                    },
+                  }),
+                  createElement('input', {
+                    type: 'number', value: String(attr.weight), min: '0', step: '1',
+                    style: { ...dialogInputStyle, width: '80px' },
+                    onInput: (e: Event) => {
+                      const val = parseFloat((e.target as HTMLInputElement).value) || 0;
+                      setEditAttrs((prev) => prev.map((a, i) => i === idx ? { ...a, weight: val } : a));
+                    },
+                  }),
+                ),
+              ),
+            ),
+        createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' } },
+          createElement('button', { style: dialogBtnSecondary, onClick: () => setGraphDialog(null) }, 'Cancel'),
+          createElement('button', { style: dialogBtnPrimary, onClick: () => {
+            setGraphAttributes(editAttrs.filter((a) => a.name.trim()));
+            setGraphDialog(null);
+          } }, 'Save'),
+        ),
+      ),
+    );
+  }
+
   return createElement('div', {
     className: 'project-manager-app',
     style: containerStyle,
@@ -683,5 +877,6 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       }),
     ),
     renameDialogEl,
+    graphDialogEl,
   );
 }

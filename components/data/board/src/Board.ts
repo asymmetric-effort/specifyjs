@@ -574,6 +574,7 @@ export function Board(props: BoardProps) {
         onSelect: handleSelectItem,
         onMove: handleMoveItem,
         onResize: handleResizeItem,
+        onDelete: handleDeleteItem,
         onDrop: handleDropIntoContainer,
       }, ...childElements);
     }

@@ -175,6 +175,7 @@ export function Board(props: BoardProps) {
   const [cardContextMenu, setCardContextMenu] = useState<{ cardId: string; x: number; y: number } | null>(null);
   const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
+  const [linkContextMenu, setLinkContextMenu] = useState<{ linkId: string; cardId: string; x: number; y: number } | null>(null);
 
   // -----------------------------------------------------------------------
   // Pan handlers (middle-click or shift+left-click)
@@ -343,6 +344,23 @@ export function Board(props: BoardProps) {
       document.removeEventListener('click', handleDocumentClick);
     };
   }, [cardContextMenu, closeCardContextMenu]);
+
+  // Link context menu handlers
+  const handleLinkContextMenu = useCallback((linkId: string, cardId: string, pos: { x: number; y: number }) => {
+    setLinkContextMenu({ linkId, cardId, x: pos.x, y: pos.y });
+    closeCardContextMenu();
+  }, [closeCardContextMenu]);
+
+  const closeLinkContextMenu = useCallback(() => {
+    setLinkContextMenu(null);
+  }, []);
+
+  useEffect(() => {
+    if (!linkContextMenu) return;
+    const handleDocumentClick = () => closeLinkContextMenu();
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, [linkContextMenu, closeLinkContextMenu]);
 
   // -----------------------------------------------------------------------
   // Handlers for items
@@ -741,6 +759,119 @@ export function Board(props: BoardProps) {
     }, 'Delete'),
   ) : null;
 
+  // -----------------------------------------------------------------------
+  // Link context menu — edge type selection
+  // -----------------------------------------------------------------------
+
+  const EDGE_TYPES = [
+    'relates to',
+    'depends on',
+    'blocks',
+    'is blocked by',
+    'implements',
+    'is implemented by',
+    'extends',
+    'includes',
+    'references',
+    'duplicates',
+    'parent of',
+    'child of',
+  ];
+
+  const linkContextMenuEl = linkContextMenu ? createElement('div', {
+    className: 'board-link-context-menu',
+    style: {
+      position: 'fixed',
+      left: `${linkContextMenu.x}px`,
+      top: `${linkContextMenu.y}px`,
+      backgroundColor: '#ffffff',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      padding: '4px 0',
+      minWidth: '180px',
+      maxHeight: '240px',
+      overflowY: 'auto',
+      zIndex: '10001',
+      fontSize: '13px',
+    },
+    onClick: (e: Event) => e.stopPropagation(),
+  },
+    createElement('div', {
+      style: { padding: '4px 14px', fontSize: '11px', color: '#94a3b8', fontWeight: '600' },
+    }, 'Edge Type'),
+    ...EDGE_TYPES.map((edgeType: string) =>
+      createElement('button', {
+        key: edgeType,
+        style: {
+          display: 'block',
+          width: '100%',
+          padding: '6px 14px',
+          border: 'none',
+          backgroundColor: 'transparent',
+          textAlign: 'left',
+          cursor: 'pointer',
+          fontSize: '13px',
+          color: '#334155',
+          fontFamily: 'inherit',
+          boxSizing: 'border-box',
+        },
+        onClick: () => {
+          // Update the link's name
+          dispatch({
+            type: 'UPDATE_CARD',
+            cardId: linkContextMenu.cardId,
+            updates: {
+              card_link: (() => {
+                // Find the card and update the specific link's name
+                let targetCard: CardType | null = null;
+                const stack: BoardItem[] = [...collection];
+                while (stack.length > 0) {
+                  const item = stack.pop()!;
+                  if (isCard(item) && item.card_id === linkContextMenu.cardId) {
+                    targetCard = item;
+                    break;
+                  }
+                  if (isContainer(item)) {
+                    for (const child of item.contents) stack.push(child);
+                  }
+                }
+                if (!targetCard) return [];
+                return targetCard.card_link.map((l) =>
+                  l.link_id === linkContextMenu.linkId
+                    ? { ...l, link_name: edgeType }
+                    : l,
+                );
+              })(),
+            },
+          });
+          closeLinkContextMenu();
+        },
+        role: 'menuitem',
+      }, edgeType),
+    ),
+    createElement('div', { style: { height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' } }),
+    createElement('button', {
+      style: {
+        display: 'block',
+        width: '100%',
+        padding: '6px 14px',
+        border: 'none',
+        backgroundColor: 'transparent',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontSize: '13px',
+        color: '#ef4444',
+        fontFamily: 'inherit',
+      },
+      onClick: () => {
+        dispatch({ type: 'REMOVE_LINK', cardId: linkContextMenu.cardId, linkId: linkContextMenu.linkId });
+        closeLinkContextMenu();
+      },
+      role: 'menuitem',
+    }, 'Delete Link'),
+  ) : null;
+
   return createElement('div', {
     ref: containerRef,
     className: 'board-canvas',
@@ -762,6 +893,7 @@ export function Board(props: BoardProps) {
         cards: allCards,
         selectedLinkId: null,
         onSelectLink: () => {},
+        onLinkContextMenu: handleLinkContextMenu,
         canvasWidth: CANVAS_SIZE,
         canvasHeight: CANVAS_SIZE,
       }),
@@ -795,5 +927,6 @@ export function Board(props: BoardProps) {
       ...itemElements,
     ),
     boardContextMenuEl,
+    linkContextMenuEl,
   );
 }

@@ -19,6 +19,7 @@ export interface CardLinkOverlayProps {
   cards: Card[];
   selectedLinkId: string | null;
   onSelectLink: (linkId: string | null) => void;
+  onLinkContextMenu?: (linkId: string, cardId: string, pos: { x: number; y: number }) => void;
   canvasWidth: number;
   canvasHeight: number;
 }
@@ -75,7 +76,7 @@ const ARROW_MARKER_ID = 'board-card-link-arrowhead';
 // ---------------------------------------------------------------------------
 
 export function CardLinkOverlay(props: CardLinkOverlayProps) {
-  const { links, cards, selectedLinkId, onSelectLink, canvasWidth, canvasHeight } = props;
+  const { links, cards, selectedLinkId, onSelectLink, onLinkContextMenu, canvasWidth, canvasHeight } = props;
 
   const cardMap = new Map<string, Card>();
   for (let i = 0; i < cards.length; i++) {
@@ -111,6 +112,7 @@ export function CardLinkOverlay(props: CardLinkOverlayProps) {
     const pathD = `M ${from.x} ${from.y} Q ${cpX} ${cpY} ${to.x} ${to.y}`;
 
     // Invisible hit area (wider stroke for easier clicking)
+    const srcId = source.card_id;
     lineElements.push(
       createElement('path', {
         key: `hit-${link.link_id}`,
@@ -118,8 +120,14 @@ export function CardLinkOverlay(props: CardLinkOverlayProps) {
         fill: 'none',
         stroke: 'transparent',
         'stroke-width': '12',
-        style: { cursor: 'pointer' },
+        style: { cursor: 'pointer', pointerEvents: 'stroke' },
         onClick: () => handleLineClick(link.link_id),
+        onContextMenu: (e: Event) => {
+          const me = e as MouseEvent;
+          me.preventDefault();
+          me.stopPropagation();
+          if (onLinkContextMenu) onLinkContextMenu(link.link_id, srcId, { x: me.clientX, y: me.clientY });
+        },
         'data-testid': `link-hit-${link.link_id}`,
       }),
     );

@@ -358,6 +358,14 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
+  // Close app menu dropdown on outside click
+  useEffect(() => {
+    if (!openMenu) return;
+    const handleClick = () => setOpenMenu(null);
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => { clearTimeout(timer); document.removeEventListener('click', handleClick); };
+  }, [openMenu]);
+
   // -----------------------------------------------------------------------
   // Rename project
   // -----------------------------------------------------------------------
@@ -456,23 +464,100 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     fontFamily: 'inherit',
   };
 
+  // -----------------------------------------------------------------------
+  // App menu dropdowns
+  // -----------------------------------------------------------------------
+
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+
+  const handleNewContainer = useCallback(() => {
+    const cx = (-state.viewport.panX + 300) / state.viewport.zoom;
+    const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
+    const offsetX = (Math.random() - 0.5) * 300;
+    const offsetY = (Math.random() - 0.5) * 200;
+    dispatch({
+      type: 'ADD_CONTAINER',
+      container: {
+        type: 'container',
+        container_id: generateUUID(),
+        name: 'New Container',
+        position: { x: Math.round(cx + offsetX), y: Math.round(cy + offsetY) },
+        size: { width: 300, height: 250 },
+        contents: [],
+      },
+    });
+    setOpenMenu(null);
+  }, [state.viewport, dispatch]);
+
+  const menuDropdownStyle: Record<string, string> = {
+    position: 'absolute',
+    top: '100%',
+    left: '0',
+    marginTop: '2px',
+    backgroundColor: '#ffffff',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    padding: '4px 0',
+    minWidth: '180px',
+    zIndex: '1000',
+  };
+
+  const menuDropdownItemStyle: Record<string, string> = {
+    display: 'block',
+    width: '100%',
+    padding: '6px 14px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontSize: '13px',
+    color: '#334155',
+    fontFamily: 'inherit',
+    boxSizing: 'border-box',
+  };
+
   const appMenuBar = createElement('div', {
     style: menuBarStyle,
     'data-testid': 'app-menu-bar',
   },
-    createElement('button', {
-      style: menuBtnStyle,
-      onClick: handleRenameProject,
-      title: 'Project menu',
-    }, 'Project'),
-    createElement('button', {
-      style: menuBtnStyle,
-      title: 'Settings',
-    }, 'Settings'),
-    createElement('button', {
-      style: menuBtnStyle,
-      title: 'Help',
-    }, 'Help'),
+    // Project menu
+    createElement('div', { style: { position: 'relative', display: 'inline-flex' } },
+      createElement('button', {
+        style: menuBtnStyle,
+        onClick: () => setOpenMenu(openMenu === 'project' ? null : 'project'),
+      }, 'Project'),
+      openMenu === 'project' ? createElement('div', { style: menuDropdownStyle },
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleRenameProject(); setOpenMenu(null); } }, 'Rename Project...'),
+        createElement('div', { style: { height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' } }),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleNewContainer(); } }, 'New Container'),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleNewCard(); setOpenMenu(null); } }, 'New Card'),
+      ) : null,
+    ),
+    // Settings menu
+    createElement('div', { style: { position: 'relative', display: 'inline-flex' } },
+      createElement('button', {
+        style: menuBtnStyle,
+        onClick: () => setOpenMenu(openMenu === 'settings' ? null : 'settings'),
+      }, 'Settings'),
+      openMenu === 'settings' ? createElement('div', { style: menuDropdownStyle },
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleGridToggle(); setOpenMenu(null); } },
+          gridEnabled ? 'Disable Grid Snap' : 'Enable Grid Snap'),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => { handleToggleConnections(); setOpenMenu(null); } },
+          showConnections ? 'Hide Links' : 'Show Links'),
+      ) : null,
+    ),
+    // Help menu
+    createElement('div', { style: { position: 'relative', display: 'inline-flex' } },
+      createElement('button', {
+        style: menuBtnStyle,
+        onClick: () => setOpenMenu(openMenu === 'help' ? null : 'help'),
+      }, 'Help'),
+      openMenu === 'help' ? createElement('div', { style: menuDropdownStyle },
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => setOpenMenu(null) }, 'About Project Board'),
+        createElement('button', { style: menuDropdownItemStyle, onClick: () => setOpenMenu(null) }, 'Keyboard Shortcuts'),
+      ) : null,
+    ),
     createElement('span', {
       style: { marginLeft: 'auto', fontSize: '12px', color: '#94a3b8' },
     }, `Project Board: ${projectName}`),

@@ -148,6 +148,8 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [projectName, setProjectName] = useState(state.name || 'Untitled');
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [showConnections, setShowConnections] = useState(true);
   const sampleLoadedRef = useRef(false);
 
   // -----------------------------------------------------------------------
@@ -218,6 +220,10 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
 
   const handleColorFilter = useCallback((color: string | null) => {
     setColorFilter(color);
+  }, []);
+
+  const handleToggleConnections = useCallback(() => {
+    setShowConnections((prev: boolean) => !prev);
   }, []);
 
   // -----------------------------------------------------------------------
@@ -459,8 +465,6 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   // -----------------------------------------------------------------------
   // App menu dropdowns
   // -----------------------------------------------------------------------
-
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const handleNewContainer = useCallback(() => {
     const cx = (-state.viewport.panX + 300) / state.viewport.zoom;

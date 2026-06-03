@@ -7,12 +7,28 @@
 
 import { createElement } from '../../../../core/src/index';
 import { useState, useCallback, useRef, useEffect } from '../../../../core/src/hooks/index';
-import type { BoardState, BoardItem, Card as CardType, Container as ContainerType, CardLink as CardLinkType } from './types';
+import type { BoardState, BoardItem, Card as CardType, Container as ContainerType, CardLink as CardLinkType, CardType as CardTypeEnum } from './types';
 import { isCard, isContainer, getItemId } from './types';
 import type { BoardAction } from './BoardReducer';
-import { CardComponent } from './Card';
+import { CardComponent, CARD_TYPE_OPTIONS } from './Card';
 import { ContainerComponent } from './Container';
 import { CardLinkOverlay } from './CardLink';
+
+// ---------------------------------------------------------------------------
+// Context menu color options
+// ---------------------------------------------------------------------------
+
+const CONTEXT_COLORS = [
+  { value: 'transparent', label: 'None' },
+  { value: '#fef9c3', label: 'Yellow' },
+  { value: '#fecaca', label: 'Red' },
+  { value: '#fed7aa', label: 'Orange' },
+  { value: '#bbf7d0', label: 'Green' },
+  { value: '#bfdbfe', label: 'Blue' },
+  { value: '#ddd6fe', label: 'Purple' },
+  { value: '#fbcfe8', label: 'Pink' },
+  { value: '#e5e7eb', label: 'Gray' },
+];
 
 // ---------------------------------------------------------------------------
 // Props
@@ -141,6 +157,14 @@ export function Board(props: BoardProps) {
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+
+  // -----------------------------------------------------------------------
+  // Card context menu state (managed by Board, rendered outside transform)
+  // -----------------------------------------------------------------------
+
+  const [cardContextMenu, setCardContextMenu] = useState<{ cardId: string; x: number; y: number } | null>(null);
+  const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
+  const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
 
   // -----------------------------------------------------------------------
   // Pan handlers (middle-click or shift+left-click)
@@ -279,6 +303,38 @@ export function Board(props: BoardProps) {
   }, [viewport.panX, viewport.panY, viewport.zoom, dispatch]);
 
   // -----------------------------------------------------------------------
+  // Board-level card context menu handler
+  // -----------------------------------------------------------------------
+
+  const handleCardContextMenu = useCallback((cardId: string, pos: { x: number; y: number }) => {
+    setCardContextMenu({ cardId, x: pos.x, y: pos.y });
+    setColorSubmenuOpen(false);
+    setTypeSubmenuOpen(false);
+    // Also forward to consumer if provided
+    if (onCardContextMenu) {
+      onCardContextMenu(cardId, pos);
+    }
+  }, [onCardContextMenu]);
+
+  const closeCardContextMenu = useCallback(() => {
+    setCardContextMenu(null);
+    setColorSubmenuOpen(false);
+    setTypeSubmenuOpen(false);
+  }, []);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!cardContextMenu) return;
+    const handleDocumentClick = () => {
+      closeCardContextMenu();
+    };
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [cardContextMenu, closeCardContextMenu]);
+
+  // -----------------------------------------------------------------------
   // Handlers for items
   // -----------------------------------------------------------------------
 
@@ -402,7 +458,7 @@ export function Board(props: BoardProps) {
         onDelete: handleDeleteItem,
         dispatch,
         onOpenProject,
-        onCardContextMenu,
+        onCardContextMenu: handleCardContextMenu,
         onUpdate: onUpdateItem,
         onDragStart: handleCardDragStart,
         onDragEnd: handleCardDragEnd,
@@ -456,6 +512,152 @@ export function Board(props: BoardProps) {
     height: `${CANVAS_SIZE}px`,
   };
 
+  // -----------------------------------------------------------------------
+  // Context menu element (rendered OUTSIDE the transform container)
+  // -----------------------------------------------------------------------
+
+  const ctxMenuItemStyle: Record<string, string> = {
+    padding: '6px 12px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    whiteSpace: 'nowrap',
+    fontSize: '13px',
+    color: '#1a1a1a',
+  };
+
+  const ctxSubmenuStyle: Record<string, string> = {
+    position: 'absolute',
+    left: '100%',
+    top: '0',
+    backgroundColor: '#ffffff',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+    padding: '4px 0',
+    minWidth: '120px',
+  };
+
+  const ctxSeparatorStyle: Record<string, string> = {
+    height: '1px',
+    backgroundColor: '#e5e7eb',
+    margin: '4px 0',
+  };
+
+  const boardContextMenuEl = cardContextMenu ? createElement('div', {
+    className: 'board-context-menu',
+    style: {
+      position: 'fixed',
+      left: `${cardContextMenu.x}px`,
+      top: `${cardContextMenu.y}px`,
+      backgroundColor: '#ffffff',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      padding: '4px 0',
+      zIndex: '10000',
+      minWidth: '160px',
+      fontSize: '13px',
+      color: '#1a1a1a',
+    },
+    'data-testid': `board-context-menu-${cardContextMenu.cardId}`,
+    role: 'menu',
+    'aria-label': 'Card context menu',
+    onClick: (e: Event) => e.stopPropagation(),
+  },
+    // Change Color submenu
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, position: 'relative' as string },
+      onMouseEnter: () => { setColorSubmenuOpen(true); setTypeSubmenuOpen(false); },
+      role: 'menuitem',
+      'aria-haspopup': 'true',
+      'data-testid': `board-ctx-change-color-${cardContextMenu.cardId}`,
+    },
+      'Change Color',
+      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
+      colorSubmenuOpen ? createElement('div', {
+        style: ctxSubmenuStyle,
+        role: 'menu',
+        'data-testid': `board-ctx-color-submenu-${cardContextMenu.cardId}`,
+      },
+        ...CONTEXT_COLORS.map((opt) =>
+          createElement('div', {
+            key: opt.value,
+            style: {
+              ...ctxMenuItemStyle,
+              gap: '8px',
+            },
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              dispatch({ type: 'UPDATE_CARD', cardId: cardContextMenu.cardId, updates: { color: opt.value } });
+              closeCardContextMenu();
+            },
+            role: 'menuitem',
+            'data-testid': `board-ctx-color-${opt.label.toLowerCase()}-${cardContextMenu.cardId}`,
+          },
+            createElement('span', {
+              style: {
+                display: 'inline-block',
+                width: '14px',
+                height: '14px',
+                borderRadius: '3px',
+                backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
+                border: '1px solid #d1d5db',
+                flexShrink: '0',
+              },
+            }),
+            opt.label,
+          ),
+        ),
+      ) : null,
+    ),
+    // Change Type submenu
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, position: 'relative' as string },
+      onMouseEnter: () => { setTypeSubmenuOpen(true); setColorSubmenuOpen(false); },
+      role: 'menuitem',
+      'aria-haspopup': 'true',
+      'data-testid': `board-ctx-change-type-${cardContextMenu.cardId}`,
+    },
+      'Change Type',
+      createElement('span', { style: { marginLeft: '8px' } }, '\u25B6'),
+      typeSubmenuOpen ? createElement('div', {
+        style: ctxSubmenuStyle,
+        role: 'menu',
+        'data-testid': `board-ctx-type-submenu-${cardContextMenu.cardId}`,
+      },
+        ...CARD_TYPE_OPTIONS.map((opt) =>
+          createElement('div', {
+            key: opt.value,
+            style: ctxMenuItemStyle,
+            onClick: (e: Event) => {
+              e.stopPropagation();
+              dispatch({ type: 'CHANGE_CARD_TYPE', cardId: cardContextMenu.cardId, newType: opt.value });
+              closeCardContextMenu();
+            },
+            role: 'menuitem',
+            'data-testid': `board-ctx-type-${opt.value}-${cardContextMenu.cardId}`,
+          }, opt.label),
+        ),
+      ) : null,
+    ),
+    // Separator
+    createElement('div', { style: ctxSeparatorStyle, role: 'separator' }),
+    // Delete
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, color: '#dc2626' },
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        dispatch({ type: 'REMOVE_ITEM', itemId: cardContextMenu.cardId });
+        if (onSelectItem && selectedId === cardContextMenu.cardId) onSelectItem(null);
+        closeCardContextMenu();
+      },
+      role: 'menuitem',
+      'data-testid': `board-ctx-delete-${cardContextMenu.cardId}`,
+    }, 'Delete'),
+  ) : null;
+
   return createElement('div', {
     ref: containerRef,
     className: 'board-canvas',
@@ -482,5 +684,6 @@ export function Board(props: BoardProps) {
       }),
       ...itemElements,
     ),
+    boardContextMenuEl,
   );
 }

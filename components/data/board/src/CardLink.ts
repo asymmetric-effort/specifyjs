@@ -27,11 +27,41 @@ export interface CardLinkOverlayProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getCardCenter(card: Card): { x: number; y: number } {
+function getCardAnchors(card: Card): { top: { x: number; y: number }; right: { x: number; y: number }; bottom: { x: number; y: number }; left: { x: number; y: number } } {
+  const cx = card.position.x + card.size.width / 2;
+  const cy = card.position.y + card.size.height / 2;
   return {
-    x: card.position.x + card.size.width / 2,
-    y: card.position.y + card.size.height / 2,
+    top: { x: cx, y: card.position.y },
+    right: { x: card.position.x + card.size.width, y: cy },
+    bottom: { x: cx, y: card.position.y + card.size.height },
+    left: { x: card.position.x, y: cy },
   };
+}
+
+function getNearestAnchors(source: Card, target: Card): { from: { x: number; y: number }; to: { x: number; y: number } } {
+  const sa = getCardAnchors(source);
+  const ta = getCardAnchors(target);
+  const sourceAnchors = [sa.top, sa.right, sa.bottom, sa.left];
+  const targetAnchors = [ta.top, ta.right, ta.bottom, ta.left];
+
+  let bestDist = Infinity;
+  let bestFrom = sa.right;
+  let bestTo = ta.left;
+
+  for (let i = 0; i < sourceAnchors.length; i++) {
+    for (let j = 0; j < targetAnchors.length; j++) {
+      const dx = targetAnchors[j].x - sourceAnchors[i].x;
+      const dy = targetAnchors[j].y - sourceAnchors[i].y;
+      const d = dx * dx + dy * dy;
+      if (d < bestDist) {
+        bestDist = d;
+        bestFrom = sourceAnchors[i];
+        bestTo = targetAnchors[j];
+      }
+    }
+  }
+
+  return { from: bestFrom, to: bestTo };
 }
 
 // ---------------------------------------------------------------------------
@@ -63,8 +93,7 @@ export function CardLinkOverlay(props: CardLinkOverlayProps) {
     const targetCard = cardMap.get(link.target_card_id);
     if (!targetCard) continue;
 
-    const from = getCardCenter(source);
-    const to = getCardCenter(targetCard);
+    const { from, to } = getNearestAnchors(source, targetCard);
     const isSelected = link.link_id === selectedLinkId;
     const strokeColor = isSelected ? '#3b82f6' : (link.color || '#94a3b8');
 
@@ -134,6 +163,7 @@ export function CardLinkOverlay(props: CardLinkOverlayProps) {
     height: '100%',
     pointerEvents: 'none',
     overflow: 'visible',
+    zIndex: '9999',
   };
 
   // Arrow marker definition

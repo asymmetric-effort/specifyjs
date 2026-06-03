@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/board",
+  "version": "0.0.1",
+  "description": "Reusable whiteboard/canvas component with typed cards, nestable containers, and graph-style links for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

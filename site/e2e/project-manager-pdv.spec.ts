@@ -175,7 +175,7 @@ test.describe('Project Manager PDV', () => {
     await page.waitForTimeout(500);
 
     // Context menu should appear
-    const contextMenu = page.locator(`${desktop} .board-context-menu, [role="menu"][aria-label="Card context menu"]`);
+    const contextMenu = page.locator(`[class="board-context-menu"], [data-testid^="board-context-menu"]`);
     await expect(contextMenu).toBeVisible({ timeout: 5000 });
   });
 
@@ -187,7 +187,7 @@ test.describe('Project Manager PDV', () => {
     await firstCard.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const contextMenu = page.locator(`${desktop} .board-context-menu, [role="menu"][aria-label="Card context menu"]`);
+    const contextMenu = page.locator(`[class="board-context-menu"], [data-testid^="board-context-menu"]`);
     await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
     // Look for "Change Color" menu item
@@ -203,7 +203,7 @@ test.describe('Project Manager PDV', () => {
     await firstCard.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const contextMenu = page.locator(`${desktop} .board-context-menu, [role="menu"][aria-label="Card context menu"]`);
+    const contextMenu = page.locator(`[class="board-context-menu"], [data-testid^="board-context-menu"]`);
     await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
     const changeTypeItem = contextMenu.locator('[role="menuitem"]', { hasText: 'Change Type' });
@@ -218,7 +218,7 @@ test.describe('Project Manager PDV', () => {
     await firstCard.click({ button: 'right' });
     await page.waitForTimeout(500);
 
-    const contextMenu = page.locator(`${desktop} .board-context-menu, [role="menu"][aria-label="Card context menu"]`);
+    const contextMenu = page.locator(`[class="board-context-menu"], [data-testid^="board-context-menu"]`);
     await expect(contextMenu).toBeVisible({ timeout: 5000 });
 
     const deleteItem = contextMenu.locator('[role="menuitem"]', { hasText: 'Delete' });

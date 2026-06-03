@@ -951,7 +951,7 @@ function UnityDesktopInner(props: {
       }, dockEl),
       createElement('main', {
         className: 'unity-desktop__desktop',
-        style: { flex: '1', position: 'relative' },
+        style: { flex: '1', position: 'relative', overflow: 'hidden', minHeight: '0' },
       }, desktopEl, appsGridEl),
     ),
     // Overlays

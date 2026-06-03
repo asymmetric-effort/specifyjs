@@ -46,6 +46,8 @@ export interface CardComponentProps {
   onDelete?: (cardId: string) => void;
   dispatch?: (action: BoardAction) => void;
   onOpenProject?: (projectId: string) => void;
+  onCardContextMenu?: (cardId: string, pos: { x: number; y: number }) => void;
+  onUpdate?: (cardId: string, updates: { card_title?: string; content?: unknown }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,10 +145,14 @@ function renderProjectContent(card: Card, onOpenProject?: (projectId: string) =>
 // ---------------------------------------------------------------------------
 
 export function CardComponent(props: CardComponentProps) {
-  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject } = props;
+  const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate } = props;
   const [hovered, setHovered] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(card.card_title || '');
+  const [descDraft, setDescDraft] = useState('');
   const dragStartRef = useRef<{ x: number; y: number; cardX: number; cardY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -162,7 +168,10 @@ export function CardComponent(props: CardComponentProps) {
     me.stopPropagation();
     setContextMenu({ x: me.clientX, y: me.clientY });
     setTypeSubmenuOpen(false);
-  }, []);
+    if (onCardContextMenu) {
+      onCardContextMenu(card.card_id, { x: me.clientX, y: me.clientY });
+    }
+  }, [onCardContextMenu, card.card_id]);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
@@ -176,7 +185,7 @@ export function CardComponent(props: CardComponentProps) {
   const handleMouseDown = useCallback((e: Event) => {
     const me = e as MouseEvent;
     const target = me.target as HTMLElement;
-    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'drag-handle')) return;
+    if (target.dataset && (target.dataset.role === 'delete' || target.dataset.role === 'resize' || target.dataset.role === 'drag-handle' || target.dataset.role === 'inline-edit')) return;
 
     me.preventDefault();
     me.stopPropagation();
@@ -272,13 +281,118 @@ export function CardComponent(props: CardComponentProps) {
   }, [card.card_id, dispatch, closeContextMenu]);
 
   // -----------------------------------------------------------------------
+  // Inline editing handlers
+  // -----------------------------------------------------------------------
+
+  const handleTitleDblClick = useCallback((e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTitleDraft(card.card_title || '');
+    setEditingTitle(true);
+  }, [card.card_title]);
+
+  const handleTitleSave = useCallback(() => {
+    setEditingTitle(false);
+    if (onUpdate && titleDraft !== card.card_title) {
+      onUpdate(card.card_id, { card_title: titleDraft });
+    }
+  }, [onUpdate, card.card_id, card.card_title, titleDraft]);
+
+  const handleTitleKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter') {
+      ke.preventDefault();
+      handleTitleSave();
+    } else if (ke.key === 'Escape') {
+      ke.preventDefault();
+      setEditingTitle(false);
+      setTitleDraft(card.card_title || '');
+    }
+  }, [handleTitleSave, card.card_title]);
+
+  const handleTitleInput = useCallback((e: Event) => {
+    const target = e.target as HTMLInputElement;
+    setTitleDraft(target.value);
+  }, []);
+
+  const handleDescClick = useCallback((e: Event) => {
+    e.stopPropagation();
+    const content = card.content as TextContent;
+    setDescDraft(content.text || '');
+    setEditingDescription(true);
+  }, [card.content]);
+
+  const handleDescSave = useCallback(() => {
+    setEditingDescription(false);
+    if (onUpdate) {
+      onUpdate(card.card_id, { content: { text: descDraft } });
+    }
+  }, [onUpdate, card.card_id, descDraft]);
+
+  const handleDescKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Escape') {
+      ke.preventDefault();
+      setEditingDescription(false);
+      const content = card.content as TextContent;
+      setDescDraft(content.text || '');
+    }
+  }, [card.content]);
+
+  const handleDescInput = useCallback((e: Event) => {
+    const target = e.target as HTMLTextAreaElement;
+    setDescDraft(target.value);
+  }, []);
+
+  // -----------------------------------------------------------------------
   // Content rendering
   // -----------------------------------------------------------------------
 
   let contentEl: unknown;
   switch (card.card_type) {
     case 'text':
-      contentEl = renderTextContent(card);
+      if (editingDescription) {
+        contentEl = createElement('textarea', {
+          'data-role': 'inline-edit',
+          'data-testid': `card-desc-edit-${card.card_id}`,
+          value: descDraft,
+          onInput: handleDescInput,
+          onBlur: handleDescSave,
+          onKeyDown: handleDescKeyDown,
+          onFocus: (e: Event) => {
+            const ta = e.target as HTMLTextAreaElement;
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+          },
+          style: {
+            fontSize: '12px',
+            color: '#555555',
+            lineHeight: '1.4',
+            flex: '1',
+            border: '1px solid #3b82f6',
+            borderRadius: '3px',
+            padding: '2px 4px',
+            resize: 'none',
+            outline: 'none',
+            fontFamily: 'inherit',
+            backgroundColor: '#fff',
+            width: '100%',
+            boxSizing: 'border-box',
+          },
+        });
+      } else {
+        contentEl = createElement('div', {
+          style: {
+            fontSize: '12px',
+            color: '#555555',
+            lineHeight: '1.4',
+            overflow: 'hidden',
+            flex: '1',
+            cursor: 'text',
+          },
+          'data-testid': `card-text-content-${card.card_id}`,
+          onClick: handleDescClick,
+        }, (card.content as TextContent).text || '');
+      }
       break;
     case 'json':
       contentEl = renderJsonContent(card);
@@ -571,10 +685,34 @@ export function CardComponent(props: CardComponentProps) {
     'aria-label': `Card: ${card.card_title}`,
     tabIndex: 0,
   },
-    createElement('div', {
-      style: titleStyle,
-      'data-testid': `card-title-${card.card_id}`,
-    }, card.card_title || 'Untitled'),
+    editingTitle
+      ? createElement('input', {
+          'data-role': 'inline-edit',
+          'data-testid': `card-title-edit-${card.card_id}`,
+          value: titleDraft,
+          onInput: handleTitleInput,
+          onBlur: handleTitleSave,
+          onKeyDown: handleTitleKeyDown,
+          onFocus: (e: Event) => {
+            const inp = e.target as HTMLInputElement;
+            inp.setSelectionRange(inp.value.length, inp.value.length);
+          },
+          style: {
+            ...titleStyle,
+            border: '1px solid #3b82f6',
+            borderRadius: '3px',
+            padding: '1px 4px',
+            outline: 'none',
+            width: '100%',
+            boxSizing: 'border-box',
+            backgroundColor: '#fff',
+          },
+        })
+      : createElement('div', {
+          style: titleStyle,
+          'data-testid': `card-title-${card.card_id}`,
+          onDblClick: handleTitleDblClick,
+        }, card.card_title || 'Untitled'),
     contentEl,
     tagsEl,
     assigneeEl,

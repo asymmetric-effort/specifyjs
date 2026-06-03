@@ -27,6 +27,8 @@ export interface BoardProps {
   searchQuery?: string;
   colorFilter?: string | null;
   onOpenProject?: (projectId: string) => void;
+  onCardContextMenu?: (cardId: string, pos: { x: number; y: number }) => void;
+  onUpdateItem?: (cardId: string, updates: { card_title?: string; content?: unknown }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,8 @@ export function Board(props: BoardProps) {
     searchQuery = '',
     colorFilter = null,
     onOpenProject,
+    onCardContextMenu,
+    onUpdateItem,
   } = props;
   const { collection, viewport } = state;
 
@@ -332,6 +336,8 @@ export function Board(props: BoardProps) {
         onDelete: handleDeleteItem,
         dispatch,
         onOpenProject,
+        onCardContextMenu,
+        onUpdate: onUpdateItem,
       });
     } else {
       const childElements = item.contents.map((child: BoardItem) => renderItem(child));

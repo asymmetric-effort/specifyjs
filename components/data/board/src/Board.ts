@@ -19,7 +19,6 @@ import { CardLinkOverlay } from './CardLink';
 // ---------------------------------------------------------------------------
 
 const CONTEXT_COLORS = [
-  { value: 'transparent', label: 'None' },
   { value: '#fef9c3', label: 'Yellow' },
   { value: '#fecaca', label: 'Red' },
   { value: '#fed7aa', label: 'Orange' },
@@ -607,7 +606,7 @@ export function Board(props: BoardProps) {
                 width: '14px',
                 height: '14px',
                 borderRadius: '3px',
-                backgroundColor: opt.value === 'transparent' ? '#ffffff' : opt.value,
+                backgroundColor: opt.value,
                 border: '1px solid #d1d5db',
                 flexShrink: '0',
               },

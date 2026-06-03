@@ -13,7 +13,6 @@ import { useState, useCallback } from 'specifyjs/hooks';
 // ---------------------------------------------------------------------------
 
 export const CARD_COLORS = [
-  'transparent', // no background
   '#fef9c3', // yellow
   '#fecaca', // red
   '#fed7aa', // orange
@@ -142,20 +141,14 @@ export function BoardToolbar(props: ToolbarProps) {
       borderStyle = '2px solid #3b82f6';
     }
 
-    const isTransparent = color === 'transparent';
     return createElement('button', {
       key: color,
-      title: isTransparent ? 'Transparent' : color,
+      title: color,
       style: {
         width: '18px',
         height: '18px',
         borderRadius: '50%',
-        backgroundColor: isTransparent ? '#ffffff' : color,
-        backgroundImage: isTransparent
-          ? 'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%)'
-          : 'none',
-        backgroundSize: isTransparent ? '6px 6px' : 'auto',
-        backgroundPosition: isTransparent ? '0 0, 3px 3px' : '0 0',
+        backgroundColor: color,
         border: borderStyle,
         cursor: 'pointer',
         padding: '0',

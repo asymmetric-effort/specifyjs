@@ -387,14 +387,19 @@ export function Board(props: BoardProps) {
     setDropTargetId(null);
   }, []);
 
+  // Use ref for dropTargetId in drag end to avoid stale closure
+  // (Card's mouseup listener captures the callback at drag start)
+  const dropTargetIdRef = useRef<string | null>(null);
+  dropTargetIdRef.current = dropTargetId;
+
   const handleCardDragEnd = useCallback((cardId: string) => {
-    if (dropTargetId) {
-      // Card was released over a container -- nest it
-      dispatch({ type: 'NEST_ITEM', itemId: cardId, containerId: dropTargetId });
+    const target = dropTargetIdRef.current;
+    if (target) {
+      dispatch({ type: 'NEST_ITEM', itemId: cardId, containerId: target });
     }
     setDraggingCardId(null);
     setDropTargetId(null);
-  }, [dropTargetId, dispatch]);
+  }, [dispatch]);
 
   // -----------------------------------------------------------------------
   // Filter/dim by search & color

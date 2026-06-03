@@ -17,37 +17,31 @@ import { isCard, isContainer, getItemId } from './types';
 // ---------------------------------------------------------------------------
 
 /**
- * Collect all names within a container and its descendants (iterative).
- * Returns a set of lowercase names for case-insensitive comparison.
+ * Collect container names within a scope and its descendants (iterative).
+ * Only container names are unique within a scope — card names can repeat.
  */
-function collectNamesInScope(
+function collectContainerNamesInScope(
   items: BoardItem[],
   excludeId?: string,
 ): Set<string> {
   const names = new Set<string>();
   const stack: BoardItem[] = [];
 
-  // Push items in reverse so we process them in order
   for (let i = items.length - 1; i >= 0; i--) {
     stack.push(items[i]);
   }
 
   while (stack.length > 0) {
     const item = stack.pop()!;
-    const itemId = isCard(item) ? item.card_id : item.container_id;
-
-    if (excludeId && itemId === excludeId) continue;
-
-    const name = isCard(item) ? item.card_title : item.name;
-    if (name) {
-      names.add(name);
-    }
 
     if (isContainer(item)) {
+      if (excludeId && item.container_id === excludeId) continue;
+      if (item.name) names.add(item.name);
       for (let i = item.contents.length - 1; i >= 0; i--) {
         stack.push(item.contents[i]);
       }
     }
+    // Cards are NOT checked — card names can be duplicated
   }
 
   return names;
@@ -79,7 +73,7 @@ export function validateNameInScope(
   }
 
   // Collect all names from contents and descendants
-  const existingNames = collectNamesInScope(container.contents, excludeId);
+  const existingNames = collectContainerNamesInScope(container.contents, excludeId);
   return !existingNames.has(name);
 }
 
@@ -99,14 +93,12 @@ export function validateNameInBoard(
 ): boolean {
   if (!name) return false;
 
+  // Only container names must be unique at the top level
   for (let i = 0; i < collection.length; i++) {
     const item = collection[i];
-    const itemId = isCard(item) ? item.card_id : item.container_id;
-
-    if (excludeId && itemId === excludeId) continue;
-
-    const itemName = isCard(item) ? item.card_title : item.name;
-    if (itemName === name) return false;
+    if (!isContainer(item)) continue;
+    if (excludeId && item.container_id === excludeId) continue;
+    if (item.name === name) return false;
   }
 
   return true;

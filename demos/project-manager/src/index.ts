@@ -17,17 +17,9 @@ import { InterAppWrapper } from './InterApp';
 import type { Card, BoardState, BoardItem } from './types';
 import { generateUUID, isCard, isContainer } from './types';
 
-export type { Card, CardLink, BoardState, BoardItem } from './types';
-export type { BoardStorage } from './types';
-export { useBoardState, boardReducer, historyReducer, DEFAULT_BOARD_STATE } from './BoardState';
-export type { BoardAction, HistoryState, UseBoardStateResult } from './BoardState';
-export { LocalBoardStorage } from './LocalStorage';
-export { Card as CardComponent } from './Card';
-export { CardEditor } from './CardEditor';
-export { ConnectionsOverlay } from './Connection';
-export { BoardToolbar, CARD_COLORS } from './Toolbar';
-export { Board, snapToGrid, screenToCanvas, computeFitAll } from './Board';
-export { InterAppWrapper } from './InterApp';
+// Only export the app component — consumers should import the reusable
+// board library directly from components/data/board/ for types and utilities.
+// Re-exporting caused circular chunk references in the Vite build.
 
 // ---------------------------------------------------------------------------
 // Storage singleton

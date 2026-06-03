@@ -69,6 +69,8 @@ export function Card(props: CardProps) {
   const [hovered, setHovered] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(card.title || '');
+  const [descDraft, setDescDraft] = useState(card.description || '');
   const dragStartRef = useRef<{ x: number; y: number; cardX: number; cardY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
@@ -126,60 +128,65 @@ export function Card(props: CardProps) {
   const handleTitleDoubleClick = useCallback((e: Event) => {
     e.preventDefault();
     e.stopPropagation();
+    setTitleDraft(card.title || '');
     setEditingTitle(true);
+  }, [card.title]);
+
+  const handleTitleInput = useCallback((e: Event) => {
+    setTitleDraft((e.target as HTMLInputElement).value);
   }, []);
+
+  const saveTitleAndClose = useCallback(() => {
+    const newTitle = titleDraft.trim();
+    if (newTitle && newTitle !== card.title && onUpdate) {
+      onUpdate(card.id, { title: newTitle });
+    }
+    setEditingTitle(false);
+  }, [titleDraft, card.id, card.title, onUpdate]);
 
   const handleTitleKeyDown = useCallback((e: Event) => {
     const ke = e as KeyboardEvent;
     if (ke.key === 'Enter') {
       ke.preventDefault();
-      const input = ke.target as HTMLInputElement;
-      const newTitle = input.value.trim();
-      if (newTitle && newTitle !== card.title && onUpdate) {
-        onUpdate(card.id, { title: newTitle });
-      }
-      setEditingTitle(false);
+      saveTitleAndClose();
     } else if (ke.key === 'Escape') {
       ke.preventDefault();
       setEditingTitle(false);
     }
-  }, [card.id, card.title, onUpdate]);
+  }, [saveTitleAndClose]);
 
-  const handleTitleBlur = useCallback((e: Event) => {
-    const input = e.target as HTMLInputElement;
-    const newTitle = input.value.trim();
-    if (newTitle && newTitle !== card.title && onUpdate) {
-      onUpdate(card.id, { title: newTitle });
-    }
-    setEditingTitle(false);
-  }, [card.id, card.title, onUpdate]);
+  const handleTitleBlur = useCallback(() => {
+    saveTitleAndClose();
+  }, [saveTitleAndClose]);
 
   const handleDescriptionClick = useCallback((e: Event) => {
     e.stopPropagation();
+    setDescDraft(card.description || '');
     setEditingDescription(true);
+  }, [card.description]);
+
+  const handleDescInput = useCallback((e: Event) => {
+    setDescDraft((e.target as HTMLTextAreaElement).value);
   }, []);
+
+  const saveDescAndClose = useCallback(() => {
+    if (descDraft !== card.description && onUpdate) {
+      onUpdate(card.id, { description: descDraft });
+    }
+    setEditingDescription(false);
+  }, [descDraft, card.id, card.description, onUpdate]);
 
   const handleDescriptionKeyDown = useCallback((e: Event) => {
     const ke = e as KeyboardEvent;
     if (ke.key === 'Escape') {
       ke.preventDefault();
-      const textarea = ke.target as HTMLTextAreaElement;
-      const newDesc = textarea.value;
-      if (newDesc !== card.description && onUpdate) {
-        onUpdate(card.id, { description: newDesc });
-      }
-      setEditingDescription(false);
+      saveDescAndClose();
     }
-  }, [card.id, card.description, onUpdate]);
+  }, [saveDescAndClose]);
 
-  const handleDescriptionBlur = useCallback((e: Event) => {
-    const textarea = e.target as HTMLTextAreaElement;
-    const newDesc = textarea.value;
-    if (newDesc !== card.description && onUpdate) {
-      onUpdate(card.id, { description: newDesc });
-    }
-    setEditingDescription(false);
-  }, [card.id, card.description, onUpdate]);
+  const handleDescriptionBlur = useCallback(() => {
+    saveDescAndClose();
+  }, [saveDescAndClose]);
 
   // -----------------------------------------------------------------------
   // Anchor drag (for connection creation)
@@ -495,7 +502,8 @@ export function Card(props: CardProps) {
       ? createElement('input', {
           ref: titleInputRef,
           type: 'text',
-          defaultValue: card.title || '',
+          value: titleDraft,
+          onInput: handleTitleInput,
           style: {
             ...titleStyle,
             width: '100%',
@@ -521,7 +529,8 @@ export function Card(props: CardProps) {
     editingDescription
       ? createElement('textarea', {
           ref: descTextareaRef,
-          defaultValue: card.description || '',
+          value: descDraft,
+          onInput: handleDescInput,
           style: {
             ...descStyle,
             width: '100%',

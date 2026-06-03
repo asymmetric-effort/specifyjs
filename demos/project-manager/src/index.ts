@@ -140,6 +140,8 @@ function isBoardEmpty(state: BoardState): boolean {
 
 export interface ProjectManagerAppProps {
   boardId?: string;
+  /** Called when the project name changes — consumer should update the window title */
+  onTitleChange?: (title: string) => void;
 }
 
 export function ProjectManagerApp(props: ProjectManagerAppProps) {
@@ -370,9 +372,10 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     if (name) {
       setProjectName(name);
       dispatch({ type: 'RENAME_BOARD', name });
+      if (props.onTitleChange) props.onTitleChange(`Project Board: ${name}`);
     }
     setShowRenameDialog(false);
-  }, [renameDraft, dispatch]);
+  }, [renameDraft, dispatch, props.onTitleChange]);
 
   const handleRenameCancel = useCallback(() => {
     setShowRenameDialog(false);

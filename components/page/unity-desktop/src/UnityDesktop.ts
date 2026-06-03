@@ -257,7 +257,7 @@ function FilesContent() {
 // Mock app content for demo windows
 // ---------------------------------------------------------------------------
 
-function getMockContent(title: string): unknown {
+function getMockContent(title: string, windowId?: string, onTitleChange?: (newTitle: string) => void): unknown {
   const contentStyle: Record<string, string> = {
     padding: '16px',
     fontSize: '13px',
@@ -301,7 +301,10 @@ function getMockContent(title: string): unknown {
     case 'Trading':
       return createElement(TradingDashboard, null);
     case 'Project Board':
-      return createElement(ProjectManagerApp, null);
+      return createElement(ProjectManagerApp, {
+        boardId: windowId || 'default',
+        onTitleChange: onTitleChange || undefined,
+      });
     default:
       return createElement('div', { style: contentStyle },
         createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#94a3b8' } }, `${title} application content`),
@@ -717,7 +720,10 @@ function UnityDesktopInner(props: {
             : ww));
       },
     },
-      getMockContent(w.title),
+      getMockContent(w.title, w.id, (newTitle: string) => {
+        setOpenWindows((prev: InternalOpenWindow[]) =>
+          prev.map((ww: InternalOpenWindow) => ww.id === w.id ? { ...ww, title: newTitle } : ww));
+      }),
     ));
 
   const desktopContentChildren: unknown[] = [];
@@ -836,9 +842,7 @@ function UnityDesktopInner(props: {
 
       // Renumber instances for display: 1-based order by zIndex (creation order is fine too)
       ctxInstances.forEach((inst: InternalOpenWindow, idx: number) => {
-        const displayLabel = ctxInstances.length === 1
-          ? (ctxApp?.label || inst.title)
-          : `${ctxApp?.label || baseLabel(inst.title)} (${idx + 1})`;
+        const displayLabel = inst.title;
         menuChildren.push(createElement('div', {
           key: `inst-${inst.id}`,
           style: menuItemStyle,

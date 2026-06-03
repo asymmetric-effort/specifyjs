@@ -674,6 +674,12 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         selectedId: selectedCardId,
         onSelectItem: handleSelectCard,
         colorFilter,
+        onUpdateItem: (cardId: string, updates: { card_title?: string; content?: unknown }) => {
+          dispatch({ type: 'UPDATE_CARD', cardId, updates });
+        },
+        onCardContextMenu: (cardId: string, pos: { x: number; y: number }) => {
+          // Context menu handled by Board internally for now
+        },
       }),
     ),
     renameDialogEl,

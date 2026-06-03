@@ -3,6 +3,8 @@
 
 /**
  * index.ts -- Exports the ProjectManagerApp component for use in the Unity Desktop.
+ * This is a thin wrapper around the reusable Board component library,
+ * providing sample data, toolbar config, and the app shell.
  */
 
 import { createElement } from 'specifyjs';
@@ -12,29 +14,20 @@ import { BoardToolbar, CARD_COLORS } from './Toolbar';
 import { useBoardState, DEFAULT_BOARD_STATE } from './BoardState';
 import { LocalBoardStorage } from './LocalStorage';
 import { InterAppWrapper } from './InterApp';
-import type { ProjectCard, BoardState } from './types';
+import type { Card, BoardState, BoardItem } from './types';
+import { generateUUID, isCard, isContainer } from './types';
 
-export type { ProjectCard, CardConnection, BoardState, BoardStorage } from './types';
+export type { Card, CardLink, BoardState, BoardItem } from './types';
+export type { BoardStorage } from './types';
 export { useBoardState, boardReducer, historyReducer, DEFAULT_BOARD_STATE } from './BoardState';
 export type { BoardAction, HistoryState, UseBoardStateResult } from './BoardState';
 export { LocalBoardStorage } from './LocalStorage';
-export { Card } from './Card';
+export { Card as CardComponent } from './Card';
 export { CardEditor } from './CardEditor';
 export { ConnectionsOverlay } from './Connection';
 export { BoardToolbar, CARD_COLORS } from './Toolbar';
 export { Board, snapToGrid, screenToCanvas, computeFitAll } from './Board';
 export { InterAppWrapper } from './InterApp';
-
-// ---------------------------------------------------------------------------
-// ID generation
-// ---------------------------------------------------------------------------
-
-let cardIdCounter = 0;
-
-function generateCardId(): string {
-  cardIdCounter++;
-  return `card-${Date.now()}-${cardIdCounter}`;
-}
 
 // ---------------------------------------------------------------------------
 // Storage singleton
@@ -43,28 +36,102 @@ function generateCardId(): string {
 const storage = new LocalBoardStorage();
 
 // ---------------------------------------------------------------------------
+// Helper: collect all cards from the BoardItem tree
+// ---------------------------------------------------------------------------
+
+function collectAllCards(items: BoardItem[]): Card[] {
+  const cards: Card[] = [];
+  const stack: BoardItem[] = [...items];
+  while (stack.length > 0) {
+    const item = stack.pop()!;
+    if (isCard(item)) {
+      cards.push(item);
+    } else if (isContainer(item)) {
+      for (let i = item.contents.length - 1; i >= 0; i--) {
+        stack.push(item.contents[i]);
+      }
+    }
+  }
+  return cards;
+}
+
+// ---------------------------------------------------------------------------
 // Sample board data (feature #7)
 // ---------------------------------------------------------------------------
 
-const SAMPLE_CARDS: ProjectCard[] = [
-  { id: 'sample-1', title: 'Auth API', description: 'Design the auth flow', color: '#3b82f6', position: { x: 50, y: 50 }, size: { width: 180, height: 120 }, priority: 'high', assignee: 'Alice', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'sample-2', title: 'Dashboard', description: 'Build the main dashboard', color: '#22c55e', position: { x: 300, y: 80 }, size: { width: 180, height: 120 }, priority: 'medium', assignee: 'Bob', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'sample-3', title: 'Deploy', description: 'Set up CI pipeline', color: '#f59e0b', position: { x: 150, y: 250 }, size: { width: 180, height: 120 }, priority: 'low', createdAt: Date.now(), updatedAt: Date.now() },
-  { id: 'sample-4', title: 'Docs', description: 'Write API reference', color: '#a855f7', position: { x: 400, y: 280 }, size: { width: 180, height: 120 }, priority: 'medium', assignee: 'Carol', createdAt: Date.now(), updatedAt: Date.now() },
-];
+const now = Date.now();
 
 const SAMPLE_BOARD: BoardState = {
   id: 'sample-board-001',
   name: 'Sample Project',
-  cards: SAMPLE_CARDS,
-  connections: [
-    { id: 'sample-conn-1', fromCardId: 'sample-1', toCardId: 'sample-2' },
-  ],
+  collection: [
+    {
+      type: 'card',
+      card_id: 'sample-1',
+      card_type: 'text',
+      card_title: 'Auth API',
+      card_link: [
+        { link_id: 'link-1', link_name: 'blocks', target_card_id: 'sample-2', color: '#94a3b8', attributes: {} },
+      ],
+      content: { text: 'Design the auth flow' },
+      position: { x: 50, y: 50 },
+      size: { width: 180, height: 120 },
+      color: '#3b82f6',
+      priority: 'high',
+      assignee: 'Alice',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      type: 'card',
+      card_id: 'sample-2',
+      card_type: 'text',
+      card_title: 'Dashboard',
+      card_link: [],
+      content: { text: 'Build the main dashboard' },
+      position: { x: 300, y: 80 },
+      size: { width: 180, height: 120 },
+      color: '#22c55e',
+      priority: 'medium',
+      assignee: 'Bob',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      type: 'card',
+      card_id: 'sample-3',
+      card_type: 'text',
+      card_title: 'Deploy',
+      card_link: [],
+      content: { text: 'Set up CI pipeline' },
+      position: { x: 150, y: 250 },
+      size: { width: 180, height: 120 },
+      color: '#f59e0b',
+      priority: 'low',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      type: 'card',
+      card_id: 'sample-4',
+      card_type: 'text',
+      card_title: 'Docs',
+      card_link: [],
+      content: { text: 'Write API reference' },
+      position: { x: 400, y: 280 },
+      size: { width: 180, height: 120 },
+      color: '#a855f7',
+      priority: 'medium',
+      assignee: 'Carol',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ] as Card[],
   viewport: { panX: 0, panY: 0, zoom: 1 },
 };
 
 function isBoardEmpty(state: BoardState): boolean {
-  return state.cards.length === 0 && state.connections.length === 0;
+  return state.collection.length === 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,21 +151,20 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<string | null>(null);
-  const [showConnections, setShowConnections] = useState(true);
   const [projectName, setProjectName] = useState(state.name || 'Untitled');
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameDraft, setRenameDraft] = useState('');
   const sampleLoadedRef = useRef(false);
 
   // -----------------------------------------------------------------------
-  // Sample data loading (feature #7) — populate empty board
+  // Sample data loading (feature #7) -- populate empty board
   // -----------------------------------------------------------------------
 
   useEffect(() => {
     if (!sampleLoadedRef.current && isBoardEmpty(state)) {
       sampleLoadedRef.current = true;
       dispatch({ type: 'SET_BOARD', state: SAMPLE_BOARD });
-    } else if (state.cards.length > 0) {
+    } else if (state.collection.length > 0) {
       sampleLoadedRef.current = true;
     }
   }, [state, dispatch]);
@@ -111,13 +177,16 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     // Create a card at a random position within 50% offset from viewport center
     const cx = (-state.viewport.panX + 300) / state.viewport.zoom;
     const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
-    const offsetX = (Math.random() - 0.5) * 300; // ±150px (50% of 300)
-    const offsetY = (Math.random() - 0.5) * 200; // ±100px (50% of 200)
+    const offsetX = (Math.random() - 0.5) * 300; // +/-150px (50% of 300)
+    const offsetY = (Math.random() - 0.5) * 200; // +/-100px (50% of 200)
 
-    const newCard: ProjectCard = {
-      id: generateCardId(),
-      title: 'New Card',
-      description: '',
+    const newCard: Card = {
+      type: 'card',
+      card_id: generateUUID(),
+      card_type: 'text',
+      card_title: 'New Card',
+      card_link: [],
+      content: { text: '' },
       color: selectedColor,
       position: { x: Math.round(cx + offsetX), y: Math.round(cy + offsetY) },
       size: { width: 180, height: 120 },
@@ -126,7 +195,7 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       updatedAt: Date.now(),
     };
 
-    dispatch({ type: 'ADD_CARD', card: newCard });
+    dispatch({ type: 'ADD_ITEM', item: newCard });
   }, [state.viewport, selectedColor, dispatch]);
 
   const handleZoomIn = useCallback(() => {
@@ -192,7 +261,7 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       reader.onload = () => {
         try {
           const parsed = JSON.parse(reader.result as string);
-          if (parsed && parsed.cards && parsed.viewport) {
+          if (parsed && parsed.collection && parsed.viewport) {
             dispatch({ type: 'SET_BOARD', state: parsed as BoardState });
           }
         } catch (_e) {
@@ -210,71 +279,37 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     window.print();
   }, []);
 
-  const handleSelectAll = useCallback(() => {
-    if (state.cards.length > 0) {
-      setSelectedCardId(state.cards[0].id);
-    }
-  }, [state.cards]);
+  const allCards = collectAllCards(state.collection);
 
-  const handleToggleConnections = useCallback(() => {
-    setShowConnections((prev: boolean) => !prev);
-  }, []);
+  const handleSelectAll = useCallback(() => {
+    const cards = collectAllCards(state.collection);
+    if (cards.length > 0) {
+      setSelectedCardId(cards[0].card_id);
+    }
+  }, [state.collection]);
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedCardId) {
-      dispatch({ type: 'REMOVE_CARD', cardId: selectedCardId });
+      dispatch({ type: 'REMOVE_ITEM', itemId: selectedCardId });
       setSelectedCardId(null);
     }
   }, [selectedCardId, dispatch]);
 
   const handleFitAll = useCallback(() => {
-    if (state.cards.length === 0) return;
+    if (state.collection.length === 0) return;
     // Estimate container size (use reasonable defaults)
     const containerWidth = 800;
     const containerHeight = 600;
-    const fit = computeFitAll(state.cards, containerWidth, containerHeight);
+    const fit = computeFitAll(state.collection, containerWidth, containerHeight);
     dispatch({ type: 'PAN', panX: fit.panX, panY: fit.panY });
     dispatch({ type: 'ZOOM', zoom: fit.zoom });
-  }, [state.cards, dispatch]);
+  }, [state.collection, dispatch]);
 
   // -----------------------------------------------------------------------
-  // Rename project
+  // Menu bar handlers (continued)
   // -----------------------------------------------------------------------
 
-  const handleRenameProject = useCallback(() => {
-    setRenameDraft(projectName);
-    setShowRenameDialog(true);
-  }, [projectName]);
-
-  const handleRenameConfirm = useCallback(() => {
-    const name = renameDraft.trim();
-    if (name) setProjectName(name);
-    setShowRenameDialog(false);
-  }, [renameDraft]);
-
-  const handleRenameCancel = useCallback(() => {
-    setShowRenameDialog(false);
-  }, []);
-
-  const handleRenameDraftChange = useCallback((e: Event) => {
-    setRenameDraft((e.target as HTMLInputElement).value);
-  }, []);
-
-  const handleRenameKeyDown = useCallback((e: Event) => {
-    const ke = e as KeyboardEvent;
-    if (ke.key === 'Enter') { ke.preventDefault(); handleRenameConfirm(); }
-    if (ke.key === 'Escape') { ke.preventDefault(); handleRenameCancel(); }
-  }, [handleRenameConfirm, handleRenameCancel]);
-
-  // -----------------------------------------------------------------------
-  // Menu bar registration (feature #5)
-  // -----------------------------------------------------------------------
-
-  // Try to use WindowManager context if available, otherwise no-op
-  // This is optional integration — the project manager works standalone too
   useEffect(() => {
-    // Dynamically check if useWindowManager is available in the context
-    // We build the menuBar object for potential external use
     const _menuBar = {
       menus: [
         { label: 'File', items: [
@@ -297,13 +332,10 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
           { label: 'Fit All', onClick: handleFitAll },
           { divider: true },
           { label: 'Toggle Grid', onClick: handleGridToggle },
-          { label: showConnections ? 'Hide Connections' : 'Show Connections', onClick: handleToggleConnections },
         ]},
       ],
     };
-    // Menu bar registration is handled if a WindowManager context wraps this app.
-    // The menu bar object is kept in sync for when the integration is active.
-  }, [handleNewBoard, handleExportJSON, handleImportJSON, handlePrint, undo, redo, canUndo, canRedo, handleSelectAll, handleDeleteSelected, handleZoomIn, handleZoomOut, handleFitAll, handleGridToggle, handleToggleConnections, showConnections]);
+  }, [handleNewBoard, handleExportJSON, handleImportJSON, handlePrint, undo, redo, canUndo, canRedo, handleSelectAll, handleDeleteSelected, handleZoomIn, handleZoomOut, handleFitAll, handleGridToggle]);
 
   // -----------------------------------------------------------------------
   // Keyboard shortcuts
@@ -323,6 +355,38 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
+
+  // -----------------------------------------------------------------------
+  // Rename project
+  // -----------------------------------------------------------------------
+
+  const handleRenameProject = useCallback(() => {
+    setRenameDraft(projectName);
+    setShowRenameDialog(true);
+  }, [projectName]);
+
+  const handleRenameConfirm = useCallback(() => {
+    const name = renameDraft.trim();
+    if (name) {
+      setProjectName(name);
+      dispatch({ type: 'RENAME_BOARD', name });
+    }
+    setShowRenameDialog(false);
+  }, [renameDraft, dispatch]);
+
+  const handleRenameCancel = useCallback(() => {
+    setShowRenameDialog(false);
+  }, []);
+
+  const handleRenameDraftChange = useCallback((e: Event) => {
+    setRenameDraft((e.target as HTMLInputElement).value);
+  }, []);
+
+  const handleRenameKeyDown = useCallback((e: Event) => {
+    const ke = e as KeyboardEvent;
+    if (ke.key === 'Enter') { ke.preventDefault(); handleRenameConfirm(); }
+    if (ke.key === 'Escape') { ke.preventDefault(); handleRenameCancel(); }
+  }, [handleRenameConfirm, handleRenameCancel]);
 
   // -----------------------------------------------------------------------
   // Styles
@@ -346,10 +410,13 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
     const cy = (-state.viewport.panY + 200) / state.viewport.zoom;
     const offsetX = (Math.random() - 0.5) * 300;
     const offsetY = (Math.random() - 0.5) * 200;
-    const newCard: ProjectCard = {
-      id: generateCardId(),
-      title,
-      description,
+    const newCard: Card = {
+      type: 'card',
+      card_id: generateUUID(),
+      card_type: 'text',
+      card_title: title,
+      card_link: [],
+      content: { text: description },
       color: selectedColor,
       position: { x: Math.round(cx + offsetX), y: Math.round(cy + offsetY) },
       size: { width: 180, height: 120 },
@@ -357,15 +424,11 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    dispatch({ type: 'ADD_CARD', card: newCard });
+    dispatch({ type: 'ADD_ITEM', item: newCard });
   }, [state.viewport, selectedColor, dispatch]);
 
   // -----------------------------------------------------------------------
   // Render
-  // -----------------------------------------------------------------------
-
-  // -----------------------------------------------------------------------
-  // App menu bar (Project / Settings / Help)
   // -----------------------------------------------------------------------
 
   const menuBarStyle: Record<string, string> = {
@@ -516,7 +579,7 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
       onSearch: handleSearch,
     }),
     createElement(InterAppWrapper, {
-      cards: state.cards,
+      collection: state.collection,
       onCardDropped: handleCardDropped,
     },
       createElement(Board, {
@@ -524,10 +587,9 @@ export function ProjectManagerApp(props: ProjectManagerAppProps) {
         dispatch,
         searchQuery,
         gridEnabled,
-        selectedCardId,
-        onSelectCard: handleSelectCard,
+        selectedId: selectedCardId,
+        onSelectItem: handleSelectCard,
         colorFilter,
-        showConnections,
       }),
     ),
     renameDialogEl,

@@ -18,43 +18,64 @@ import { createElement } from 'specifyjs';
 import { useEffect, useRef, useCallback } from 'specifyjs/hooks';
 import { useMessageBus } from '../../../components/layout/app-message-bus/src/index';
 import { useDropZone } from '../../../components/layout/app-drag-drop/src/index';
-import type { ProjectCard } from './types';
+import type { Card, BoardItem } from './types';
+import { isCard } from './types';
 
 export interface InterAppWrapperProps {
-  cards: ProjectCard[];
+  collection: BoardItem[];
   onCardDropped: (title: string, description: string) => void;
   children: unknown;
 }
 
+/**
+ * Collect all cards from a BoardItem tree (iterative).
+ */
+function collectCards(items: BoardItem[]): Card[] {
+  const cards: Card[] = [];
+  const stack: BoardItem[] = [...items];
+  while (stack.length > 0) {
+    const item = stack.pop()!;
+    if (isCard(item)) {
+      cards.push(item);
+    } else {
+      for (let i = item.contents.length - 1; i >= 0; i--) {
+        stack.push(item.contents[i]);
+      }
+    }
+  }
+  return cards;
+}
+
 export function InterAppWrapper(props: InterAppWrapperProps) {
-  const { cards, onCardDropped, children } = props;
+  const { collection, onCardDropped, children } = props;
   const messageBus = useMessageBus();
-  const prevCardsRef = useRef<ProjectCard[]>([]);
+  const prevCardsRef = useRef<Card[]>([]);
 
   // Track card changes and publish events
   useEffect(() => {
+    const cards = collectCards(collection);
     const prevCards = prevCardsRef.current;
-    const prevIds = new Set(prevCards.map((c) => c.id));
-    const currIds = new Set(cards.map((c) => c.id));
+    const prevIds = new Set(prevCards.map((c) => c.card_id));
+    const currIds = new Set(cards.map((c) => c.card_id));
 
     // Detect created cards
     for (const card of cards) {
-      if (!prevIds.has(card.id)) {
+      if (!prevIds.has(card.card_id)) {
         messageBus.publish('project-board', { event: 'card-created', card });
       }
     }
 
     // Detect deleted cards
     for (const card of prevCards) {
-      if (!currIds.has(card.id)) {
-        messageBus.publish('project-board', { event: 'card-deleted', cardId: card.id });
+      if (!currIds.has(card.card_id)) {
+        messageBus.publish('project-board', { event: 'card-deleted', cardId: card.card_id });
       }
     }
 
     // Detect updated cards
     for (const card of cards) {
-      if (prevIds.has(card.id)) {
-        const prev = prevCards.find((c) => c.id === card.id);
+      if (prevIds.has(card.card_id)) {
+        const prev = prevCards.find((c) => c.card_id === card.card_id);
         if (prev && prev.updatedAt !== card.updatedAt) {
           messageBus.publish('project-board', { event: 'card-updated', card });
         }
@@ -62,7 +83,7 @@ export function InterAppWrapper(props: InterAppWrapperProps) {
     }
 
     prevCardsRef.current = cards;
-  }, [cards, messageBus]);
+  }, [collection, messageBus]);
 
   // Register drop zone for incoming content
   const handleDrop = useCallback(

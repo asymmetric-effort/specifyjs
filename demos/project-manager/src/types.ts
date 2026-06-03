@@ -2,49 +2,37 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * types.ts -- Interfaces for the Whiteboard Project Manager.
+ * types.ts -- Re-exports types from the reusable Board component library.
+ * Keeps demo-specific interfaces (BoardStorage) locally.
  */
 
-export interface ProjectCard {
-  id: string;
-  title: string;
-  description: string;
-  color: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  tags?: string[];
-  priority?: 'low' | 'medium' | 'high' | 'critical';
-  assignee?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+// Re-export all types from the reusable board library
+export type {
+  BoardState,
+  BoardItem,
+  Card,
+  Container,
+  CardLink,
+  CardType,
+  TextContent,
+  JsonContent,
+  TaskContent,
+  ProjectContent,
+} from '../../../components/data/board/src/types';
 
-export interface CardConnection {
-  id: string;
-  fromCardId: string;
-  toCardId: string;
-  label?: string;
-  style?: 'solid' | 'dashed' | 'dotted';
-}
+export {
+  isCard,
+  isContainer,
+  generateUUID,
+  getItemId,
+  getItemName,
+} from '../../../components/data/board/src/types';
 
-export interface BoardState {
-  /** Board UUID (v4) — unique identifier for this board instance */
-  id: string;
-  /** User-assigned board name (default: "Untitled") */
-  name: string;
-  /** Board contents — cards placed on the whiteboard */
-  cards: ProjectCard[];
-  /** Connections between cards */
-  connections: CardConnection[];
-  /** Viewport configuration */
-  viewport: {
-    panX: number;
-    panY: number;
-    zoom: number;
-  };
-}
+// ---------------------------------------------------------------------------
+// Demo-specific: storage interface
+// ---------------------------------------------------------------------------
 
 export interface BoardStorage {
-  load(boardId: string): Promise<BoardState>;
-  save(boardId: string, state: BoardState): Promise<void>;
+  load(boardId: string): Promise<import('../../../components/data/board/src/types').BoardState>;
+  save(boardId: string, state: import('../../../components/data/board/src/types').BoardState): Promise<void>;
 }

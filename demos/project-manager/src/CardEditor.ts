@@ -7,14 +7,14 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useCallback, useEffect, useRef } from 'specifyjs/hooks';
-import type { ProjectCard } from './types';
+import type { Card, TextContent } from './types';
 
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
 
 export interface CardEditorProps {
-  card: ProjectCard;
+  card: Card;
   onSave: (cardId: string, updates: { title: string; description: string }) => void;
   onClose: () => void;
 }
@@ -25,8 +25,9 @@ export interface CardEditorProps {
 
 export function CardEditor(props: CardEditorProps) {
   const { card, onSave, onClose } = props;
-  const [title, setTitle] = useState(card.title);
-  const [description, setDescription] = useState(card.description);
+  const textContent = (card.content as TextContent).text || '';
+  const [title, setTitle] = useState(card.card_title);
+  const [description, setDescription] = useState(textContent);
   const titleRef = useRef<HTMLInputElement | null>(null);
   const overlayRef = useRef<HTMLElement | null>(null);
 
@@ -39,9 +40,9 @@ export function CardEditor(props: CardEditorProps) {
   }, []);
 
   const save = useCallback(() => {
-    onSave(card.id, { title, description });
+    onSave(card.card_id, { title, description });
     onClose();
-  }, [card.id, title, description, onSave, onClose]);
+  }, [card.card_id, title, description, onSave, onClose]);
 
   const handleKeyDown = useCallback((e: Event) => {
     const ke = e as KeyboardEvent;
@@ -155,7 +156,7 @@ export function CardEditor(props: CardEditorProps) {
       style: editorStyle,
       'data-testid': 'card-editor',
       role: 'dialog',
-      'aria-label': `Edit card: ${card.title}`,
+      'aria-label': `Edit card: ${card.card_title}`,
     },
       createElement('input', {
         ref: titleRef,

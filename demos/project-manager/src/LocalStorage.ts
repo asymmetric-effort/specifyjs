@@ -6,22 +6,17 @@
  */
 
 import type { BoardState, BoardStorage } from './types';
-
-const DEFAULT_STATE: BoardState = {
-  cards: [],
-  connections: [],
-  viewport: { panX: 0, panY: 0, zoom: 1 },
-};
+import { DEFAULT_BOARD_STATE } from './BoardState';
 
 export class LocalBoardStorage implements BoardStorage {
   async load(boardId: string): Promise<BoardState> {
     try {
       const raw = localStorage.getItem('board:' + boardId);
-      if (!raw) return DEFAULT_STATE;
+      if (!raw) return { ...DEFAULT_BOARD_STATE };
       const parsed = JSON.parse(raw);
       return parsed as BoardState;
     } catch {
-      return DEFAULT_STATE;
+      return { ...DEFAULT_BOARD_STATE };
     }
   }
 
@@ -29,7 +24,7 @@ export class LocalBoardStorage implements BoardStorage {
     try {
       localStorage.setItem('board:' + boardId, JSON.stringify(state));
     } catch {
-      // Storage full or unavailable — fail silently
+      // Storage full or unavailable -- fail silently
     }
   }
 }

@@ -96,7 +96,7 @@ describe('ContainerComponent — rendering', () => {
     root.render(createElement(ContainerComponent, { container: ct }));
     const titleEl = domContainer.querySelector('[data-testid="container-title-ct-test"]');
     expect(titleEl).not.toBeNull();
-    expect(titleEl!.textContent).toBe('My Group');
+    expect(titleEl!.textContent).toContain('My Group');
   });
 
   it('renders contents area', () => {
@@ -321,5 +321,137 @@ describe('ContainerComponent — data attributes', () => {
     root.render(createElement(ContainerComponent, { container: ct }));
     const el = domContainer.querySelector('[data-container-id="my-unique-id"]');
     expect(el).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// onDelete prop
+// ---------------------------------------------------------------------------
+
+describe('ContainerComponent — onDelete prop', () => {
+  it('accepts onDelete prop without error', () => {
+    const ct = makeContainer();
+    const onDelete = () => {};
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct, onDelete }));
+    expect(domContainer.querySelector('[data-testid="container-ct-test"]')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Delete and Minimize buttons in title bar
+// ---------------------------------------------------------------------------
+
+describe('ContainerComponent — title bar buttons', () => {
+  it('renders delete button in title bar', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const titleBar = domContainer.querySelector('[data-testid="container-title-ct-test"]');
+    expect(titleBar).not.toBeNull();
+    const deleteBtn = titleBar!.querySelector('[aria-label="Delete container"]');
+    expect(deleteBtn).not.toBeNull();
+    expect(deleteBtn!.textContent).toBe('\u00D7');
+  });
+
+  it('renders minimize button in title bar', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const titleBar = domContainer.querySelector('[data-testid="container-title-ct-test"]');
+    expect(titleBar).not.toBeNull();
+    const minimizeBtn = titleBar!.querySelector('[aria-label="Minimize container"]');
+    expect(minimizeBtn).not.toBeNull();
+    // The em-dash character for minimize
+    expect(minimizeBtn!.textContent).toBe('\u2014');
+  });
+
+  it('delete button has aria-label "Delete container"', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const deleteBtn = domContainer.querySelector('[aria-label="Delete container"]');
+    expect(deleteBtn).not.toBeNull();
+    expect(deleteBtn!.tagName.toLowerCase()).toBe('button');
+  });
+
+  it('title bar has flex layout with buttons on right', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const titleBar = domContainer.querySelector('[data-testid="container-title-ct-test"]') as HTMLElement;
+    expect(titleBar.style.display).toBe('flex');
+    expect(titleBar.style.justifyContent).toBe('space-between');
+    expect(titleBar.style.alignItems).toBe('center');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Minimized state
+// ---------------------------------------------------------------------------
+
+describe('ContainerComponent — minimized state', () => {
+  it('shows contents area when not minimized (default)', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const contentsEl = domContainer.querySelector('[data-testid="container-contents-ct-test"]');
+    expect(contentsEl).not.toBeNull();
+  });
+
+  it('shows resize handle when not minimized (default)', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const resize = domContainer.querySelector('[data-role="resize"]');
+    expect(resize).not.toBeNull();
+  });
+
+  it('always shows title bar regardless of minimized state', () => {
+    const ct = makeContainer({ name: 'Always Visible' });
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const titleBar = domContainer.querySelector('[data-testid="container-title-ct-test"]');
+    expect(titleBar).not.toBeNull();
+    expect(titleBar!.textContent).toContain('Always Visible');
+  });
+
+  it('minimize button initial aria-label is "Minimize container"', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct }));
+    const minimizeBtn = domContainer.querySelector('[aria-label="Minimize container"]');
+    expect(minimizeBtn).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Highlighted state
+// ---------------------------------------------------------------------------
+
+describe('ContainerComponent — highlighted state', () => {
+  it('highlighted prop changes border to blue dashed', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct, highlighted: true }));
+    const el = domContainer.querySelector('[data-testid="container-ct-test"]') as HTMLElement;
+    expect(el.style.border).toContain('dashed');
+    expect(el.style.border).toContain('#3b82f6');
+  });
+
+  it('highlighted prop changes background to light blue', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct, highlighted: true }));
+    const el = domContainer.querySelector('[data-testid="container-ct-test"]') as HTMLElement;
+    expect(el.style.backgroundColor).toBe('#eff6ff');
+  });
+
+  it('not highlighted has solid border', () => {
+    const ct = makeContainer();
+    const root = createRoot(domContainer);
+    root.render(createElement(ContainerComponent, { container: ct, highlighted: false }));
+    const el = domContainer.querySelector('[data-testid="container-ct-test"]') as HTMLElement;
+    expect(el.style.border).not.toContain('dashed');
   });
 });

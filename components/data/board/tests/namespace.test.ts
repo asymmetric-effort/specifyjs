@@ -257,3 +257,46 @@ describe('validateNameForNesting', () => {
     expect(validateNameForNesting('Movable', container, 'c1')).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Card name uniqueness (cards do NOT enforce uniqueness)
+// ---------------------------------------------------------------------------
+
+describe('card name uniqueness', () => {
+  it('two cards with same name in same container are VALID (cards do not enforce uniqueness)', () => {
+    const card1 = makeCard('c1', 'SameName');
+    const card2 = makeCard('c2', 'SameName');
+    const ct = makeContainer('ct1', 'Group', [card1, card2]);
+    // validateNameInScope only checks container names, not card names
+    // So adding another item named 'SameName' should be valid (no container has that name)
+    expect(validateNameInScope('SameName', ct)).toBe(true);
+  });
+
+  it('two containers with same name in same scope are INVALID', () => {
+    const inner1 = makeContainer('ct-a', 'DuplicateName');
+    const inner2 = makeContainer('ct-b', 'DuplicateName');
+    const outer = makeContainer('ct-outer', 'Parent', [inner1, inner2]);
+    // The second container with 'DuplicateName' should conflict
+    expect(validateNameInScope('DuplicateName', outer)).toBe(false);
+  });
+
+  it('card name matching container name is VALID (different types)', () => {
+    const card = makeCard('c1', 'SharedLabel');
+    const ct = makeContainer('ct1', 'Group', [card]);
+    // 'SharedLabel' is only a card name, not a container name, so it should be valid
+    expect(validateNameInScope('SharedLabel', ct)).toBe(true);
+  });
+
+  it('validateNameInBoard only checks container names, not card names', () => {
+    const card1 = makeCard('c1', 'CardName');
+    const card2 = makeCard('c2', 'CardName');
+    // Two cards with same name at top level -- validateNameInBoard only checks containers
+    expect(validateNameInBoard('CardName', [card1, card2])).toBe(true);
+  });
+
+  it('validateNameInBoard detects duplicate container names', () => {
+    const ct1 = makeContainer('ct1', 'Sprint');
+    const ct2 = makeContainer('ct2', 'Sprint');
+    expect(validateNameInBoard('Sprint', [ct1, ct2])).toBe(false);
+  });
+});

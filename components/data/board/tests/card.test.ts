@@ -441,3 +441,148 @@ describe('CardComponent — drag handle', () => {
     expect(handle).not.toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Inline editing props
+// ---------------------------------------------------------------------------
+
+describe('CardComponent — inline editing props', () => {
+  it('onUpdate prop exists in CardComponentProps interface', () => {
+    const card = makeCard();
+    const onUpdate = () => {};
+    const root = createRoot(container);
+    // Should render without error when onUpdate is provided
+    root.render(createElement(CardComponent, { card, onUpdate }));
+    expect(container.querySelector('[data-testid="card-test-card"]')).not.toBeNull();
+  });
+
+  it('title renders as div by default (not input)', () => {
+    const card = makeCard({ card_title: 'My Title' });
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const titleDiv = container.querySelector('[data-testid="card-title-test-card"]');
+    expect(titleDiv).not.toBeNull();
+    expect(titleDiv!.tagName.toLowerCase()).toBe('div');
+    // No input should be present for title editing by default
+    const titleInput = container.querySelector('[data-testid="card-title-edit-test-card"]');
+    expect(titleInput).toBeNull();
+  });
+
+  it('text content renders as div by default (not textarea)', () => {
+    const card = makeCard({ card_type: 'text', content: { text: 'Body text' } });
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const textDiv = container.querySelector('[data-testid="card-text-content-test-card"]');
+    expect(textDiv).not.toBeNull();
+    expect(textDiv!.tagName.toLowerCase()).toBe('div');
+    // No textarea should be present for description editing by default
+    const descEdit = container.querySelector('[data-testid="card-desc-edit-test-card"]');
+    expect(descEdit).toBeNull();
+  });
+
+  it('onCardContextMenu prop is accepted', () => {
+    const card = makeCard();
+    const onCardContextMenu = () => {};
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card, onCardContextMenu }));
+    expect(container.querySelector('[data-testid="card-test-card"]')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Card anchor points
+// ---------------------------------------------------------------------------
+
+describe('CardComponent — anchor points', () => {
+  it('renders 4 anchor elements', () => {
+    const card = makeCard();
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const anchors = container.querySelectorAll('[data-role="anchor"]');
+    expect(anchors.length).toBe(4);
+  });
+
+  it('anchors have data-anchor attributes for top/right/bottom/left', () => {
+    const card = makeCard();
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const anchors = container.querySelectorAll('[data-role="anchor"]');
+    const anchorValues = Array.from(anchors).map((el) => el.getAttribute('data-anchor'));
+    expect(anchorValues).toContain('top');
+    expect(anchorValues).toContain('right');
+    expect(anchorValues).toContain('bottom');
+    expect(anchorValues).toContain('left');
+  });
+
+  it('anchors have correct test ids', () => {
+    const card = makeCard({ card_id: 'anchor-card' });
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    expect(container.querySelector('[data-testid="card-anchor-top-anchor-card"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="card-anchor-right-anchor-card"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="card-anchor-bottom-anchor-card"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="card-anchor-left-anchor-card"]')).not.toBeNull();
+  });
+
+  it('onAnchorDragStart prop is accepted', () => {
+    const card = makeCard();
+    const onAnchorDragStart = () => {};
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card, onAnchorDragStart }));
+    expect(container.querySelector('[data-testid="card-test-card"]')).not.toBeNull();
+  });
+
+  it('anchor elements have crosshair cursor style', () => {
+    const card = makeCard();
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const anchor = container.querySelector('[data-role="anchor"]') as HTMLElement;
+    expect(anchor).not.toBeNull();
+    expect(anchor.style.cursor).toBe('crosshair');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Card drag props
+// ---------------------------------------------------------------------------
+
+describe('CardComponent — drag props', () => {
+  it('onDragStart prop is accepted', () => {
+    const card = makeCard();
+    const onDragStart = () => {};
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card, onDragStart }));
+    expect(container.querySelector('[data-testid="card-test-card"]')).not.toBeNull();
+  });
+
+  it('onDragEnd prop is accepted', () => {
+    const card = makeCard();
+    const onDragEnd = () => {};
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card, onDragEnd }));
+    expect(container.querySelector('[data-testid="card-test-card"]')).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Default card color
+// ---------------------------------------------------------------------------
+
+describe('CardComponent — default color', () => {
+  it('default card color is #fef9c3 (light yellow)', () => {
+    const card = makeCard({ color: '' });
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const el = container.querySelector('[data-testid="card-test-card"]') as HTMLElement;
+    expect(el.style.backgroundColor).toBe('#fef9c3');
+  });
+
+  it('card without color prop falls back to #fef9c3', () => {
+    // makeCard already uses '#fef9c3' as default color
+    const card = makeCard();
+    const root = createRoot(container);
+    root.render(createElement(CardComponent, { card }));
+    const el = container.querySelector('[data-testid="card-test-card"]') as HTMLElement;
+    expect(el.style.backgroundColor).toBe('#fef9c3');
+  });
+});

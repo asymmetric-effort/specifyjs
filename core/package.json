@@ -95,7 +95,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@asymmetric-effort/nogginlessdom": "^0.0.22",
+    "@asymmetric-effort/nogginlessdom": "^0.0.25",
     "@playwright/test": "^1.59.0",
     "@types/node": "^25.6.2",
     "@typescript-eslint/eslint-plugin": "^8.0.0",

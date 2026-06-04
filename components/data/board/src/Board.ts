@@ -399,9 +399,11 @@ export function Board(props: BoardProps) {
     }
     dispatch({ type: 'MOVE_ITEM', itemId, position: pos });
 
-    // During card drag, check for container overlap at the card's center
-    // Only applies to top-level cards being dragged onto containers
-    if (draggingCardId === itemId) {
+    // During card drag, check for container overlap at the card's center.
+    // Use ref to avoid stale closure — Card.ts captures onMove at mousedown,
+    // before setDraggingCardId state update has taken effect.
+    const currentDragging = draggingCardIdRef.current;
+    if (currentDragging === itemId) {
       // Find the card in the full tree to get its size
       let cardWidth = 0;
       let cardHeight = 0;
@@ -422,7 +424,7 @@ export function Board(props: BoardProps) {
       const containerId = findContainerAtPoint(collection, centerX, centerY, itemId);
       setDropTargetId(containerId);
     }
-  }, [dispatch, gridEnabled, draggingCardId, collection]);
+  }, [dispatch, gridEnabled, collection]);
 
   const handleResizeItem = useCallback((itemId: string, size: { width: number; height: number }) => {
     dispatch({ type: 'RESIZE_ITEM', itemId, size });
@@ -439,11 +441,16 @@ export function Board(props: BoardProps) {
 
   const handleCardDragStart = useCallback((cardId: string) => {
     setDraggingCardId(cardId);
+    draggingCardIdRef.current = cardId;
     setDropTargetId(null);
   }, []);
 
-  // Use ref for dropTargetId in drag end to avoid stale closure
-  // (Card's mouseup listener captures the callback at drag start)
+  // Use refs to avoid stale closures in drag handlers.
+  // Card.ts captures onMove/onDragEnd at mousedown time, but draggingCardId
+  // is set via async state update — the captured callbacks would read null.
+  const draggingCardIdRef = useRef<string | null>(null);
+  draggingCardIdRef.current = draggingCardId;
+
   const dropTargetIdRef = useRef<string | null>(null);
   dropTargetIdRef.current = dropTargetId;
 
@@ -453,6 +460,7 @@ export function Board(props: BoardProps) {
       dispatch({ type: 'NEST_ITEM', itemId: cardId, containerId: target });
     }
     setDraggingCardId(null);
+    draggingCardIdRef.current = null;
     setDropTargetId(null);
   }, [dispatch]);
 

@@ -324,10 +324,29 @@ describe('boardReducer — NEST_ITEM', () => {
     expect(resultContainer.contents.length).toBe(1);
   });
 
+  it('converts card position to container-relative on nest', () => {
+    const card = makeCard({ position: { x: 250, y: 180 } });
+    const container = makeContainer({ position: { x: 100, y: 50 } });
+    const state = makeState({ collection: [card, container] });
+    const result = boardReducer(state, { type: 'NEST_ITEM', itemId: 'test-card-1', containerId: 'test-container-1' });
+    const resultContainer = result.collection[0] as Container;
+    const nested = resultContainer.contents[0] as Card;
+    // Position should be relative to container: (250-100, 180-50-30)
+    expect(nested.position.x).toBe(150);
+    expect(nested.position.y).toBe(100);
+  });
+
   it('does nothing when item not found', () => {
     const container = makeContainer();
     const state = makeState({ collection: [container] });
     const result = boardReducer(state, { type: 'NEST_ITEM', itemId: 'nonexistent', containerId: 'test-container-1' });
+    expect(result).toEqual(state);
+  });
+
+  it('does nothing when container not found', () => {
+    const card = makeCard();
+    const state = makeState({ collection: [card] });
+    const result = boardReducer(state, { type: 'NEST_ITEM', itemId: 'test-card-1', containerId: 'nonexistent' });
     expect(result).toEqual(state);
   });
 });
@@ -338,13 +357,24 @@ describe('boardReducer — NEST_ITEM', () => {
 
 describe('boardReducer — UNNEST_ITEM', () => {
   it('moves an item from a container to top level', () => {
-    const card = makeCard();
+    const card = makeCard({ position: { x: 20, y: 30 } });
     const container = makeContainer({ contents: [card] });
     const state = makeState({ collection: [container] });
     const result = boardReducer(state, { type: 'UNNEST_ITEM', itemId: 'test-card-1', containerId: 'test-container-1' });
     expect(result.collection.length).toBe(2);
     const resultContainer = result.collection[0] as Container;
     expect(resultContainer.contents.length).toBe(0);
+  });
+
+  it('converts card position back to canvas-absolute on unnest', () => {
+    const card = makeCard({ position: { x: 150, y: 100 } });
+    const container = makeContainer({ position: { x: 100, y: 50 }, contents: [card] });
+    const state = makeState({ collection: [container] });
+    const result = boardReducer(state, { type: 'UNNEST_ITEM', itemId: 'test-card-1', containerId: 'test-container-1' });
+    const unnested = result.collection[1] as Card;
+    // Position should be canvas-absolute: (150+100, 100+50+30)
+    expect(unnested.position.x).toBe(250);
+    expect(unnested.position.y).toBe(180);
   });
 
   it('does nothing when item not found in container', () => {
@@ -761,7 +791,7 @@ describe('undo/redo round-trip', () => {
 // ── Container child position offset on move ─────────────────────────
 
 describe('MOVE_ITEM with container children', () => {
-  it('offsets child card positions when container moves', () => {
+  it('does not offset child positions when container moves (children are container-relative)', () => {
     const container = {
       type: 'container' as const,
       container_id: 'c1',
@@ -776,7 +806,7 @@ describe('MOVE_ITEM with container children', () => {
           card_title: 'Inside',
           card_link: [],
           content: { text: '' },
-          position: { x: 120, y: 130 },
+          position: { x: 20, y: 30 },
           size: { width: 150, height: 100 },
           color: '#fef9c3',
           createdAt: 0,
@@ -789,17 +819,17 @@ describe('MOVE_ITEM with container children', () => {
     const movedContainer = result.collection[0] as any;
     expect(movedContainer.position.x).toBe(200);
     expect(movedContainer.position.y).toBe(150);
-    // Child should be offset by dx=100, dy=50
-    expect(movedContainer.contents[0].position.x).toBe(220);
-    expect(movedContainer.contents[0].position.y).toBe(180);
+    // Children have container-relative positions, unchanged when container moves
+    expect(movedContainer.contents[0].position.x).toBe(20);
+    expect(movedContainer.contents[0].position.y).toBe(30);
   });
 
-  it('offsets nested container children recursively', () => {
+  it('preserves nested container child positions on move (container-relative)', () => {
     const inner = {
       type: 'container' as const,
       container_id: 'inner',
       name: 'Inner',
-      position: { x: 110, y: 110 },
+      position: { x: 10, y: 10 },
       size: { width: 100, height: 80 },
       contents: [
         {
@@ -809,7 +839,7 @@ describe('MOVE_ITEM with container children', () => {
           card_title: 'Deep',
           card_link: [],
           content: { text: '' },
-          position: { x: 115, y: 115 },
+          position: { x: 5, y: 5 },
           size: { width: 80, height: 60 },
           color: '#fef9c3',
           createdAt: 0,
@@ -829,8 +859,9 @@ describe('MOVE_ITEM with container children', () => {
     const result = boardReducer(state, { type: 'MOVE_ITEM', itemId: 'outer', position: { x: 200, y: 200 } });
     const o = result.collection[0] as any;
     expect(o.position).toEqual({ x: 200, y: 200 });
-    expect(o.contents[0].position).toEqual({ x: 210, y: 210 });
-    expect(o.contents[0].contents[0].position).toEqual({ x: 215, y: 215 });
+    // Children are container-relative — positions unchanged
+    expect(o.contents[0].position).toEqual({ x: 10, y: 10 });
+    expect(o.contents[0].contents[0].position).toEqual({ x: 5, y: 5 });
   });
 
   it('does not offset children when card moves', () => {

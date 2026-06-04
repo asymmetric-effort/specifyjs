@@ -105,21 +105,43 @@ export function screenToCanvas(
 // Collect all cards and links from the tree (iterative)
 // ---------------------------------------------------------------------------
 
+/**
+ * Collect all cards with canvas-absolute positions and their links.
+ * Nested cards have container-relative positions in the state tree,
+ * so we accumulate parent container offsets to produce absolute coords
+ * for the SVG link overlay.
+ */
 function collectCardsAndLinks(items: BoardItem[]): { cards: CardType[]; links: Array<{ source: CardType; link: CardLinkType }> } {
   const cards: CardType[] = [];
   const links: Array<{ source: CardType; link: CardLinkType }> = [];
-  const stack: BoardItem[] = [...items];
+  // Stack entries: [item, parentOffsetX, parentOffsetY]
+  const stack: Array<[BoardItem, number, number]> = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    stack.push([items[i], 0, 0]);
+  }
 
   while (stack.length > 0) {
-    const item = stack.pop()!;
+    const [item, offsetX, offsetY] = stack.pop()!;
     if (isCard(item)) {
-      cards.push(item);
+      // Create a copy with canvas-absolute position for link rendering
+      const absCard: CardType = {
+        ...item,
+        position: {
+          x: item.position.x + offsetX,
+          y: item.position.y + offsetY,
+        },
+      };
+      cards.push(absCard);
       for (let j = 0; j < item.card_link.length; j++) {
-        links.push({ source: item, link: item.card_link[j] });
+        links.push({ source: absCard, link: item.card_link[j] });
       }
     } else if (isContainer(item)) {
+      // Children are relative to this container; accumulate offset
+      // +30 accounts for the title bar height
+      const childOffsetX = offsetX + item.position.x;
+      const childOffsetY = offsetY + item.position.y + 30;
       for (let j = item.contents.length - 1; j >= 0; j--) {
-        stack.push(item.contents[j]);
+        stack.push([item.contents[j], childOffsetX, childOffsetY]);
       }
     }
   }
@@ -378,16 +400,21 @@ export function Board(props: BoardProps) {
     dispatch({ type: 'MOVE_ITEM', itemId, position: pos });
 
     // During card drag, check for container overlap at the card's center
+    // Only applies to top-level cards being dragged onto containers
     if (draggingCardId === itemId) {
-      // Find the card to get its size for center-point calculation
+      // Find the card in the full tree to get its size
       let cardWidth = 0;
       let cardHeight = 0;
-      for (let i = 0; i < collection.length; i++) {
-        const item = collection[i];
-        if (isCard(item) && item.card_id === itemId) {
-          cardWidth = item.size.width;
-          cardHeight = item.size.height;
+      const searchStack: BoardItem[] = [...collection];
+      while (searchStack.length > 0) {
+        const si = searchStack.pop()!;
+        if (isCard(si) && si.card_id === itemId) {
+          cardWidth = si.size.width;
+          cardHeight = si.size.height;
           break;
+        }
+        if (isContainer(si)) {
+          for (let k = 0; k < si.contents.length; k++) searchStack.push(si.contents[k]);
         }
       }
       const centerX = pos.x + cardWidth / 2;

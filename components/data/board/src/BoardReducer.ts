@@ -87,22 +87,6 @@ function removeItemFromTree(
 }
 
 /**
- * Recursively offset all child positions by a delta (used when moving a container).
- */
-function offsetChildPositions(items: BoardItem[], dx: number, dy: number): BoardItem[] {
-  return items.map((item) => {
-    const moved = {
-      ...item,
-      position: { x: item.position.x + dx, y: item.position.y + dy },
-    };
-    if (isContainer(moved)) {
-      moved.contents = offsetChildPositions(moved.contents, dx, dy);
-    }
-    return moved;
-  });
-}
-
-/**
  * Update an item in the collection tree by ID.
  */
 function updateItemInTree(
@@ -154,6 +138,26 @@ function addItemToContainer(
     }
   }
   return result;
+}
+
+/**
+ * Find a container in the tree by ID (iterative to avoid stack overflow).
+ */
+function findContainerById(
+  collection: BoardItem[],
+  containerId: string,
+): Container | null {
+  const stack: BoardItem[] = [...collection];
+  while (stack.length > 0) {
+    const item = stack.pop()!;
+    if (isContainer(item)) {
+      if (item.container_id === containerId) return item;
+      for (let i = 0; i < item.contents.length; i++) {
+        stack.push(item.contents[i]);
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -244,19 +248,13 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
       return {
         ...state,
         collection: updateItemInTree(state.collection, action.itemId, (item) => {
-          const dx = action.position.x - item.position.x;
-          const dy = action.position.y - item.position.y;
-          // Move the item itself
-          const moved = {
+          // Move the item itself — children have container-relative positions
+          // so they move automatically with the container (no offset needed)
+          return {
             ...item,
             position: action.position,
             ...(isCard(item) ? { updatedAt: Date.now() } : {}),
           };
-          // If it's a container, also offset all child positions by the same delta
-          if (isContainer(moved) && (dx !== 0 || dy !== 0)) {
-            moved.contents = offsetChildPositions(moved.contents, dx, dy);
-          }
-          return moved;
         }),
       };
     }
@@ -315,27 +313,55 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
     }
 
     case 'NEST_ITEM': {
+      // Find the target container to get its position for coordinate conversion
+      const targetContainer = findContainerById(state.collection, action.containerId);
+      if (!targetContainer) return state;
+
       const [withoutItem, movedItem] = removeItemFromTree(
         state.collection,
         action.itemId,
       );
       if (!movedItem) return state;
+
+      // Convert canvas-absolute position to container-relative
+      // The container's contents div starts below the title bar (~30px)
+      const relativeItem: BoardItem = {
+        ...movedItem,
+        position: {
+          x: movedItem.position.x - targetContainer.position.x,
+          y: movedItem.position.y - targetContainer.position.y - 30,
+        },
+      };
+
       return {
         ...state,
-        collection: addItemToContainer(withoutItem, action.containerId, movedItem),
+        collection: addItemToContainer(withoutItem, action.containerId, relativeItem),
       };
     }
 
     case 'UNNEST_ITEM': {
+      // Find the source container to convert position back to canvas-absolute
+      const sourceContainer = findContainerById(state.collection, action.containerId);
+
       const [withoutItem, movedItem] = removeItemFromContainer(
         state.collection,
         action.containerId,
         action.itemId,
       );
       if (!movedItem) return state;
+
+      // Convert container-relative position back to canvas-absolute
+      const absoluteItem: BoardItem = sourceContainer ? {
+        ...movedItem,
+        position: {
+          x: movedItem.position.x + sourceContainer.position.x,
+          y: movedItem.position.y + sourceContainer.position.y + 30,
+        },
+      } : movedItem;
+
       return {
         ...state,
-        collection: [...withoutItem, movedItem],
+        collection: [...withoutItem, absoluteItem],
       };
     }
 

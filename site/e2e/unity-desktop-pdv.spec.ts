@@ -335,6 +335,10 @@ test.describe('Unity Desktop PDV', () => {
     await dock.locator('button[role="button"]').first().click({ button: 'right' });
     await page.waitForTimeout(300);
 
+    // Close context menu by clicking the desktop background
+    await page.locator(`${desktop}`).click({ position: { x: 400, y: 300 }, force: true });
+    await page.waitForTimeout(300);
+
     // Lock and unlock
     await page.locator(`${desktop} [aria-haspopup="true"]`).click();
     await page.waitForTimeout(300);

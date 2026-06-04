@@ -451,8 +451,15 @@ export function Board(props: BoardProps) {
 
     const handleMouseMove = (e: Event) => {
       const me = e as MouseEvent;
-      // Convert screen position to canvas coordinates
-      const canvasPos = screenToCanvas(me.clientX, me.clientY, viewport);
+      // Convert screen position to canvas coordinates, accounting for container offset
+      let offsetX = 0;
+      let offsetY = 0;
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        offsetX = rect.left;
+        offsetY = rect.top;
+      }
+      const canvasPos = screenToCanvas(me.clientX - offsetX, me.clientY - offsetY, viewport);
       setLinkDrag((prev) => prev ? { ...prev, currentPos: canvasPos } : null);
     };
 

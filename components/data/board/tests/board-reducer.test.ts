@@ -757,3 +757,98 @@ describe('undo/redo round-trip', () => {
     expect(history.present.name).toBe('C');
   });
 });
+
+// ── Container child position offset on move ─────────────────────────
+
+describe('MOVE_ITEM with container children', () => {
+  it('offsets child card positions when container moves', () => {
+    const container = {
+      type: 'container' as const,
+      container_id: 'c1',
+      name: 'Box',
+      position: { x: 100, y: 100 },
+      size: { width: 300, height: 200 },
+      contents: [
+        {
+          type: 'card' as const,
+          card_id: 'card1',
+          card_type: 'text' as const,
+          card_title: 'Inside',
+          card_link: [],
+          content: { text: '' },
+          position: { x: 120, y: 130 },
+          size: { width: 150, height: 100 },
+          color: '#fef9c3',
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      ],
+    };
+    const state = { ...DEFAULT_BOARD_STATE, collection: [container] };
+    const result = boardReducer(state, { type: 'MOVE_ITEM', itemId: 'c1', position: { x: 200, y: 150 } });
+    const movedContainer = result.collection[0] as any;
+    expect(movedContainer.position.x).toBe(200);
+    expect(movedContainer.position.y).toBe(150);
+    // Child should be offset by dx=100, dy=50
+    expect(movedContainer.contents[0].position.x).toBe(220);
+    expect(movedContainer.contents[0].position.y).toBe(180);
+  });
+
+  it('offsets nested container children recursively', () => {
+    const inner = {
+      type: 'container' as const,
+      container_id: 'inner',
+      name: 'Inner',
+      position: { x: 110, y: 110 },
+      size: { width: 100, height: 80 },
+      contents: [
+        {
+          type: 'card' as const,
+          card_id: 'deep',
+          card_type: 'text' as const,
+          card_title: 'Deep',
+          card_link: [],
+          content: { text: '' },
+          position: { x: 115, y: 115 },
+          size: { width: 80, height: 60 },
+          color: '#fef9c3',
+          createdAt: 0,
+          updatedAt: 0,
+        },
+      ],
+    };
+    const outer = {
+      type: 'container' as const,
+      container_id: 'outer',
+      name: 'Outer',
+      position: { x: 100, y: 100 },
+      size: { width: 300, height: 200 },
+      contents: [inner],
+    };
+    const state = { ...DEFAULT_BOARD_STATE, collection: [outer] };
+    const result = boardReducer(state, { type: 'MOVE_ITEM', itemId: 'outer', position: { x: 200, y: 200 } });
+    const o = result.collection[0] as any;
+    expect(o.position).toEqual({ x: 200, y: 200 });
+    expect(o.contents[0].position).toEqual({ x: 210, y: 210 });
+    expect(o.contents[0].contents[0].position).toEqual({ x: 215, y: 215 });
+  });
+
+  it('does not offset children when card moves', () => {
+    const card = {
+      type: 'card' as const,
+      card_id: 'c1',
+      card_type: 'text' as const,
+      card_title: 'Solo',
+      card_link: [],
+      content: { text: '' },
+      position: { x: 50, y: 50 },
+      size: { width: 150, height: 100 },
+      color: '#fef9c3',
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const state = { ...DEFAULT_BOARD_STATE, collection: [card] };
+    const result = boardReducer(state, { type: 'MOVE_ITEM', itemId: 'c1', position: { x: 100, y: 100 } });
+    expect((result.collection[0] as any).position).toEqual({ x: 100, y: 100 });
+  });
+});

@@ -87,6 +87,22 @@ function removeItemFromTree(
 }
 
 /**
+ * Recursively offset all child positions by a delta (used when moving a container).
+ */
+function offsetChildPositions(items: BoardItem[], dx: number, dy: number): BoardItem[] {
+  return items.map((item) => {
+    const moved = {
+      ...item,
+      position: { x: item.position.x + dx, y: item.position.y + dy },
+    };
+    if (isContainer(moved)) {
+      moved.contents = offsetChildPositions(moved.contents, dx, dy);
+    }
+    return moved;
+  });
+}
+
+/**
  * Update an item in the collection tree by ID.
  */
 function updateItemInTree(
@@ -227,11 +243,21 @@ export function boardReducer(state: BoardState, action: BoardAction): BoardState
     case 'MOVE_ITEM': {
       return {
         ...state,
-        collection: updateItemInTree(state.collection, action.itemId, (item) => ({
-          ...item,
-          position: action.position,
-          ...(isCard(item) ? { updatedAt: Date.now() } : {}),
-        })),
+        collection: updateItemInTree(state.collection, action.itemId, (item) => {
+          const dx = action.position.x - item.position.x;
+          const dy = action.position.y - item.position.y;
+          // Move the item itself
+          const moved = {
+            ...item,
+            position: action.position,
+            ...(isCard(item) ? { updatedAt: Date.now() } : {}),
+          };
+          // If it's a container, also offset all child positions by the same delta
+          if (isContainer(moved) && (dx !== 0 || dy !== 0)) {
+            moved.contents = offsetChildPositions(moved.contents, dx, dy);
+          }
+          return moved;
+        }),
       };
     }
 

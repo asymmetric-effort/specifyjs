@@ -24,6 +24,8 @@ export interface ContainerComponentProps {
   onResize?: (containerId: string, size: { width: number; height: number }) => void;
   onDelete?: (containerId: string) => void;
   onDrop?: (itemId: string, containerId: string) => void;
+  onDragStart?: (containerId: string) => void;
+  onDragEnd?: (containerId: string) => void;
   children?: unknown;
 }
 
@@ -32,7 +34,7 @@ export interface ContainerComponentProps {
 // ---------------------------------------------------------------------------
 
 export function ContainerComponent(props: ContainerComponentProps) {
-  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, children } = props;
+  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, onDragStart, onDragEnd, children } = props;
   const [dragOver, setDragOver] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
@@ -57,6 +59,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
     me.preventDefault();
     me.stopPropagation();
     if (onSelect) onSelect(container.container_id);
+    if (onDragStart) onDragStart(container.container_id);
 
     dragStartRef.current = {
       x: me.clientX,
@@ -80,13 +83,14 @@ export function ContainerComponent(props: ContainerComponentProps) {
 
     const handleMouseUp = () => {
       dragStartRef.current = null;
+      if (onDragEnd) onDragEnd(container.container_id);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [container.container_id, container.position.x, container.position.y, onSelect, onMove]);
+  }, [container.container_id, container.position.x, container.position.y, onSelect, onMove, onDragStart, onDragEnd]);
 
   // -----------------------------------------------------------------------
   // Resize handle

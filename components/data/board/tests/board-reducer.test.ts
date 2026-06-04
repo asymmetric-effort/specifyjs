@@ -343,6 +343,22 @@ describe('boardReducer — NEST_ITEM', () => {
     expect(result).toEqual(state);
   });
 
+  it('nests a container inside another container', () => {
+    const inner = makeContainer({ container_id: 'inner', name: 'Inner', position: { x: 200, y: 100 }, size: { width: 200, height: 150 } });
+    const outer = makeContainer({ container_id: 'outer', name: 'Outer', position: { x: 50, y: 30 }, size: { width: 400, height: 300 } });
+    const state = makeState({ collection: [inner, outer] });
+    const result = boardReducer(state, { type: 'NEST_ITEM', itemId: 'inner', containerId: 'outer' });
+    expect(result.collection.length).toBe(1);
+    const resultOuter = result.collection[0] as Container;
+    expect(resultOuter.container_id).toBe('outer');
+    expect(resultOuter.contents.length).toBe(1);
+    const nestedInner = resultOuter.contents[0] as Container;
+    expect(nestedInner.container_id).toBe('inner');
+    // Position should be container-relative: (200-50, 100-30-30)
+    expect(nestedInner.position.x).toBe(150);
+    expect(nestedInner.position.y).toBe(40);
+  });
+
   it('does nothing when container not found', () => {
     const card = makeCard();
     const state = makeState({ collection: [card] });

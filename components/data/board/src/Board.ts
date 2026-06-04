@@ -58,8 +58,42 @@ const CANVAS_SIZE = 5000;
 // ---------------------------------------------------------------------------
 
 /**
+ * Collect all descendant container IDs of a given container (iterative).
+ * Used to prevent circular nesting (a container can't be dropped into itself
+ * or any of its descendants).
+ */
+function collectDescendantContainerIds(collection: BoardItem[], containerId: string): Set<string> {
+  const ids = new Set<string>();
+  // First find the container in the tree
+  const findStack: BoardItem[] = [...collection];
+  let target: BoardItem | null = null;
+  while (findStack.length > 0) {
+    const item = findStack.pop()!;
+    if (isContainer(item) && item.container_id === containerId) {
+      target = item;
+      break;
+    }
+    if (isContainer(item)) {
+      for (let i = 0; i < item.contents.length; i++) findStack.push(item.contents[i]);
+    }
+  }
+  if (!target || !isContainer(target)) return ids;
+  // Collect all descendant container IDs
+  const descStack: BoardItem[] = [...target.contents];
+  while (descStack.length > 0) {
+    const item = descStack.pop()!;
+    if (isContainer(item)) {
+      ids.add(item.container_id);
+      for (let i = 0; i < item.contents.length; i++) descStack.push(item.contents[i]);
+    }
+  }
+  return ids;
+}
+
+/**
  * Find the first container whose bounding box contains the given point.
- * Optionally excludes a specific item ID (e.g., the dragged item itself).
+ * Excludes the dragged item itself and (if it's a container) all its
+ * descendants to prevent circular nesting.
  */
 export function findContainerAtPoint(
   collection: BoardItem[],
@@ -67,10 +101,18 @@ export function findContainerAtPoint(
   y: number,
   excludeId?: string,
 ): string | null {
+  // Build exclusion set: the dragged item + all its descendant containers
+  const excluded = new Set<string>();
+  if (excludeId) {
+    excluded.add(excludeId);
+    const descendants = collectDescendantContainerIds(collection, excludeId);
+    for (const id of descendants) excluded.add(id);
+  }
+
   for (let i = 0; i < collection.length; i++) {
     const item = collection[i];
     if (!isContainer(item)) continue;
-    if (item.container_id === excludeId) continue;
+    if (excluded.has(item.container_id)) continue;
     if (
       x >= item.position.x &&
       x <= item.position.x + item.size.width &&
@@ -173,11 +215,11 @@ export function Board(props: BoardProps) {
   const panStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
   // -----------------------------------------------------------------------
-  // Card-to-container drag-and-drop state
+  // Item-to-container drag-and-drop state (cards and containers)
   // -----------------------------------------------------------------------
 
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
 
   // -----------------------------------------------------------------------
   // Link-drag state (anchor-to-anchor link creation)
@@ -399,28 +441,28 @@ export function Board(props: BoardProps) {
     }
     dispatch({ type: 'MOVE_ITEM', itemId, position: pos });
 
-    // During card drag, check for container overlap at the card's center.
-    // Use ref to avoid stale closure — Card.ts captures onMove at mousedown,
-    // before setDraggingCardId state update has taken effect.
-    const currentDragging = draggingCardIdRef.current;
+    // During item drag (card or container), check for container overlap.
+    // Use ref to avoid stale closure — component captures onMove at mousedown,
+    // before setDraggingItemId state update has taken effect.
+    const currentDragging = draggingItemIdRef.current;
     if (currentDragging === itemId) {
-      // Find the card in the full tree to get its size
-      let cardWidth = 0;
-      let cardHeight = 0;
+      // Find the dragged item in the full tree to get its size
+      let itemWidth = 0;
+      let itemHeight = 0;
       const searchStack: BoardItem[] = [...collection];
       while (searchStack.length > 0) {
         const si = searchStack.pop()!;
-        if (isCard(si) && si.card_id === itemId) {
-          cardWidth = si.size.width;
-          cardHeight = si.size.height;
+        if (getItemId(si) === itemId) {
+          itemWidth = si.size.width;
+          itemHeight = si.size.height;
           break;
         }
         if (isContainer(si)) {
           for (let k = 0; k < si.contents.length; k++) searchStack.push(si.contents[k]);
         }
       }
-      const centerX = pos.x + cardWidth / 2;
-      const centerY = pos.y + cardHeight / 2;
+      const centerX = pos.x + itemWidth / 2;
+      const centerY = pos.y + itemHeight / 2;
       const containerId = findContainerAtPoint(collection, centerX, centerY, itemId);
       setDropTargetId(containerId);
     }
@@ -439,28 +481,28 @@ export function Board(props: BoardProps) {
     dispatch({ type: 'NEST_ITEM', itemId, containerId });
   }, [dispatch]);
 
-  const handleCardDragStart = useCallback((cardId: string) => {
-    setDraggingCardId(cardId);
-    draggingCardIdRef.current = cardId;
+  const handleItemDragStart = useCallback((itemId: string) => {
+    setDraggingItemId(itemId);
+    draggingItemIdRef.current = itemId;
     setDropTargetId(null);
   }, []);
 
   // Use refs to avoid stale closures in drag handlers.
-  // Card.ts captures onMove/onDragEnd at mousedown time, but draggingCardId
-  // is set via async state update — the captured callbacks would read null.
-  const draggingCardIdRef = useRef<string | null>(null);
-  draggingCardIdRef.current = draggingCardId;
+  // Card.ts/Container.ts capture onMove/onDragEnd at mousedown time, but
+  // draggingItemId is set via async state update — captured callbacks read null.
+  const draggingItemIdRef = useRef<string | null>(null);
+  draggingItemIdRef.current = draggingItemId;
 
   const dropTargetIdRef = useRef<string | null>(null);
   dropTargetIdRef.current = dropTargetId;
 
-  const handleCardDragEnd = useCallback((cardId: string) => {
+  const handleItemDragEnd = useCallback((itemId: string) => {
     const target = dropTargetIdRef.current;
     if (target) {
-      dispatch({ type: 'NEST_ITEM', itemId: cardId, containerId: target });
+      dispatch({ type: 'NEST_ITEM', itemId, containerId: target });
     }
-    setDraggingCardId(null);
-    draggingCardIdRef.current = null;
+    setDraggingItemId(null);
+    draggingItemIdRef.current = null;
     setDropTargetId(null);
   }, [dispatch]);
 
@@ -602,8 +644,8 @@ export function Board(props: BoardProps) {
         onOpenProject,
         onCardContextMenu: handleCardContextMenu,
         onUpdate: onUpdateItem,
-        onDragStart: handleCardDragStart,
-        onDragEnd: handleCardDragEnd,
+        onDragStart: handleItemDragStart,
+        onDragEnd: handleItemDragEnd,
         onAnchorDragStart: handleAnchorDragStart,
       });
     } else {
@@ -618,6 +660,8 @@ export function Board(props: BoardProps) {
         onResize: handleResizeItem,
         onDelete: handleDeleteItem,
         onDrop: handleDropIntoContainer,
+        onDragStart: handleItemDragStart,
+        onDragEnd: handleItemDragEnd,
       }, ...childElements);
     }
 

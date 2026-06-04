@@ -477,21 +477,32 @@ function renderInline(text: string): ReturnType<typeof createElement> {
     if (match) {
       if (match[1]) parts.push(match[1]);
       const linkUrl = match[3];
-      // Convert relative doc links to hash routes
-      const isDocLink = !linkUrl.startsWith('http') && !linkUrl.startsWith('#');
-      const href = isDocLink ? undefined : linkUrl;
-      const onClick = isDocLink ? undefined : undefined;
+      const isExternal = linkUrl.startsWith('http') || linkUrl.startsWith('//');
+      // Convert relative doc links to hash routes:
+      // "../guides/getting-started.md" → "#/docs/guides/getting-started"
+      // "guides/getting-started.md" → "#/docs/guides/getting-started"
+      // "hooks.md" → "#/docs/api/hooks" (resolved relative to current context)
+      let resolvedHref = linkUrl;
+      if (!isExternal && !linkUrl.startsWith('#')) {
+        // Strip .md extension and normalize relative paths
+        let cleanPath = linkUrl.replace(/\.md$/, '');
+        // Remove leading ../ segments (docs links are relative within docs/)
+        cleanPath = cleanPath.replace(/^(\.\.\/)+/, '');
+        // Remove leading ./ segments
+        cleanPath = cleanPath.replace(/^\.\//, '');
+        resolvedHref = `#/docs/${cleanPath}`;
+      }
       parts.push(
         createElement('a', {
           key: `a-${keyCounter++}`,
-          href: href || linkUrl,
+          href: resolvedHref,
           style: {
             color: '#3b82f6',
             textDecoration: 'none',
             borderBottom: '1px solid transparent',
           },
-          target: linkUrl.startsWith('http') ? '_blank' : undefined,
-          rel: linkUrl.startsWith('http') ? 'noopener noreferrer' : undefined,
+          target: isExternal ? '_blank' : undefined,
+          rel: isExternal ? 'noopener noreferrer' : undefined,
         }, match[2]),
       );
       remaining = remaining.slice(match[0].length);

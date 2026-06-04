@@ -150,6 +150,7 @@ function renderProjectContent(card: Card, onOpenProject?: (projectId: string) =>
 export function CardComponent(props: CardComponentProps) {
   const { card, selected = false, onSelect, onMove, onResize, onDelete, dispatch, onOpenProject, onCardContextMenu, onUpdate, onDragStart, onDragEnd, onAnchorDragStart } = props;
   const [hovered, setHovered] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -202,6 +203,7 @@ export function CardComponent(props: CardComponentProps) {
     };
 
     if (onDragStart) onDragStart(card.card_id);
+    setIsDragging(true);
 
     const handleMouseMove = (ev: Event) => {
       const mev = ev as MouseEvent;
@@ -218,6 +220,7 @@ export function CardComponent(props: CardComponentProps) {
 
     const handleMouseUp = () => {
       dragStartRef.current = null;
+      setIsDragging(false);
       if (onDragEnd) onDragEnd(card.card_id);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -466,7 +469,7 @@ export function CardComponent(props: CardComponentProps) {
     padding: '8px 10px',
     boxSizing: 'border-box',
     transition: 'box-shadow 150ms ease',
-    zIndex: '1',
+    zIndex: isDragging ? '9999' : '1',
   };
 
   const titleStyle: Record<string, string> = {

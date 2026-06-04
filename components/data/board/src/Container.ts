@@ -37,6 +37,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
   const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, onDragStart, onDragEnd, children } = props;
   const [dragOver, setDragOver] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
   const resizeStartRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
 
@@ -60,6 +61,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
     me.stopPropagation();
     if (onSelect) onSelect(container.container_id);
     if (onDragStart) onDragStart(container.container_id);
+    setIsDragging(true);
 
     dragStartRef.current = {
       x: me.clientX,
@@ -83,6 +85,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
 
     const handleMouseUp = () => {
       dragStartRef.current = null;
+      setIsDragging(false);
       if (onDragEnd) onDragEnd(container.container_id);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -179,7 +182,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    zIndex: '0',
+    zIndex: isDragging ? '9999' : '0',
     boxSizing: 'border-box',
     transition: 'border 150ms ease, background-color 150ms ease, box-shadow 150ms ease',
   };

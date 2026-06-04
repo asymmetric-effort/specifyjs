@@ -646,4 +646,96 @@ test.describe('Project Manager PDV', () => {
 
     expect(errors).toEqual([]);
   });
+
+  // ==========================================================================
+  // Drag z-index: dragged items must appear on top
+  // ==========================================================================
+
+  test('dragged card has elevated z-index above other cards', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create a second card so we can verify z-ordering
+    const newCardBtn = page.locator(`${desktop} [data-testid="btn-new-card"]`);
+    await newCardBtn.click();
+    await page.waitForTimeout(1500);
+
+    const cards = page.locator(`${desktop} .board-card`);
+    const cardCount = await cards.count();
+    expect(cardCount).toBeGreaterThanOrEqual(2);
+
+    const firstCard = cards.first();
+    await expect(firstCard).toBeVisible();
+
+    // Get initial z-index
+    const zBefore = await firstCard.evaluate((el: Element) => {
+      return parseInt(getComputedStyle(el).zIndex || '0', 10);
+    });
+
+    // Start dragging: mousedown on the card
+    const box = await firstCard.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + 10);
+    await page.mouse.down();
+    // Move slightly to trigger drag
+    await page.mouse.move(box!.x + box!.width / 2 + 20, box!.y + 30);
+    await page.waitForTimeout(100);
+
+    // While dragging, z-index should be elevated
+    const zDuring = await firstCard.evaluate((el: Element) => {
+      return parseInt(getComputedStyle(el).zIndex || '0', 10);
+    });
+    expect(zDuring).toBeGreaterThan(zBefore);
+    expect(zDuring).toBeGreaterThanOrEqual(9999);
+
+    // Release
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    // After drag, z-index should return to normal
+    const zAfter = await firstCard.evaluate((el: Element) => {
+      return parseInt(getComputedStyle(el).zIndex || '0', 10);
+    });
+    expect(zAfter).toBeLessThan(9999);
+  });
+
+  test('dragged card appears above containers', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create a container
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (await newContainerBtn.isVisible()) {
+      await newContainerBtn.click();
+      await page.waitForTimeout(1500);
+    }
+
+    const firstCard = page.locator(`${desktop} .board-card`).first();
+    await expect(firstCard).toBeVisible();
+
+    const box = await firstCard.boundingBox();
+    expect(box).not.toBeNull();
+
+    // Drag the card
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width / 2 + 30, box!.y + 40);
+    await page.waitForTimeout(100);
+
+    // Verify card z-index is higher than container z-index
+    const cardZ = await firstCard.evaluate((el: Element) => {
+      return parseInt(getComputedStyle(el).zIndex || '0', 10);
+    });
+
+    const containers = page.locator(`${desktop} .board-container`);
+    if (await containers.count() > 0) {
+      const containerZ = await containers.first().evaluate((el: Element) => {
+        return parseInt(getComputedStyle(el).zIndex || '0', 10);
+      });
+      expect(cardZ).toBeGreaterThan(containerZ);
+    }
+
+    // Card z-index should be at least 9999 during drag
+    expect(cardZ).toBeGreaterThanOrEqual(9999);
+
+    await page.mouse.up();
+  });
 });

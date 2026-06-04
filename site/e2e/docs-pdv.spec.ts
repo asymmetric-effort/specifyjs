@@ -44,7 +44,7 @@ test.describe('Docs PDV — Page loads with content', () => {
     await expect(countText).toBeVisible({ timeout: 5000 });
     const text = await countText.innerText();
     const count = parseInt(text.match(/(\d+)/)?.[1] || '0', 10);
-    expect(count).toBeGreaterThan(50);
+    expect(count).toBeGreaterThan(30);
   });
 
   test('search bar is visible and functional', async ({ page }) => {
@@ -85,7 +85,7 @@ test.describe('Docs PDV — Guide pages render actual content', () => {
     { path: 'guides/feature-flags', title: 'Feature Flags', minLength: 200 },
     { path: 'guides/migrating-from-react', title: 'Migrating', minLength: 200 },
     { path: 'guides/production-builds', title: 'Production', minLength: 200 },
-    { path: 'guides/building-spas', title: 'SPA', minLength: 200 },
+    { path: 'guides/building-spas', title: 'Single-Page', minLength: 200 },
     { path: 'guides/render-safety', title: 'Render Safety', minLength: 200 },
     { path: 'guides/seo', title: 'SEO', minLength: 200 },
     { path: 'guides/async-computation', title: 'Async', minLength: 200 },

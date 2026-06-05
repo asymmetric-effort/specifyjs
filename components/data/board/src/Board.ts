@@ -158,6 +158,24 @@ export function snapToGrid(pos: { x: number; y: number }, gridSize: number): { x
   };
 }
 
+/**
+ * Find the parent container ID of an item. Returns null if the item is at the top level.
+ */
+export function findParentContainerId(collection: BoardItem[], itemId: string): string | null {
+  const stack: Array<[BoardItem[], string | null]> = [[collection, null]];
+  while (stack.length > 0) {
+    const [items, parentId] = stack.pop()!;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (getItemId(item) === itemId) return parentId;
+      if (isContainer(item)) {
+        stack.push([item.contents, item.container_id]);
+      }
+    }
+  }
+  return null;
+}
+
 export function screenToCanvas(
   screenX: number,
   screenY: number,
@@ -265,6 +283,7 @@ export function Board(props: BoardProps) {
   const [cardContextMenu, setCardContextMenu] = useState<{ cardId: string; x: number; y: number } | null>(null);
   const [colorSubmenuOpen, setColorSubmenuOpen] = useState(false);
   const [typeSubmenuOpen, setTypeSubmenuOpen] = useState(false);
+  const [containerContextMenu, setContainerContextMenu] = useState<{ containerId: string; x: number; y: number } | null>(null);
   const [linkContextMenu, setLinkContextMenu] = useState<{ linkId: string; cardId: string; x: number; y: number } | null>(null);
 
   // -----------------------------------------------------------------------
@@ -423,7 +442,7 @@ export function Board(props: BoardProps) {
     setTypeSubmenuOpen(false);
   }, []);
 
-  // Close context menu on outside click
+  // Close context menus on outside click
   useEffect(() => {
     if (!cardContextMenu) return;
     const handleDocumentClick = () => {
@@ -451,6 +470,27 @@ export function Board(props: BoardProps) {
     document.addEventListener('click', handleDocumentClick);
     return () => document.removeEventListener('click', handleDocumentClick);
   }, [linkContextMenu, closeLinkContextMenu]);
+
+  // -----------------------------------------------------------------------
+  // Board-level container context menu handler
+  // -----------------------------------------------------------------------
+
+  const handleContainerContextMenu = useCallback((containerId: string, pos: { x: number; y: number }) => {
+    setContainerContextMenu({ containerId, x: pos.x, y: pos.y });
+    closeCardContextMenu();
+    closeLinkContextMenu();
+  }, [closeCardContextMenu, closeLinkContextMenu]);
+
+  const closeContainerContextMenu = useCallback(() => {
+    setContainerContextMenu(null);
+  }, []);
+
+  useEffect(() => {
+    if (!containerContextMenu) return;
+    const handleDocumentClick = () => closeContainerContextMenu();
+    document.addEventListener('click', handleDocumentClick);
+    return () => document.removeEventListener('click', handleDocumentClick);
+  }, [containerContextMenu, closeContainerContextMenu]);
 
   // -----------------------------------------------------------------------
   // Handlers for items
@@ -688,6 +728,7 @@ export function Board(props: BoardProps) {
         onDrop: handleDropIntoContainer,
         onDragStart: handleItemDragStart,
         onDragEnd: handleItemDragEnd,
+        onContainerContextMenu: handleContainerContextMenu,
       }, ...childElements);
     }
 
@@ -856,6 +897,21 @@ export function Board(props: BoardProps) {
         ),
       ) : null,
     ),
+    // Detach Card (only shown when card is nested inside a container)
+    (() => {
+      const parentId = findParentContainerId(collection, cardContextMenu.cardId);
+      if (!parentId) return null;
+      return createElement('div', {
+        style: ctxMenuItemStyle,
+        onClick: (e: Event) => {
+          e.stopPropagation();
+          dispatch({ type: 'UNNEST_ITEM', itemId: cardContextMenu.cardId, containerId: parentId });
+          closeCardContextMenu();
+        },
+        role: 'menuitem',
+        'data-testid': `board-ctx-detach-${cardContextMenu.cardId}`,
+      }, 'Detach Card');
+    })(),
     // Separator
     createElement('div', { style: ctxSeparatorStyle, role: 'separator' }),
     // Delete
@@ -869,6 +925,58 @@ export function Board(props: BoardProps) {
       },
       role: 'menuitem',
       'data-testid': `board-ctx-delete-${cardContextMenu.cardId}`,
+    }, 'Delete'),
+  ) : null;
+
+  // -----------------------------------------------------------------------
+  // Container context menu
+  // -----------------------------------------------------------------------
+
+  const containerContextMenuEl = containerContextMenu ? createElement('div', {
+    className: 'board-container-context-menu',
+    role: 'menu',
+    style: {
+      position: 'fixed',
+      left: `${containerContextMenu.x}px`,
+      top: `${containerContextMenu.y}px`,
+      backgroundColor: '#ffffff',
+      border: '1px solid #d1d5db',
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      padding: '4px 0',
+      zIndex: '10001',
+      minWidth: '160px',
+    },
+    'data-testid': `board-container-ctx-menu-${containerContextMenu.containerId}`,
+  },
+    // Detach Container (only shown when nested inside another container)
+    (() => {
+      const parentId = findParentContainerId(collection, containerContextMenu.containerId);
+      if (!parentId) return null;
+      return createElement('div', {
+        style: ctxMenuItemStyle,
+        onClick: (e: Event) => {
+          e.stopPropagation();
+          dispatch({ type: 'UNNEST_ITEM', itemId: containerContextMenu.containerId, containerId: parentId });
+          closeContainerContextMenu();
+        },
+        role: 'menuitem',
+        'data-testid': `board-ctx-detach-container-${containerContextMenu.containerId}`,
+      }, 'Detach Container');
+    })(),
+    // Separator
+    createElement('div', { style: ctxSeparatorStyle, role: 'separator' }),
+    // Delete
+    createElement('div', {
+      style: { ...ctxMenuItemStyle, color: '#dc2626' },
+      onClick: (e: Event) => {
+        e.stopPropagation();
+        dispatch({ type: 'REMOVE_ITEM', itemId: containerContextMenu.containerId });
+        if (onSelectItem && selectedId === containerContextMenu.containerId) onSelectItem(null);
+        closeContainerContextMenu();
+      },
+      role: 'menuitem',
+      'data-testid': `board-ctx-delete-container-${containerContextMenu.containerId}`,
     }, 'Delete'),
   ) : null;
 
@@ -1040,6 +1148,7 @@ export function Board(props: BoardProps) {
       ...itemElements,
     ),
     boardContextMenuEl,
+    containerContextMenuEl,
     linkContextMenuEl,
   );
 }

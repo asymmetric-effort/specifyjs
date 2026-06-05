@@ -26,6 +26,7 @@ export interface ContainerComponentProps {
   onDrop?: (itemId: string, containerId: string) => void;
   onDragStart?: (containerId: string) => void;
   onDragEnd?: (containerId: string) => void;
+  onContainerContextMenu?: (containerId: string, pos: { x: number; y: number }) => void;
   children?: unknown;
 }
 
@@ -34,7 +35,7 @@ export interface ContainerComponentProps {
 // ---------------------------------------------------------------------------
 
 export function ContainerComponent(props: ContainerComponentProps) {
-  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, onDragStart, onDragEnd, children } = props;
+  const { container, selected = false, highlighted = false, onSelect, onMove, onResize, onDelete, onDrop, onDragStart, onDragEnd, onContainerContextMenu, children } = props;
   const [dragOver, setDragOver] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -50,6 +51,15 @@ export function ContainerComponent(props: ContainerComponentProps) {
     e.stopPropagation();
     setMinimized((prev: boolean) => !prev);
   }, []);
+
+  const handleContextMenu = useCallback((e: Event) => {
+    const me = e as MouseEvent;
+    me.preventDefault();
+    me.stopPropagation();
+    if (onContainerContextMenu) {
+      onContainerContextMenu(container.container_id, { x: me.clientX, y: me.clientY });
+    }
+  }, [container.container_id, onContainerContextMenu]);
 
   // -----------------------------------------------------------------------
   // Title bar drag (move container)
@@ -228,6 +238,7 @@ export function ContainerComponent(props: ContainerComponentProps) {
     onDragOver: handleDragOver,
     onDragLeave: handleDragLeave,
     onDrop: handleDrop,
+    onContextMenu: handleContextMenu,
   },
     createElement('div', {
       className: 'board-container__title',

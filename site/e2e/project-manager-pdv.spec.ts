@@ -1032,4 +1032,244 @@ test.describe('Project Manager PDV', () => {
       await expect(nestedCard).not.toBeVisible({ timeout: 3000 });
     }
   });
+
+  // ==========================================================================
+  // Card detach via context menu — happy path
+  // ==========================================================================
+
+  test('right-click nested card shows "Detach Card" in context menu', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create a container and drop a card into it
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    const containerBox = await container.boundingBox();
+    if (!cardBox || !containerBox) return;
+
+    // Drop card into container
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(containerBox.x + containerBox.width / 2, containerBox.y + containerBox.height / 2, { steps: 5 });
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Right-click the nested card
+    const nestedCard = container.locator('.board-card').first();
+    if (!(await nestedCard.isVisible())) return;
+    await nestedCard.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    // Context menu should show "Detach Card"
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Card")');
+    await expect(detachItem).toBeVisible({ timeout: 5000 });
+  });
+
+  test('clicking "Detach Card" moves card out of container', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create container and nest card
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    const containerBox = await container.boundingBox();
+    if (!cardBox || !containerBox) return;
+
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(containerBox.x + containerBox.width / 2, containerBox.y + containerBox.height / 2, { steps: 5 });
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    const nestedCard = container.locator('.board-card').first();
+    if (!(await nestedCard.isVisible())) return;
+
+    // Right-click and detach
+    await nestedCard.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Card")');
+    if (!(await detachItem.isVisible())) return;
+    await detachItem.click();
+    await page.waitForTimeout(500);
+
+    // Card should no longer be inside the container
+    const remainingNested = container.locator('.board-card');
+    expect(await remainingNested.count()).toBe(0);
+
+    // Card should still exist on the board (top level)
+    const allCards = page.locator(`${desktop} .board-card`);
+    expect(await allCards.count()).toBeGreaterThanOrEqual(1);
+  });
+
+  // ==========================================================================
+  // Card detach via context menu — sad path
+  // ==========================================================================
+
+  test('top-level card context menu does NOT show "Detach Card"', async ({ page }) => {
+    await ensureCardExists(page);
+
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    // Right-click a top-level card (not nested)
+    await card.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    // "Detach Card" should NOT appear since card is not nested
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Card")');
+    await expect(detachItem).not.toBeVisible({ timeout: 2000 });
+
+    // Other menu items should still be present
+    const deleteItem = page.locator('[role="menuitem"]:has-text("Delete")');
+    await expect(deleteItem).toBeVisible();
+  });
+
+  // ==========================================================================
+  // Container context menu and detach — happy path
+  // ==========================================================================
+
+  test('right-click container shows context menu', async ({ page }) => {
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+
+    // Right-click the container
+    await container.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    // Context menu should appear with Delete option
+    const deleteItem = page.locator('[role="menuitem"]:has-text("Delete")');
+    await expect(deleteItem).toBeVisible({ timeout: 5000 });
+  });
+
+  test('right-click nested container shows "Detach Container"', async ({ page }) => {
+    // Create two containers and nest one inside the other
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const containers = page.locator(`${desktop} .board-container`);
+    if ((await containers.count()) < 2) return;
+
+    const inner = containers.nth(0);
+    const outer = containers.nth(1);
+    const innerBox = await inner.boundingBox();
+    const outerBox = await outer.boundingBox();
+    if (!innerBox || !outerBox) return;
+
+    // Nest inner into outer
+    await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(outerBox.x + outerBox.width / 2, outerBox.y + outerBox.height / 2, { steps: 5 });
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Right-click the nested container
+    const nestedContainer = outer.locator('.board-container').first();
+    if (!(await nestedContainer.isVisible())) return;
+    await nestedContainer.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    // Context menu should show "Detach Container"
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Container")');
+    await expect(detachItem).toBeVisible({ timeout: 5000 });
+  });
+
+  test('clicking "Detach Container" moves container to top level', async ({ page }) => {
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const containers = page.locator(`${desktop} .board-container`);
+    if ((await containers.count()) < 2) return;
+
+    const inner = containers.nth(0);
+    const outer = containers.nth(1);
+    const innerBox = await inner.boundingBox();
+    const outerBox = await outer.boundingBox();
+    if (!innerBox || !outerBox) return;
+
+    // Nest inner into outer
+    await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(outerBox.x + outerBox.width / 2, outerBox.y + outerBox.height / 2, { steps: 5 });
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Right-click nested container and detach
+    const nestedContainer = outer.locator('.board-container').first();
+    if (!(await nestedContainer.isVisible())) return;
+    await nestedContainer.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Container")');
+    if (!(await detachItem.isVisible())) return;
+    await detachItem.click();
+    await page.waitForTimeout(500);
+
+    // Outer container should no longer have nested containers
+    const remainingNested = outer.locator('.board-container');
+    expect(await remainingNested.count()).toBe(0);
+
+    // Both containers should still exist on the board
+    const allContainers = page.locator(`${desktop} .board-container`);
+    expect(await allContainers.count()).toBeGreaterThanOrEqual(2);
+  });
+
+  // ==========================================================================
+  // Container detach — sad path
+  // ==========================================================================
+
+  test('top-level container context menu does NOT show "Detach Container"', async ({ page }) => {
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+
+    // Right-click a top-level container
+    await container.click({ button: 'right' });
+    await page.waitForTimeout(300);
+
+    // "Detach Container" should NOT appear since container is not nested
+    const detachItem = page.locator('[role="menuitem"]:has-text("Detach Container")');
+    await expect(detachItem).not.toBeVisible({ timeout: 2000 });
+
+    // Delete should still be present
+    const deleteItem = page.locator('[role="menuitem"]:has-text("Delete")');
+    await expect(deleteItem).toBeVisible();
+  });
 });

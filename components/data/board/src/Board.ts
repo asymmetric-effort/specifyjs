@@ -91,9 +91,11 @@ function collectDescendantContainerIds(collection: BoardItem[], containerId: str
 }
 
 /**
- * Find the first container whose bounding box contains the given point.
- * Excludes the dragged item itself and (if it's a container) all its
- * descendants to prevent circular nesting.
+ * Find the deepest container whose bounding box contains the given point.
+ * Searches the full tree (including nested containers), converting positions
+ * to canvas-absolute using accumulated parent offsets.
+ * Excludes the dragged item and its descendants to prevent circular nesting.
+ * Returns the most deeply nested matching container (most specific target).
  */
 export function findContainerAtPoint(
   collection: BoardItem[],
@@ -109,20 +111,44 @@ export function findContainerAtPoint(
     for (const id of descendants) excluded.add(id);
   }
 
-  for (let i = 0; i < collection.length; i++) {
-    const item = collection[i];
-    if (!isContainer(item)) continue;
-    if (excluded.has(item.container_id)) continue;
-    if (
-      x >= item.position.x &&
-      x <= item.position.x + item.size.width &&
-      y >= item.position.y &&
-      y <= item.position.y + item.size.height
-    ) {
-      return item.container_id;
+  let bestMatch: string | null = null;
+  let bestDepth = -1;
+
+  // Stack entries: [items, parentOffsetX, parentOffsetY, depth]
+  const stack: Array<[BoardItem[], number, number, number]> = [[collection, 0, 0, 0]];
+
+  while (stack.length > 0) {
+    const [items, offsetX, offsetY, depth] = stack.pop()!;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!isContainer(item)) continue;
+      if (excluded.has(item.container_id)) continue;
+
+      // Convert container position to canvas-absolute
+      const absX = item.position.x + offsetX;
+      const absY = item.position.y + offsetY;
+
+      if (
+        x >= absX &&
+        x <= absX + item.size.width &&
+        y >= absY &&
+        y <= absY + item.size.height
+      ) {
+        // Deeper match wins (most specific container)
+        if (depth > bestDepth) {
+          bestMatch = item.container_id;
+          bestDepth = depth;
+        }
+        // Search children — they are positioned relative to this container
+        // +30 accounts for title bar height
+        if (item.contents.length > 0) {
+          stack.push([item.contents, absX, absY + 30, depth + 1]);
+        }
+      }
     }
   }
-  return null;
+
+  return bestMatch;
 }
 
 export function snapToGrid(pos: { x: number; y: number }, gridSize: number): { x: number; y: number } {

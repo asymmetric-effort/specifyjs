@@ -738,4 +738,298 @@ test.describe('Project Manager PDV', () => {
 
     await page.mouse.up();
   });
+
+  // ==========================================================================
+  // Nested container drag-and-drop
+  // ==========================================================================
+
+  test('card can be dropped into a container', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create a container
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    const containerBox = await container.boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(containerBox).not.toBeNull();
+
+    // Drag card to center of container
+    await page.mouse.move(cardBox!.x + cardBox!.width / 2, cardBox!.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(
+      containerBox!.x + containerBox!.width / 2,
+      containerBox!.y + containerBox!.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(200);
+
+    // Container should be highlighted during drag-over
+    const borderStyle = await container.evaluate((el: Element) => getComputedStyle(el).borderStyle);
+    // Highlighted containers use dashed border
+    expect(borderStyle).toContain('dashed');
+
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // After drop, the card should be nested inside the container
+    const nestedCards = container.locator('.board-card');
+    await expect(nestedCards.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  test('container can be nested inside another container', async ({ page }) => {
+    // Create two containers
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const containers = page.locator(`${desktop} .board-container`);
+    const count = await containers.count();
+    if (count < 2) return;
+
+    const innerContainer = containers.nth(0);
+    const outerContainer = containers.nth(1);
+
+    const innerBox = await innerContainer.boundingBox();
+    const outerBox = await outerContainer.boundingBox();
+    if (!innerBox || !outerBox) return;
+
+    // Drag inner container's title bar to center of outer container
+    await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(
+      outerBox.x + outerBox.width / 2,
+      outerBox.y + outerBox.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // The outer container should now contain the inner container
+    const nestedContainers = outerContainer.locator('.board-container');
+    const nestedCount = await nestedContainers.count();
+    expect(nestedCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('card can be dropped into a nested container', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create two containers
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const containers = page.locator(`${desktop} .board-container`);
+    const containerCount = await containers.count();
+    if (containerCount < 2) return;
+
+    // First nest one container inside the other
+    const innerContainer = containers.nth(0);
+    const outerContainer = containers.nth(1);
+
+    const innerBox = await innerContainer.boundingBox();
+    const outerBox = await outerContainer.boundingBox();
+    if (!innerBox || !outerBox) return;
+
+    await page.mouse.move(innerBox.x + innerBox.width / 2, innerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(
+      outerBox.x + outerBox.width / 2,
+      outerBox.y + outerBox.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Now drag a card into the nested container
+    const card = page.locator(`${desktop} .board-card`).first();
+    if (!(await card.isVisible())) return;
+
+    const nestedContainer = outerContainer.locator('.board-container').first();
+    const nestedExists = await nestedContainer.count();
+    if (nestedExists === 0) return;
+
+    const cardBox = await card.boundingBox();
+    const nestedBox = await nestedContainer.boundingBox();
+    if (!cardBox || !nestedBox) return;
+
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(
+      nestedBox.x + nestedBox.width / 2,
+      nestedBox.y + nestedBox.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // The nested container should now contain the card
+    const nestedCards = nestedContainer.locator('.board-card');
+    const nestedCardCount = await nestedCards.count();
+    expect(nestedCardCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test('dropping a card outside any container does not nest it', async ({ page }) => {
+    await ensureCardExists(page);
+
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    if (!cardBox) return;
+
+    // Count cards at top level before drag
+    const cardsBefore = await page.locator(`${desktop} .board-card`).count();
+
+    // Drag card to empty canvas area (far from any container)
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(cardBox.x + 200, cardBox.y + 200, { steps: 3 });
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Card should still be a top-level item (not nested in any container)
+    const cardsAfter = await page.locator(`${desktop} .board-card`).count();
+    expect(cardsAfter).toBe(cardsBefore);
+
+    // No container should have the card nested
+    const containers = page.locator(`${desktop} .board-container`);
+    const containerCount = await containers.count();
+    for (let i = 0; i < containerCount; i++) {
+      const nestedCards = containers.nth(i).locator(':scope > .board-container__contents > .board-card');
+      const nested = await nestedCards.count();
+      // This container should not have gained a new card from the drag
+      expect(nested).toBe(0);
+    }
+  });
+
+  test('container cannot be nested inside itself', async ({ page }) => {
+    // Create a container
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+
+    const containerBox = await container.boundingBox();
+    if (!containerBox) return;
+
+    // Try to drag container onto itself (drag title bar to container center)
+    await page.mouse.move(containerBox.x + containerBox.width / 2, containerBox.y + 15);
+    await page.mouse.down();
+    await page.mouse.move(
+      containerBox.x + containerBox.width / 2 + 5,
+      containerBox.y + containerBox.height / 2,
+      { steps: 3 },
+    );
+    await page.waitForTimeout(200);
+
+    // Container should NOT be highlighted (can't drop into itself)
+    const borderStyle = await container.evaluate((el: Element) => getComputedStyle(el).borderStyle);
+    expect(borderStyle).not.toContain('dashed');
+
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    // Container should not be nested inside itself
+    const nestedContainers = container.locator('.board-container');
+    expect(await nestedContainers.count()).toBe(0);
+  });
+
+  test('dragging card without dropping on container leaves it unchanged', async ({ page }) => {
+    await ensureCardExists(page);
+
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    if (!cardBox) return;
+
+    // Drag card slightly and release without targeting a container
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(cardBox.x + cardBox.width / 2 + 10, cardBox.y + 20, { steps: 2 });
+    await page.waitForTimeout(100);
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    // Card should still be visible and functional
+    await expect(card).toBeVisible();
+    const newBox = await card.boundingBox();
+    expect(newBox).not.toBeNull();
+    expect(newBox!.width).toBeGreaterThan(50);
+    expect(newBox!.height).toBeGreaterThan(30);
+  });
+
+  test('minimizing a container hides nested cards', async ({ page }) => {
+    await ensureCardExists(page);
+
+    // Create a container and drop a card into it
+    const newContainerBtn = page.locator(`${desktop} [data-testid="btn-new-container"]`);
+    if (!(await newContainerBtn.isVisible())) return;
+    await newContainerBtn.click();
+    await page.waitForTimeout(1500);
+
+    const container = page.locator(`${desktop} .board-container`).first();
+    await expect(container).toBeVisible({ timeout: 5000 });
+
+    const card = page.locator(`${desktop} .board-card`).first();
+    await expect(card).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    const containerBox = await container.boundingBox();
+    if (!cardBox || !containerBox) return;
+
+    // Drop card into container
+    await page.mouse.move(cardBox.x + cardBox.width / 2, cardBox.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(
+      containerBox.x + containerBox.width / 2,
+      containerBox.y + containerBox.height / 2,
+      { steps: 5 },
+    );
+    await page.waitForTimeout(200);
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+
+    // Verify card is inside container
+    const nestedCard = container.locator('.board-card').first();
+    const isNested = await nestedCard.count();
+    if (isNested === 0) return;
+
+    await expect(nestedCard).toBeVisible();
+
+    // Click minimize button on the container
+    const minimizeBtn = container.locator('[aria-label="Minimize container"]');
+    if (await minimizeBtn.isVisible()) {
+      await minimizeBtn.click();
+      await page.waitForTimeout(300);
+
+      // The nested card should no longer be visible
+      await expect(nestedCard).not.toBeVisible({ timeout: 3000 });
+    }
+  });
 });

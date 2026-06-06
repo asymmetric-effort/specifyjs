@@ -260,6 +260,161 @@ test.describe('Docs PDV — Sidebar navigation renders content', () => {
   });
 });
 
+test.describe('Docs PDV — Error component docs render actual content', () => {
+  const errorPages = [
+    { path: 'components/errors/http-error-page', title: 'HttpErrorPage' },
+    { path: 'components/errors/http-400', title: '400' },
+    { path: 'components/errors/http-401', title: '401' },
+    { path: 'components/errors/http-403', title: '403' },
+    { path: 'components/errors/http-404', title: '404' },
+    { path: 'components/errors/http-405', title: '405' },
+    { path: 'components/errors/http-408', title: '408' },
+    { path: 'components/errors/http-429', title: '429' },
+    { path: 'components/errors/http-500', title: '500' },
+    { path: 'components/errors/http-502', title: '502' },
+    { path: 'components/errors/http-503', title: '503' },
+    { path: 'components/errors/http-504', title: '504' },
+  ];
+
+  for (const doc of errorPages) {
+    test(`${doc.path} renders with content`, async ({ page }) => {
+      await page.goto(`${BASE_URL}/#/docs/${doc.path}`);
+      const article = page.locator('article').first();
+      await expect(article).toBeVisible({ timeout: 10000 });
+      const text = await article.innerText();
+      expect(text.length).toBeGreaterThan(100);
+      expect(text).not.toContain('Document Not Found');
+    });
+  }
+});
+
+test.describe('Docs PDV — Visualization component docs render actual content', () => {
+  const vizPages = [
+    'components/viz/2D-cartesian-raw',
+    'components/viz/2D-complex-graph',
+    'components/viz/2D-discrete-cartesian',
+    'components/viz/2D-polar-graph',
+    'components/viz/3d-force-graph',
+    'components/viz/3d-layers',
+    'components/viz/3dSpace',
+    'components/viz/big-number',
+    'components/viz/bloch-sphere',
+    'components/viz/box-plot',
+    'components/viz/bubble-chart',
+    'components/viz/calendar-heat-map',
+    'components/viz/chord',
+    'components/viz/decomposition-tree',
+    'components/viz/earth-globe',
+    'components/viz/force-graph',
+    'components/viz/funnel',
+    'components/viz/gantt-chart',
+    'components/viz/gauge',
+    'components/viz/heat-map',
+    'components/viz/histogram',
+    'components/viz/lollipop',
+    'components/viz/matrix',
+    'components/viz/partition',
+    'components/viz/pivot-table',
+    'components/viz/radar-chart',
+    'components/viz/sankey',
+    'components/viz/sunburst',
+    'components/viz/tree-map',
+    'components/viz/us-state-map',
+    'components/viz/vector-field',
+    'components/viz/waterfall',
+    'components/viz/word-cloud',
+  ];
+
+  for (const path of vizPages) {
+    test(`${path} renders with content`, async ({ page }) => {
+      await page.goto(`${BASE_URL}/#/docs/${path}`);
+      const article = page.locator('article').first();
+      await expect(article).toBeVisible({ timeout: 10000 });
+      const text = await article.innerText();
+      expect(text.length).toBeGreaterThan(100);
+      expect(text).not.toContain('Document Not Found');
+    });
+  }
+});
+
+test.describe('Docs PDV — New form/data/layout/feedback/standalone docs render', () => {
+  const newDocs = [
+    { path: 'components/form/button', title: 'Button' },
+    { path: 'components/form/color-wheel', title: 'Color' },
+    { path: 'components/data/analog-clock', title: 'Analog' },
+    { path: 'components/data/board', title: 'Board' },
+    { path: 'components/data/digital-clock', title: 'Digital' },
+    { path: 'components/feedback/banner', title: 'Banner' },
+    { path: 'components/layout/app-drag-drop', title: 'Drag' },
+    { path: 'components/layout/app-message-bus', title: 'Message' },
+    { path: 'components/layout/footer', title: 'Footer' },
+    { path: 'components/math/math', title: 'Math' },
+    { path: 'components/analytics/google-analytics', title: 'Google Analytics' },
+    { path: 'components/ad/adsense', title: 'AdSense' },
+  ];
+
+  for (const doc of newDocs) {
+    test(`${doc.path} renders with content`, async ({ page }) => {
+      await page.goto(`${BASE_URL}/#/docs/${doc.path}`);
+      const article = page.locator('article').first();
+      await expect(article).toBeVisible({ timeout: 10000 });
+      const text = await article.innerText();
+      expect(text.length).toBeGreaterThan(100);
+      expect(text).not.toContain('Document Not Found');
+    });
+  }
+});
+
+test.describe('Docs PDV — Docs count reflects all entries', () => {
+  test('document count includes all new component docs', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/docs`);
+    await expect(page.locator('text=Documentation').first()).toBeVisible({ timeout: 15000 });
+
+    const countText = page.locator('text=/\\d+ documents/');
+    await expect(countText).toBeVisible({ timeout: 5000 });
+    const text = await countText.innerText();
+    const count = parseInt(text.match(/(\d+)/)?.[1] || '0', 10);
+    // Should now have 100+ docs with all the new component documentation
+    expect(count).toBeGreaterThan(100);
+  });
+
+  test('sidebar shows all component subcategories', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/docs`);
+    await expect(page.locator('text=Documentation').first()).toBeVisible({ timeout: 15000 });
+
+    // Expand Components section
+    const componentsBtn = page.locator('button:has-text("COMPONENTS")').first();
+    await componentsBtn.click();
+    await page.waitForTimeout(300);
+
+    // Verify new subcategories have entries visible in sidebar
+    const sidebar = page.locator('nav.docs-sidebar');
+    const entries = await sidebar.locator('button').all();
+    // Should have many entries including all the new docs
+    expect(entries.length).toBeGreaterThan(20);
+  });
+});
+
+test.describe('Docs PDV — Sad path: nonexistent component docs', () => {
+  test('nonexistent component category shows Document Not Found', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/docs/components/nonexistent/fake-component`);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('text=Document Not Found')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('nonexistent viz component shows Document Not Found', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/docs/components/viz/nonexistent-chart`);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('text=Document Not Found')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('nonexistent error page shows Document Not Found', async ({ page }) => {
+    await page.goto(`${BASE_URL}/#/docs/components/errors/http-999`);
+    await page.waitForTimeout(2000);
+    await expect(page.locator('text=Document Not Found')).toBeVisible({ timeout: 10000 });
+  });
+});
+
 test.describe('Docs PDV — Error handling', () => {
   test('nonexistent doc path shows friendly error', async ({ page }) => {
     await page.goto(`${BASE_URL}/#/docs/nonexistent/path`);

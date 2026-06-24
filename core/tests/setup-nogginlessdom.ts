@@ -64,6 +64,18 @@ import {
   triggerResize,
   IntersectionObserver,
   triggerIntersection,
+  // Performance API (#96)
+  Performance,
+  PerformanceObserver,
+  // Animation API (#97)
+  Animation,
+  KeyframeEffect,
+  AnimationTimeline,
+  // WebSocket & Workers (#100)
+  WebSocket,
+  Worker,
+  SharedWorker,
+  MessagePort,
 } from '@asymmetric-effort/nogginlessdom';
 import { setComponentIdsEnabled } from '../src/shared/component-registry';
 
@@ -146,5 +158,20 @@ if (!doc.body) {
 // Observer APIs — controllable observers for testing responsive/lazy behavior
 (globalThis as any).ResizeObserver = ResizeObserver;
 (globalThis as any).IntersectionObserver = IntersectionObserver;
+
+// Performance API — for Profiler component testing and render timing
+(globalThis as any).Performance = Performance;
+(globalThis as any).PerformanceObserver = PerformanceObserver;
+
+// Animation API — for CSS transition/animation-dependent behavior testing
+(globalThis as any).Animation = Animation;
+(globalThis as any).KeyframeEffect = KeyframeEffect;
+(globalThis as any).AnimationTimeline = AnimationTimeline;
+
+// WebSocket & Workers — for real-time and worker-based feature testing
+(globalThis as any).WebSocket = WebSocket;
+(globalThis as any).Worker = Worker;
+(globalThis as any).SharedWorker = SharedWorker;
+(globalThis as any).MessagePort = MessagePort;
 
 setComponentIdsEnabled(false);

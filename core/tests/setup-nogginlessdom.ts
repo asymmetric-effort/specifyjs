@@ -48,6 +48,22 @@ import {
   // Real MutationObserver (#90)
   MutationObserver,
   MutationRecord,
+  // SVG Elements (#94)
+  SVGElement,
+  SVGSVGElement,
+  SVGPathElement,
+  SVGCircleElement,
+  SVGRectElement,
+  SVGLineElement,
+  SVGTextElement,
+  SVGGElement,
+  SVGDefsElement,
+  SVGUseElement,
+  // Observer APIs (#95)
+  ResizeObserver,
+  triggerResize,
+  IntersectionObserver,
+  triggerIntersection,
 } from '@asymmetric-effort/nogginlessdom';
 import { setComponentIdsEnabled } from '../src/shared/component-registry';
 
@@ -114,5 +130,21 @@ if (!doc.body) {
 // Real MutationObserver — tracks actual DOM mutations
 (globalThis as any).MutationObserver = MutationObserver;
 (globalThis as any).MutationRecord = MutationRecord;
+
+// SVG elements — typed SVG element classes for link overlay and viz tests
+(globalThis as any).SVGElement = SVGElement;
+(globalThis as any).SVGSVGElement = SVGSVGElement;
+(globalThis as any).SVGPathElement = SVGPathElement;
+(globalThis as any).SVGCircleElement = SVGCircleElement;
+(globalThis as any).SVGRectElement = SVGRectElement;
+(globalThis as any).SVGLineElement = SVGLineElement;
+(globalThis as any).SVGTextElement = SVGTextElement;
+(globalThis as any).SVGGElement = SVGGElement;
+(globalThis as any).SVGDefsElement = SVGDefsElement;
+(globalThis as any).SVGUseElement = SVGUseElement;
+
+// Observer APIs — controllable observers for testing responsive/lazy behavior
+(globalThis as any).ResizeObserver = ResizeObserver;
+(globalThis as any).IntersectionObserver = IntersectionObserver;
 
 setComponentIdsEnabled(false);

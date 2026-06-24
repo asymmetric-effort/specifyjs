@@ -249,7 +249,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    minify: 'esbuild',
+    minify: 'oxc',
     chunkSizeWarningLimit: 300,
     rollupOptions: {
       output: {

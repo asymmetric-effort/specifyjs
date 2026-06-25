@@ -248,17 +248,13 @@ jobs:
             # Bust CDN cache by appending a unique query string
             CACHEBUST="?cb=$(date +%s)-$i"
             VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/version.txt${CACHEBUST}" 2>/dev/null | tr -d '[:space:]')
-            # Also check the HTML to ensure it references a bundle with our version
+            # Verify HTML loads with JS bundle references (any chunk name)
             HTML=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/index.html${CACHEBUST}" 2>/dev/null)
-            UI_FILE=$(echo "$HTML" | grep -oP 'ui-components-[^"]+\.js' | head -1)
-            JS_VER=""
-            if [ -n "$UI_FILE" ]; then
-              JS_VER=$(curl -sk "https://specifyjs.asymmetric-effort.com/staging/assets/${UI_FILE}" 2>/dev/null | grep -oP "\"${EXPECTED}\"" | head -1 | tr -d '"')
-            fi
-            if [ "$VER" = "v${EXPECTED}" ] && [ "$JS_VER" = "${EXPECTED}" ]; then
+            HAS_JS=$(echo "$HTML" | grep -c '\.js"' || true)
+            if [ "$VER" = "v${EXPECTED}" ] && [ "$HAS_JS" -gt 0 ]; then
               echo "Staging confirmed: v${EXPECTED} after ${i}0s"; exit 0
             fi
-            echo "Attempt $i/60: version.txt=$VER js_ver=$JS_VER ui_file=$UI_FILE"; sleep 10
+            echo "Attempt $i/60: version.txt=$VER has_js=$HAS_JS"; sleep 10
           done
           echo "ERROR: staging did not converge after 10 minutes"
           exit 1

@@ -254,7 +254,21 @@ function FilesContent() {
 }
 
 // ---------------------------------------------------------------------------
-// Mock app content for demo windows
+// Mock app content for demo windows — GALLERY DEMO ONLY
+//
+// This function exists solely to provide placeholder content for the
+// component gallery showcase. It is NOT part of the UnityDesktop API.
+//
+// Real consuming applications should NOT use this function. Instead,
+// pass your own application components as children of <UnityApp>:
+//
+//   createElement(UnityApp, { id: 'my-app', title: 'My App' },
+//     createElement(MyAppComponent, { ...myProps }),
+//   )
+//
+// Application content, data fetching, and state management are the
+// responsibility of the consuming project, not the desktop shell.
+// See docs/components/page/unity-desktop.md for integration patterns.
 // ---------------------------------------------------------------------------
 
 function getMockContent(title: string, windowId?: string, onTitleChange?: (newTitle: string) => void): unknown {
@@ -733,6 +747,8 @@ function UnityDesktopInner(props: {
             : ww));
       },
     },
+      // Gallery demo only — real apps pass their own content as UnityApp children.
+      // See docs/components/page/unity-desktop.md for integration patterns.
       getMockContent(
         apps.find((a: UnityDesktopApp) => a.id === w.appId)?.label || w.title,
         w.id,

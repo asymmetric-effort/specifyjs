@@ -5,7 +5,16 @@
  * - placeChild with existing alternate
  * - deleteRemainingChildren with multiple siblings
  */
-import { describe, it, expect, vi, beforeEach } from '@asymmetric-effort/nogginlessdom';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  useFakeTimers,
+  useRealTimers,
+} from '@asymmetric-effort/nogginlessdom';
 import { createElement, Fragment } from '../../../src/index';
 import { createRoot } from '../../../src/dom/create-root';
 import { useState } from '../../../src/hooks/index';
@@ -20,8 +29,16 @@ beforeEach(() => {
   };
 });
 
+/** Flush microtasks so batched state updates and re-renders complete. */
+async function flush() {
+  for (let i = 0; i < 4; i++) {
+    await new Promise((r) => queueMicrotask(r));
+  }
+}
+
 describe('reconciler — array child reconciliation edge cases', () => {
   it('handles array with mixed element types and nulls', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let setItems: (v: (string | number | null)[]) => void;
     function App() {
       const [items, si] = useState<(string | number | null)[]>(['hello', 42, null, 'world']);
@@ -40,12 +57,15 @@ describe('reconciler — array child reconciliation edge cases', () => {
 
     // Completely different set of items — triggers updateFromMap
     setItems!([null, 'new', 99]);
-    await new Promise((r) => setTimeout(r, 50));
+    clock.advanceTimersByTime(50);
+    await flush();
     expect(container.querySelectorAll('span').length).toBe(2);
     root.unmount();
+    useRealTimers();
   });
 
   it('handles growing array (new items at end)', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let setCount: (v: number) => void;
     function App() {
       const [count, sc] = useState(2);
@@ -61,12 +81,15 @@ describe('reconciler — array child reconciliation edge cases', () => {
     expect(container.querySelectorAll('li').length).toBe(2);
 
     setCount!(5);
-    await new Promise((r) => setTimeout(r, 50));
+    clock.advanceTimersByTime(50);
+    await flush();
     expect(container.querySelectorAll('li').length).toBe(5);
     root.unmount();
+    useRealTimers();
   });
 
   it('handles shrinking array (fewer items)', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let setCount: (v: number) => void;
     function App() {
       const [count, sc] = useState(5);
@@ -81,13 +104,16 @@ describe('reconciler — array child reconciliation edge cases', () => {
     root.render(createElement(App, null));
 
     setCount!(1);
-    await new Promise((r) => setTimeout(r, 50));
+    clock.advanceTimersByTime(50);
+    await flush();
     // 1 child div + the outer div
     expect(container.textContent).toBe('item-0');
     root.unmount();
+    useRealTimers();
   });
 
   it('handles reorder where oldFiber.index > newIdx', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let setItems: (v: string[]) => void;
     function App() {
       const [items, si] = useState(['a', 'b', 'c', 'd', 'e']);
@@ -99,11 +125,13 @@ describe('reconciler — array child reconciliation edge cases', () => {
 
     // Move 'e' to position 0 — forces oldFiber.index > newIdx
     setItems!(['e', 'a', 'b', 'c', 'd']);
-    await new Promise((r) => setTimeout(r, 50));
+    clock.advanceTimersByTime(50);
+    await flush();
     const spans = container.querySelectorAll('span');
     expect(spans[0].textContent).toBe('e');
     expect(spans[4].textContent).toBe('d');
     root.unmount();
+    useRealTimers();
   });
 
   it('handles text children interleaved with elements', () => {
@@ -116,6 +144,7 @@ describe('reconciler — array child reconciliation edge cases', () => {
   });
 
   it('handles single child replacement (key match, type differs)', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let setUseSpan: (v: boolean) => void;
     function App() {
       const [useSpan, su] = useState(false);
@@ -133,8 +162,10 @@ describe('reconciler — array child reconciliation edge cases', () => {
     expect(container.querySelector('section div')).toBeTruthy();
 
     setUseSpan!(true);
-    await new Promise((r) => setTimeout(r, 50));
+    clock.advanceTimersByTime(50);
+    await flush();
     expect(container.querySelector('section span')).toBeTruthy();
     root.unmount();
+    useRealTimers();
   });
 });

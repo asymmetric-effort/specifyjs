@@ -1,7 +1,7 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
+import { describe, it, expect, vi, beforeEach, afterEach, useFakeTimers, useRealTimers } from '@asymmetric-effort/nogginlessdom';
 import { SystemTray } from '../src/index';
 import type { SystemTrayProps, SystemTrayIndicator, SystemTrayUser } from '../src/index';
 import { createElement } from 'specifyjs';
@@ -56,14 +56,16 @@ const sampleMenuItems: SystemTrayProps['userMenuItems'] = [
 
 // -- Happy path tests -------------------------------------------------------
 
+/** Shared fake-timer controller, set in beforeEach. */
+let clock: ReturnType<typeof useFakeTimers>;
+
 describe('SystemTray', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(2026, 4, 17, 15, 42, 3)); // Sat May 17 2026 15:42:03
+    clock = useFakeTimers({ now: new Date(2026, 4, 17, 15, 42, 3) }); // Sat May 17 2026 15:42:03
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    useRealTimers();
   });
 
   describe('happy path', () => {
@@ -403,7 +405,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 12h format at midnight (0:00)', () => {
-      vi.setSystemTime(new Date(2026, 4, 17, 0, 0, 0)); // midnight
+      clock.setSystemTime(new Date(2026, 4, 17, 0, 0, 0)); // midnight
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '12h' }),
       );
@@ -412,7 +414,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 12h format at noon (12:00)', () => {
-      vi.setSystemTime(new Date(2026, 4, 17, 12, 0, 0));
+      clock.setSystemTime(new Date(2026, 4, 17, 12, 0, 0));
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '12h' }),
       );
@@ -421,7 +423,7 @@ describe('SystemTray', () => {
     });
 
     it('handles 24h format at midnight', () => {
-      vi.setSystemTime(new Date(2026, 4, 17, 0, 5, 9));
+      clock.setSystemTime(new Date(2026, 4, 17, 0, 5, 9));
       const container = renderToContainer(
         createElement(SystemTray, { clockFormat: '24h' }),
       );
@@ -568,12 +570,12 @@ describe('SystemTray', () => {
         createElement(SystemTray, { clockFormat: '24h', showSeconds: true }),
       );
       expect(container.textContent).toContain('15:42:03');
-      // Advance by 1 second
-      vi.advanceTimersByTime(1000);
+      // Advance by 1 second using the fake-timer controller
+      clock.advanceTimersByTime(1000);
       await tick();
       expect(container.textContent).toContain('15:42:04');
       // Advance by another second
-      vi.advanceTimersByTime(1000);
+      clock.advanceTimersByTime(1000);
       await tick();
       expect(container.textContent).toContain('15:42:05');
       cleanup(container);

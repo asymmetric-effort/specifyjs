@@ -2,7 +2,14 @@
  * Full coverage tests for scheduler-host-config.ts.
  * Tests the MessageChannel-based scheduling, yielding, and edge cases.
  */
-import { describe, it, expect, vi } from '@asymmetric-effort/nogginlessdom';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  useFakeTimers,
+  useRealTimers,
+} from '@asymmetric-effort/nogginlessdom';
 import {
   getCurrentTime,
   shouldYieldToHost,
@@ -123,33 +130,42 @@ describe('hasPendingWork', () => {
 
 describe('async MessageChannel delivery', () => {
   it('callback fires asynchronously via MessageChannel', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     const fn = vi.fn(() => null);
     scheduleCallback(fn);
     expect(fn).not.toHaveBeenCalled();
-    // MessageChannel fires via macrotask in jsdom — wait for it
-    await new Promise((r) => setTimeout(r, 100));
+    // MessageChannel fires via macrotask — advance fake timers deterministically
+    clock.advanceTimersByTime(100);
+    await new Promise((r) => queueMicrotask(r));
     // The MessageChannel handler (performWorkUntilDeadline) should have run
     expect(fn).toHaveBeenCalled();
+    useRealTimers();
   });
 
   it('MessageChannel handles continuation callback', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     let count = 0;
     const fn = (): any => {
       count++;
       return count < 3 ? fn : null;
     };
     scheduleCallback(fn);
-    // Wait for all continuations to process through MessageChannel
-    await new Promise((r) => setTimeout(r, 200));
+    // Advance fake timers for all continuations to process through MessageChannel
+    clock.advanceTimersByTime(200);
+    await new Promise((r) => queueMicrotask(r));
     expect(count).toBe(3);
+    useRealTimers();
   });
 
   it('MessageChannel stops when no more work', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     const fn = vi.fn(() => null);
     scheduleCallback(fn);
-    await new Promise((r) => setTimeout(r, 100));
+    clock.advanceTimersByTime(100);
+    await new Promise((r) => queueMicrotask(r));
     expect(fn).toHaveBeenCalledOnce();
     expect(hasPendingWork()).toBe(false);
+    useRealTimers();
   });
 
   it('flushAllWork is a no-op after all work completes', () => {
@@ -163,12 +179,15 @@ describe('async MessageChannel delivery', () => {
   });
 
   it('MessageChannel handles null scheduledCallback', async () => {
+    const clock = useFakeTimers({ shouldAdvanceTime: true });
     // Schedule then immediately cancel — when MessageChannel fires,
     // scheduledCallback is null, hitting the else branch (line 77-78)
     const fn = vi.fn(() => null);
     const node = scheduleCallback(fn);
     cancelCallback(node);
-    await new Promise((r) => setTimeout(r, 100));
+    clock.advanceTimersByTime(100);
+    await new Promise((r) => queueMicrotask(r));
     expect(fn).not.toHaveBeenCalled();
+    useRealTimers();
   });
 });

@@ -36,6 +36,8 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run format:check
+      - name: Import analysis (unused imports & depth)
+        run: bun run ../scripts/lint-imports.ts
 
   # ── Stage 1b: Test (parallel with Lint) ─────────────────────────────
   test:

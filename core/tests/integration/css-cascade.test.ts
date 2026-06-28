@@ -124,15 +124,14 @@ describe('computeSpecificity', () => {
   });
 
   it('orders selectors correctly by specificity', () => {
-    const selectors = ['div', '.card', '#main', 'div.card', 'div.card#main'];
-    const specs = selectors.map((s) => computeSpecificity(s));
+    const selectors = ['div', '.card', 'div.card', '#main', 'div.card#main'];
+    const toNum = (s: [number, number, number]) => s[0] * 1000000 + s[1] * 1000 + s[2];
+    const values = selectors.map((sel) => toNum(computeSpecificity(sel)));
     // Verify ordering: each subsequent selector has equal or higher specificity
-    for (let i = 1; i < specs.length; i++) {
-      const [a0, a1, a2] = specs[i - 1]!;
-      const [b0, b1, b2] = specs[i]!;
-      const aVal = a0 * 1000000 + a1 * 1000 + a2;
-      const bVal = b0 * 1000000 + b1 * 1000 + b2;
-      expect(bVal).toBeGreaterThanOrEqual(aVal);
+    for (let i = 1; i < values.length; i++) {
+      const prev = values[i - 1]!;
+      const curr = values[i]!;
+      expect(curr >= prev).toBe(true);
     }
   });
 });
@@ -438,14 +437,14 @@ describe('collectApplicableStylesWithImportance', () => {
 // Component-level style integration
 // ---------------------------------------------------------------------------
 describe('component inline style + CSS cascade integration', () => {
-  it('validates rendered component inline styles via DOM attributes', () => {
+  it('validates rendered component inline styles via DOM style object', () => {
     const root = createRoot(container);
     root.render(
       createElement(
         'button',
         {
           className: 'btn',
-          style: 'background: coral; padding: 8px 16px;',
+          style: { background: 'coral', padding: '8px 16px' },
         },
         'Click me',
       ),
@@ -453,7 +452,8 @@ describe('component inline style + CSS cascade integration', () => {
 
     const btn = container.querySelector('.btn') as any;
     expect(btn).not.toBeNull();
-    expect(btn.getAttribute('style')).toContain('background: coral');
+    expect(btn.style.background).toBe('coral');
+    expect(btn.style.padding).toBe('8px 16px');
   });
 
   it('validates data-theme attribute on rendered element', () => {

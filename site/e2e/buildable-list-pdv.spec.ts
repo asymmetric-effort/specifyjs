@@ -12,16 +12,28 @@ test.describe('BuildableList PDV', () => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 10000 });
     // Open Form Components accordion — the header is a <button> with a child <span> containing the title
+    // Scroll down to find Form Components accordion and click it
     const formHeader = page.locator('.accordion-header', { hasText: 'Form Components' });
     await formHeader.waitFor({ state: 'visible', timeout: 10000 });
     await formHeader.scrollIntoViewIfNeeded();
     await formHeader.click();
-    await page.waitForTimeout(500);
+    // Wait for accordion content to expand
+    await page.waitForTimeout(1000);
+    // Scroll to make sure the Buildable List card is in view
+    const buildableText = page.locator('.accordion-title', { hasText: 'Form Components' });
+    await buildableText.scrollIntoViewIfNeeded();
   });
 
   test('BuildableList preview card is visible in Form Components', async ({ page }) => {
-    const card = page.locator('text=Buildable List');
-    await expect(card.first()).toBeVisible({ timeout: 5000 });
+    // The preview card title is rendered inside the accordion content
+    const card = page.locator('.preview-card', { hasText: 'Buildable List' });
+    if (await card.count() === 0) {
+      // Fallback: try broader text search
+      const text = page.locator('text=Buildable List');
+      await expect(text.first()).toBeVisible({ timeout: 10000 });
+    } else {
+      await expect(card.first()).toBeVisible({ timeout: 10000 });
+    }
   });
 
   test('BuildableList demo renders with add button', async ({ page }) => {

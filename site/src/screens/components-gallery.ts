@@ -30,6 +30,7 @@ import { TimePicker } from "../../../components/form/timepicker/src/index";
 import { FileUpload } from "../../../components/form/file-upload/src/index";
 import { MultilineField } from "../../../components/form/multiline/src/index";
 import { TextEditor } from "../../../components/form/texteditor/src/index";
+import { BuildableList } from "../../../components/form/buildable-list/src/index";
 // Data display components
 import { Badge } from "../../../components/data/badge/src/index";
 import { Tag } from "../../../components/data/tag/src/index";
@@ -275,7 +276,7 @@ export function ComponentsGallery() {
   return createElement(
     "div",
     { className: "accordion" },
-    accordionSection("Form Components", "17 components", openSection, toggle, [
+    accordionSection("Form Components", "18 components", openSection, toggle, [
       preview("Toggle", ToggleDemo, "components/form/toggle"),
       preview("Text Input", TextInputDemo, "components/form/textfield"),
       preview("Checkbox", CheckboxDemo, "components/form/checkbox"),
@@ -293,6 +294,7 @@ export function ComponentsGallery() {
       preview("File Upload", FileUploadDemo, "components/form/file-upload"),
       preview("Multiline", MultilineDemo, "components/form/multiline"),
       preview("Text Editor", TextEditorDemo, "components/form/texteditor"),
+      preview("Buildable List", BuildableListDemo, "components/form/buildable-list"),
       preview("Sign Up Form", SignUpFormDemo),
       preview("Settings Panel", SettingsPanelDemo),
       preview("Search Suggestions", SearchSuggestionsDemo),
@@ -1055,6 +1057,17 @@ function TextEditorDemo() {
       "Select <b>text</b> and format with the toolbar. Try <i>italic</i>, <u>underline</u>, and <s>strikethrough</s>.",
     label: "Rich Text Editor",
     minHeight: "120px",
+  });
+}
+
+function BuildableListDemo() {
+  const [tags, setTags] = useState<string[]>(["typescript", "specifyjs", "components"]);
+  return createElement(BuildableList, {
+    value: tags,
+    onChange: setTags,
+    label: "Tags",
+    placeholder: "Add a tag...",
+    orientation: "vertical",
   });
 }
 

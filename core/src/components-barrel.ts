@@ -81,6 +81,7 @@ export * from '../../components/layout/draggable-window/src/index';
 export * from '../../components/layout/window-manager/src/index';
 export * from '../../components/layout/desktop-background/src/index';
 // Form — added in v0.2.x
+export * from '../../components/form/buildable-list/src/index';
 export * from '../../components/form/button/src/index';
 // Visualization — added in v0.2.x
 export * from '../../components/viz/3d-layers/src/index';

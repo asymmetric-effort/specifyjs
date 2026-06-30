@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/form-buildable-list",
+  "version": "0.0.1",
+  "description": "Reusable ordered string-list builder with add, edit, delete and Set-based deduplication for SpecifyJS",
+  "type": "module",
+  "main": "src/index.ts",
+  "peerDependencies": { "specifyjs": "*" }
+}

@@ -15,6 +15,7 @@ import { DraggableWindow } from '../../../layout/draggable-window/src/index';
 import { useWindowManager } from '../../../layout/window-manager/src/index';
 import { AppContextProvider } from '../../../layout/app-message-bus/src/index';
 import type { WindowManagerContextValue, WindowState, AppMenuBar } from '../../../layout/window-manager/src/index';
+import type { StatusBarProps } from '../../../layout/draggable-window/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -39,6 +40,8 @@ export interface UnityAppProps {
   onClose?: () => void;
   /** Menu bar definition; registered with WindowManager when provided */
   menuBar?: AppMenuBar;
+  /** Optional status bar rendered at the bottom of the window */
+  statusBar?: StatusBarProps | false;
   /** Called when this window gains focus */
   onActivate?: () => void;
   /** Called when this window loses focus */
@@ -62,6 +65,7 @@ export function UnityApp(props: UnityAppProps) {
     resizable = true,
     onClose,
     menuBar,
+    statusBar,
     onActivate,
     onDeactivate,
     children,
@@ -181,6 +185,7 @@ export function UnityApp(props: UnityAppProps) {
       onResize: handleResize,
       onMinimize: handleMinimize,
       onMaximize: handleMaximize,
+      statusBar: statusBar,
       children,
     }),
   );

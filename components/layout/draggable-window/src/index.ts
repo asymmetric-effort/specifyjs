@@ -3,3 +3,6 @@
 
 export { DraggableWindow } from './DraggableWindow';
 export type { DraggableWindowProps } from './DraggableWindow';
+
+export { StatusBar } from './StatusBar';
+export type { StatusBarProps, StatusBarItem } from './StatusBar';

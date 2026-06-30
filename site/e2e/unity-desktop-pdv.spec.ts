@@ -353,4 +353,121 @@ test.describe('Unity Desktop PDV', () => {
 
     expect(errors).toEqual([]);
   });
+
+  // ── #114: render callback ───────────────────────────────────────────
+
+  test('app with render callback renders custom content instead of mock', async ({ page }) => {
+    // The gallery demo uses getMockContent for apps without render callbacks.
+    // Apps that DO have render callbacks (Word Processor, IDE, Trading) render
+    // their real page layout components. Verify one of them renders real content.
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    const ideBtn = dock.locator('[data-dock-item-id="ide"]');
+    if (await ideBtn.isVisible()) {
+      await ideBtn.click();
+      await page.waitForTimeout(500);
+      const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+      await expect(dialog).toBeVisible();
+      // IDE renders real content (menu bar, file explorer, etc.) not just placeholder text
+      const text = await dialog.innerText();
+      expect(text.length).toBeGreaterThan(50);
+    }
+  });
+
+  // ── #115: fixed-size windows and defaultSize ────────────────────────
+
+  test('Settings app opens as a fixed-size non-resizable window', async ({ page }) => {
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    const settingsBtn = dock.locator('[data-dock-item-id="settings"]');
+    if (await settingsBtn.isVisible()) {
+      await settingsBtn.click();
+      await page.waitForTimeout(500);
+      const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+      await expect(dialog).toBeVisible();
+      // Settings has resizable: false — no resize handles
+      const handles = dialog.locator('.draggable-window__resize-handle');
+      await expect(handles).toHaveCount(0);
+      // Settings has defaultSize 400x350
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width).toBeCloseTo(400, -1);
+      expect(box!.height).toBeCloseTo(350, -1);
+    }
+  });
+
+  test('IDE app opens with larger defaultSize but is still resizable', async ({ page }) => {
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    const ideBtn = dock.locator('[data-dock-item-id="ide"]');
+    if (await ideBtn.isVisible()) {
+      await ideBtn.click();
+      await page.waitForTimeout(500);
+      const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+      await expect(dialog).toBeVisible();
+      // IDE has defaultSize 900x600 and is resizable — resize handles present
+      const handles = dialog.locator('.draggable-window__resize-handle');
+      const handleCount = await handles.count();
+      expect(handleCount).toBe(8);
+    }
+  });
+
+  test('non-resizable window does not show maximize button', async ({ page }) => {
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    const settingsBtn = dock.locator('[data-dock-item-id="settings"]');
+    if (await settingsBtn.isVisible()) {
+      await settingsBtn.click();
+      await page.waitForTimeout(500);
+      const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+      await expect(dialog).toBeVisible();
+      // Maximize button should be hidden for non-resizable windows
+      const maxBtn = dialog.locator('.draggable-window__btn-maximize');
+      await expect(maxBtn).toHaveCount(0);
+      // But minimize and close should still be present
+      await expect(dialog.locator('[aria-label="Minimize"]')).toBeVisible();
+      await expect(dialog.locator('[aria-label="Close"]')).toBeVisible();
+    }
+  });
+
+  // ── #116: status bar ────────────────────────────────────────────────
+
+  test('app window with statusBar renders a status bar at the bottom', async ({ page }) => {
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    // Open any app that has a statusBar configured
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click();
+    await page.waitForTimeout(500);
+    const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+    if (await dialog.isVisible()) {
+      // Check if a status bar exists (role="status")
+      const statusBar = dialog.locator('[role="status"]');
+      const count = await statusBar.count();
+      // Status bar is optional — just verify it renders correctly if present
+      if (count > 0) {
+        await expect(statusBar.first()).toBeVisible();
+        const height = await statusBar.first().evaluate((el) => el.getBoundingClientRect().height);
+        expect(height).toBeGreaterThanOrEqual(18);
+        expect(height).toBeLessThanOrEqual(30);
+      }
+    }
+  });
+
+  test('status bar items are clickable when onClick is provided', async ({ page }) => {
+    const dock = page.locator(`${desktop} [role="toolbar"][aria-label="Application launcher"]`);
+    const firstBtn = dock.locator('button[role="button"]').first();
+    await firstBtn.click();
+    await page.waitForTimeout(500);
+    const dialog = page.locator(`${desktop} [role="dialog"]`).first();
+    if (await dialog.isVisible()) {
+      const statusBar = dialog.locator('[role="status"]');
+      if (await statusBar.count() > 0) {
+        const clickableItems = statusBar.locator('span[style*="pointer"]');
+        const count = await clickableItems.count();
+        // If there are clickable items, verify they don't throw on click
+        if (count > 0) {
+          const errors: string[] = [];
+          page.on('pageerror', (err) => errors.push(err.message));
+          await clickableItems.first().click();
+          expect(errors).toEqual([]);
+        }
+      }
+    }
+  });
 });

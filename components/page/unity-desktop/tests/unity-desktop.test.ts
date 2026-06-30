@@ -200,6 +200,82 @@ describe('UnityDesktop', () => {
     const topPanel = el.querySelector('.unity-desktop__top-panel');
     expect(topPanel?.textContent).toContain('operator');
   });
+
+  it('accepts defaultSize on UnityDesktopApp and uses those dimensions for opened windows', async () => {
+    const appsWithSize = [
+      { id: 'sized-app', icon: 'S', label: 'Sized', defaultSize: { width: 800, height: 500 } },
+    ];
+    const el = render(createElement(UnityDesktop, { apps: appsWithSize }));
+    // Click the dock item to open the window
+    const dock = el.querySelector('.unity-desktop__dock');
+    const btn = dock?.querySelector('button[data-dock-item-id="sized-app"]') as HTMLElement;
+    expect(btn).not.toBeNull();
+    btn.click();
+    await flush();
+    // Window should be rendered with the specified dimensions
+    const dialog = el.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.style.width).toBe('800px');
+    expect(dialog.style.height).toBe('500px');
+  });
+
+  it('uses default 600x400 when defaultSize is not specified on the app', async () => {
+    const el = render(createElement(UnityDesktop, { apps: testApps }));
+    const dock = el.querySelector('.unity-desktop__dock');
+    const btn = dock?.querySelector('button[data-dock-item-id="dashboard"]') as HTMLElement;
+    btn.click();
+    await flush();
+    const dialog = el.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.style.width).toBe('600px');
+    expect(dialog.style.height).toBe('400px');
+  });
+
+  it('accepts resizable on UnityDesktopApp and passes it to the DraggableWindow', async () => {
+    const appsNotResizable = [
+      { id: 'fixed-app', icon: 'X', label: 'Fixed', resizable: false },
+    ];
+    const el = render(createElement(UnityDesktop, { apps: appsNotResizable }));
+    const dock = el.querySelector('.unity-desktop__dock');
+    const btn = dock?.querySelector('button[data-dock-item-id="fixed-app"]') as HTMLElement;
+    btn.click();
+    await flush();
+    // When resizable=false, no resize handles should be rendered
+    const handles = el.querySelectorAll('.draggable-window__resize-handle');
+    expect(handles.length).toBe(0);
+    // Maximize button should also be hidden
+    const maxBtn = el.querySelector('.draggable-window__btn-maximize');
+    expect(maxBtn).toBeNull();
+  });
+
+  it('renders resize handles when resizable is not specified (defaults to true)', async () => {
+    const el = render(createElement(UnityDesktop, { apps: testApps }));
+    const dock = el.querySelector('.unity-desktop__dock');
+    const btn = dock?.querySelector('button[data-dock-item-id="dashboard"]') as HTMLElement;
+    btn.click();
+    await flush();
+    const handles = el.querySelectorAll('.draggable-window__resize-handle');
+    expect(handles.length).toBe(8);
+    const maxBtn = el.querySelector('.draggable-window__btn-maximize');
+    expect(maxBtn).not.toBeNull();
+  });
+
+  it('supports both defaultSize and resizable=false together', async () => {
+    const appsFixed = [
+      { id: 'fixed-sized', icon: 'F', label: 'FixedSized', defaultSize: { width: 400, height: 350 }, resizable: false },
+    ];
+    const el = render(createElement(UnityDesktop, { apps: appsFixed }));
+    const dock = el.querySelector('.unity-desktop__dock');
+    const btn = dock?.querySelector('button[data-dock-item-id="fixed-sized"]') as HTMLElement;
+    btn.click();
+    await flush();
+    const dialog = el.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog).not.toBeNull();
+    expect(dialog.style.width).toBe('400px');
+    expect(dialog.style.height).toBe('350px');
+    const handles = el.querySelectorAll('.draggable-window__resize-handle');
+    expect(handles.length).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

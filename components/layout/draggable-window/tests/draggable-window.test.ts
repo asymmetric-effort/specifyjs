@@ -382,6 +382,41 @@ describe('DraggableWindow', () => {
         expect(handle).toBeTruthy();
       }
     });
+
+    it('hides maximize button when resizable is false', () => {
+      render(createElement(DraggableWindow, { id: 'w', title: 'T', resizable: false }));
+      const maxBtn = container.querySelector('.draggable-window__btn-maximize');
+      expect(maxBtn).toBeFalsy();
+    });
+
+    it('shows maximize button when resizable is true (default)', () => {
+      render(createElement(DraggableWindow, { id: 'w', title: 'T' }));
+      const maxBtn = container.querySelector('.draggable-window__btn-maximize');
+      expect(maxBtn).toBeTruthy();
+    });
+
+    it('still renders minimize and close buttons when resizable is false', () => {
+      render(createElement(DraggableWindow, { id: 'w', title: 'T', resizable: false }));
+      const minBtn = container.querySelector('.draggable-window__btn-minimize');
+      const closeBtn = container.querySelector('.draggable-window__btn-close');
+      expect(minBtn).toBeTruthy();
+      expect(closeBtn).toBeTruthy();
+    });
+
+    it('does not call onMaximize on title bar double-click when resizable is false', async () => {
+      const onMaximize = vi.fn();
+      render(createElement(DraggableWindow, { id: 'w', title: 'T', resizable: false, onMaximize }));
+      const bar = container.querySelector('.draggable-window__title-bar') as HTMLElement;
+      bar.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(onMaximize).not.toHaveBeenCalled();
+    });
+
+    it('remains draggable when resizable is false', () => {
+      render(createElement(DraggableWindow, { id: 'w', title: 'T', resizable: false, draggable: true }));
+      const bar = container.querySelector('.draggable-window__title-bar') as HTMLElement;
+      expect(bar.style.cursor).toBe('grab');
+    });
   });
 
   // ---------------------------------------------------------------------------

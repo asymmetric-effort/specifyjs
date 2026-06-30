@@ -12,6 +12,8 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'specifyjs/hooks';
+import { StatusBar } from './StatusBar';
+import type { StatusBarProps } from './StatusBar';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,6 +56,8 @@ export interface DraggableWindowProps {
   onMove?: (position: { x: number; y: number }) => void;
   /** Called when the window is resized. Reports final size. */
   onResize?: (size: { width: number; height: number }) => void;
+  /** Optional status bar rendered at the bottom of the window */
+  statusBar?: StatusBarProps | false;
   /** Application content rendered inside the window body */
   children?: unknown;
 }
@@ -105,6 +109,7 @@ export function DraggableWindow(props: DraggableWindowProps) {
     onFocus,
     onMove,
     onResize,
+    statusBar,
     children,
   } = props;
 
@@ -198,9 +203,11 @@ export function DraggableWindow(props: DraggableWindowProps) {
     (e: Event) => {
       // Ignore if the click target is a button
       if ((e.target as HTMLElement).closest('button')) return;
+      // Do not allow maximize via double-click when window is not resizable
+      if (!resizable) return;
       if (onMaximize) onMaximize();
     },
-    [onMaximize],
+    [onMaximize, resizable],
   );
 
   // Document-level drag listeners
@@ -537,23 +544,22 @@ export function DraggableWindow(props: DraggableWindowProps) {
   );
 
   // Window control buttons (minimize, maximize/restore, close)
-  const controlsContainer = createElement(
-    'div',
-    {
-      style: { display: 'flex', alignItems: 'center', flexShrink: '0' },
-      className: 'draggable-window__controls',
+  const controlButtons: unknown[] = [];
+
+  controlButtons.push(createElement('button', {
+    type: 'button',
+    'aria-label': 'Minimize',
+    className: 'draggable-window__btn-minimize',
+    style: { ...buttonBaseStyle, backgroundColor: 'var(--window-button-minimize, #f39c12)' },
+    onClick: (e: Event) => {
+      e.stopPropagation();
+      if (onMinimize) onMinimize();
     },
-    createElement('button', {
-      type: 'button',
-      'aria-label': 'Minimize',
-      className: 'draggable-window__btn-minimize',
-      style: { ...buttonBaseStyle, backgroundColor: 'var(--window-button-minimize, #f39c12)' },
-      onClick: (e: Event) => {
-        e.stopPropagation();
-        if (onMinimize) onMinimize();
-      },
-    }),
-    createElement('button', {
+  }));
+
+  // Only render maximize button when the window is resizable
+  if (resizable) {
+    controlButtons.push(createElement('button', {
       type: 'button',
       'aria-label': isMaximized ? 'Restore' : 'Maximize',
       className: 'draggable-window__btn-maximize',
@@ -562,17 +568,27 @@ export function DraggableWindow(props: DraggableWindowProps) {
         e.stopPropagation();
         if (onMaximize) onMaximize();
       },
-    }),
-    createElement('button', {
-      type: 'button',
-      'aria-label': 'Close',
-      className: 'draggable-window__btn-close',
-      style: { ...buttonBaseStyle, backgroundColor: 'var(--window-button-close, #e74c3c)' },
-      onClick: (e: Event) => {
-        e.stopPropagation();
-        if (onClose) onClose();
-      },
-    }),
+    }));
+  }
+
+  controlButtons.push(createElement('button', {
+    type: 'button',
+    'aria-label': 'Close',
+    className: 'draggable-window__btn-close',
+    style: { ...buttonBaseStyle, backgroundColor: 'var(--window-button-close, #e74c3c)' },
+    onClick: (e: Event) => {
+      e.stopPropagation();
+      if (onClose) onClose();
+    },
+  }));
+
+  const controlsContainer = createElement(
+    'div',
+    {
+      style: { display: 'flex', alignItems: 'center', flexShrink: '0' },
+      className: 'draggable-window__controls',
+    },
+    ...controlButtons,
   );
 
   titleBarChildren.push(controlsContainer);
@@ -718,6 +734,11 @@ export function DraggableWindow(props: DraggableWindowProps) {
       children,
     ),
   );
+
+  // Status bar (between body and end of window)
+  if (statusBar && statusBar !== false) {
+    windowChildren.push(createElement(StatusBar, statusBar));
+  }
 
   const result: unknown[] = [
     createElement(

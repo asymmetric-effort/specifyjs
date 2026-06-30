@@ -18,6 +18,7 @@ import { SystemTray } from '../../../nav/system-tray/src/index';
 import { Dock } from '../../../nav/dock/src/index';
 import { DesktopBackground } from '../../../layout/desktop-background/src/index';
 import { DraggableWindow } from '../../../layout/draggable-window/src/index';
+import type { StatusBarProps } from '../../../layout/draggable-window/src/index';
 import { WordProcessor } from '../../../page/word-processor/src/index';
 import { IDE } from '../../../page/ide/src/index';
 import { TradingDashboard } from '../../../page/trading-dashboard/src/index';
@@ -34,6 +35,12 @@ export interface UnityDesktopApp {
   icon: string;
   label: string;
   render?: (windowId: string) => unknown;
+  /** Initial window dimensions when opened via dock click. Default: 600x400 */
+  defaultSize?: { width: number; height: number };
+  /** Whether the window can be resized by the user. Default: true */
+  resizable?: boolean;
+  /** Optional status bar rendered at the bottom of the window */
+  statusBar?: StatusBarProps | false;
 }
 
 export interface UnityDesktopUser {
@@ -343,6 +350,8 @@ interface InternalOpenWindow {
   zIndex: number;
   focused: boolean;
   windowState: 'normal' | 'maximized' | 'minimized';
+  resizable: boolean;
+  statusBar?: StatusBarProps | false;
 }
 
 // ---------------------------------------------------------------------------
@@ -451,11 +460,13 @@ function UnityDesktopInner(props: {
         icon: app.icon,
         x: 60 + prev.length * 30,
         y: 40 + prev.length * 30,
-        width: 600,
-        height: 400,
+        width: app.defaultSize?.width ?? 600,
+        height: app.defaultSize?.height ?? 400,
         zIndex: maxZ,
         focused: true,
         windowState: 'normal',
+        resizable: app.resizable !== false,
+        statusBar: app.statusBar,
       };
       return [...prev.map((w: InternalOpenWindow) => ({ ...w, focused: false })), newWin];
     });
@@ -542,11 +553,13 @@ function UnityDesktopInner(props: {
           icon: app.icon,
           x: 60 + prev.length * 30,
           y: 40 + prev.length * 30,
-          width: 600,
-          height: 400,
+          width: app.defaultSize?.width ?? 600,
+          height: app.defaultSize?.height ?? 400,
           zIndex: maxZ,
           focused: true,
           windowState: 'normal',
+          resizable: app.resizable !== false,
+          statusBar: app.statusBar,
         };
 
         // Side-effects for demo menu bars / dock signals
@@ -723,6 +736,8 @@ function UnityDesktopInner(props: {
       icon: w.icon,
       defaultPosition: { x: w.x, y: w.y },
       defaultSize: { width: w.width, height: w.height },
+      resizable: w.resizable,
+      statusBar: w.statusBar,
       zIndex: w.zIndex,
       focused: w.focused,
       windowState: w.windowState,

@@ -33,6 +33,7 @@ export interface UnityDesktopApp {
   id: string;
   icon: string;
   label: string;
+  render?: (windowId: string) => unknown;
 }
 
 export interface UnityDesktopUser {
@@ -749,11 +750,13 @@ function UnityDesktopInner(props: {
     },
       // Gallery demo only — real apps pass their own content as UnityApp children.
       // See docs/components/page/unity-desktop.md for integration patterns.
-      getMockContent(
-        apps.find((a: UnityDesktopApp) => a.id === w.appId)?.label || w.title,
-        w.id,
-        titleChangeCallbacks.current[w.id],
-      ),
+      (() => {
+        const app = apps.find((a: UnityDesktopApp) => a.id === w.appId);
+        // Use app's render callback if provided, otherwise fall back to mock content
+        return app?.render
+          ? app.render(w.id)
+          : getMockContent(app?.label || w.title, w.id, titleChangeCallbacks.current[w.id]);
+      })(),
     ));
 
   const desktopContentChildren: unknown[] = [];

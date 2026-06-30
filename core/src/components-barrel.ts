@@ -74,6 +74,12 @@ export * from '../../components/page/unity-desktop/src/index';
 export * from '../../components/page/word-processor/src/index';
 export * from '../../components/page/ide/src/index';
 export * from '../../components/page/trading-dashboard/src/index';
+export * from '../../components/data/board/src/index';
+export * from '../../components/nav/dock/src/index';
+export * from '../../components/nav/system-tray/src/index';
+export * from '../../components/layout/draggable-window/src/index';
+export * from '../../components/layout/window-manager/src/index';
+export * from '../../components/layout/desktop-background/src/index';
 // Form — added in v0.2.x
 export * from '../../components/form/button/src/index';
 // Visualization — added in v0.2.x

@@ -124,4 +124,106 @@ describe('Select', () => {
       expect(handler).toHaveBeenCalledWith(['a', 'b']);
     });
   });
+
+  describe('creatable', () => {
+    const baseOptions: Array<{ value: string; label: string }> = [
+      { value: 'a', label: 'Alpha' },
+      { value: 'b', label: 'Beta' },
+    ];
+
+    it('shows "+ Create new..." option when creatable is true', async () => {
+      const el = render(
+        createElement(Select, { options: baseOptions, value: '', onChange: vi.fn(), creatable: true }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]');
+      expect(createOpt).not.toBeNull();
+      expect(createOpt!.textContent).toContain('Create new');
+    });
+
+    it('does not show create option when creatable is false', async () => {
+      const el = render(
+        createElement(Select, { options: baseOptions, value: '', onChange: vi.fn() }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]');
+      expect(createOpt).toBeNull();
+    });
+
+    it('clicking create option shows inline text input', async () => {
+      const el = render(
+        createElement(Select, { options: baseOptions, value: '', onChange: vi.fn(), creatable: true }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]') as HTMLElement;
+      createOpt.click();
+      await flush();
+      const input = el.querySelector('input[placeholder="Type new value..."]');
+      expect(input).not.toBeNull();
+    });
+
+    it('uses custom createLabel', async () => {
+      const el = render(
+        createElement(Select, {
+          options: baseOptions, value: '', onChange: vi.fn(),
+          creatable: true, createLabel: 'Add new item',
+        }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]');
+      expect(createOpt!.textContent).toContain('Add new item');
+    });
+
+    it('calls onCreate when Enter is pressed with a value', async () => {
+      const onCreateFn = vi.fn();
+      const onChangeFn = vi.fn();
+      const el = render(
+        createElement(Select, {
+          options: baseOptions, value: '', onChange: onChangeFn,
+          creatable: true, onCreate: onCreateFn,
+        }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]') as HTMLElement;
+      createOpt.click();
+      await flush();
+      const input = el.querySelector('input[placeholder="Type new value..."]') as HTMLInputElement;
+      // Simulate typing and Enter
+      input.value = 'Gamma';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      await flush();
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await flush();
+      expect(onCreateFn).toHaveBeenCalledWith('Gamma');
+      expect(onChangeFn).toHaveBeenCalledWith('Gamma');
+    });
+
+    it('Escape cancels create mode', async () => {
+      const el = render(
+        createElement(Select, { options: baseOptions, value: '', onChange: vi.fn(), creatable: true }),
+      );
+      const trigger = el.querySelector('[role="combobox"]') as HTMLElement;
+      trigger.click();
+      await flush();
+      const createOpt = el.querySelector('[aria-label="Create new option"]') as HTMLElement;
+      createOpt.click();
+      await flush();
+      const input = el.querySelector('input[placeholder="Type new value..."]') as HTMLInputElement;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await flush();
+      // Should go back to showing the create option
+      const createOpt2 = el.querySelector('[aria-label="Create new option"]');
+      expect(createOpt2).not.toBeNull();
+    });
+  });
 });

@@ -45,6 +45,13 @@ export interface SelectProps {
   helpText?: string;
   /** HTML id for the input element */
   id?: string;
+  /** Enable "Create new..." option at the bottom of the dropdown */
+  creatable?: boolean;
+  /** Called when a new option is created via the "Create new..." flow.
+   *  The consumer should add the new option to the options array. */
+  onCreate?: (value: string) => void;
+  /** Label for the create option. Default: '+ Create new...' */
+  createLabel?: string;
 }
 
 export function Select(props: SelectProps) {
@@ -62,11 +69,16 @@ export function Select(props: SelectProps) {
     error,
     label,
     helpText,
+    creatable = false,
+    onCreate,
+    createLabel = '+ Create new...',
   } = props;
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createValue, setCreateValue] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedValues = useMemo(
@@ -110,6 +122,8 @@ export function Select(props: SelectProps) {
       if (containerRef.current && !containerRef.current.contains(target)) {
         setIsOpen(false);
         setSearchQuery('');
+        setIsCreating(false);
+        setCreateValue('');
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -267,7 +281,7 @@ export function Select(props: SelectProps) {
       }
     }
 
-    if (elements.length === 0) {
+    if (elements.length === 0 && !creatable) {
       elements.push(
         createElement(
           'div',
@@ -275,6 +289,84 @@ export function Select(props: SelectProps) {
           'No options',
         ),
       );
+    }
+
+    // "Create new..." option or inline create input
+    if (creatable) {
+      if (isCreating) {
+        elements.push(
+          createElement(
+            'div',
+            {
+              key: '__create-input__',
+              style: {
+                padding: '4px 8px',
+                borderTop: elements.length > 0 ? '1px solid #e5e7eb' : 'none',
+              },
+            },
+            createElement('input', {
+              type: 'text',
+              value: createValue,
+              placeholder: 'Type new value...',
+              autoFocus: true,
+              onInput: (e: Event) => {
+                setCreateValue((e.target as HTMLInputElement).value);
+              },
+              onKeyDown: (e: Event) => {
+                const key = (e as KeyboardEvent).key;
+                if (key === 'Enter') {
+                  e.preventDefault();
+                  const trimmed = createValue.trim();
+                  if (trimmed) {
+                    if (onCreate) onCreate(trimmed);
+                    if (!multiple) {
+                      onChange(trimmed);
+                      setIsOpen(false);
+                    }
+                    setCreateValue('');
+                    setIsCreating(false);
+                  }
+                } else if (key === 'Escape') {
+                  setCreateValue('');
+                  setIsCreating(false);
+                }
+              },
+              style: {
+                width: '100%',
+                boxSizing: 'border-box',
+                padding: '6px 8px',
+                border: '1px solid #d1d5db',
+                borderRadius: '4px',
+                outline: 'none',
+                fontSize: '14px',
+              },
+            }),
+          ),
+        );
+      } else {
+        elements.push(
+          createElement(
+            'div',
+            {
+              key: '__create-new__',
+              style: {
+                padding: '8px 12px',
+                cursor: 'pointer',
+                color: '#3b82f6',
+                fontSize: '14px',
+                borderTop: elements.length > 0 ? '1px solid #e5e7eb' : 'none',
+              },
+              onClick: () => {
+                setIsCreating(true);
+                setCreateValue('');
+              },
+              role: 'option',
+              'aria-label': 'Create new option',
+            },
+            createLabel,
+          ),
+        );
+      }
     }
 
     return elements;

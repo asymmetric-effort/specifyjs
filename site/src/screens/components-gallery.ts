@@ -560,17 +560,26 @@ function RadioGroupDemo() {
 
 function SelectDemo() {
   const [value, setValue] = useState("");
+  const [options, setOptions] = useState([
+    { value: "apple", label: "Apple" },
+    { value: "banana", label: "Banana" },
+    { value: "cherry", label: "Cherry" },
+    { value: "date", label: "Date" },
+  ]);
   return createElement(Select, {
     value,
     onChange: (v: string | string[]) => setValue(v as string),
     label: "Fruit",
     placeholder: "Select a fruit...",
-    options: [
-      { value: "apple", label: "Apple" },
-      { value: "banana", label: "Banana" },
-      { value: "cherry", label: "Cherry" },
-      { value: "date", label: "Date" },
-    ],
+    searchable: true,
+    creatable: true,
+    options,
+    onCreate: (newValue: string) => {
+      setOptions((prev: Array<{ value: string; label: string }>) => [
+        ...prev,
+        { value: newValue.toLowerCase(), label: newValue },
+      ]);
+    },
   });
 }
 

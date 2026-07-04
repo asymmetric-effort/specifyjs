@@ -97,7 +97,7 @@
   "devDependencies": {
     "@asymmetric-effort/nogginlessdom": "^0.0.28",
     "@playwright/test": "^1.59.0",
-    "@types/node": "^25.6.2",
+    "@types/node": "^26.1.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^10.3.0",

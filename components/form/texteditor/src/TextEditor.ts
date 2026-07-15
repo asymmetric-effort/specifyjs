@@ -110,6 +110,22 @@ const BUTTON_META: Record<ToolbarButton, { label: string; icon: string; command:
   redo:          { label: 'Redo',          icon: '\u21aa', command: 'redo' },
 };
 
+/**
+ * Sanitize rich text HTML by stripping script tags and event handler attributes.
+ * This is a defense-in-depth measure — consumers should also sanitize input
+ * before passing it to the TextEditor component.
+ */
+const STRIP_SCRIPTS = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
+const STRIP_EVENTS_QUOTED = /\s+on\w+\s*=\s*(['"])[^'"]*\1/gi;
+const STRIP_EVENTS_UNQUOTED = /\s+on\w+\s*=\s*[^\s>]+/gi;
+
+function sanitizeRichText(html: string): string {
+  return html
+    .replace(STRIP_SCRIPTS, '')
+    .replace(STRIP_EVENTS_QUOTED, '')
+    .replace(STRIP_EVENTS_UNQUOTED, '');
+}
+
 export function TextEditor(props: TextEditorProps) {
   const [focused, setFocused] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -119,10 +135,10 @@ export function TextEditor(props: TextEditorProps) {
   const ts = props.toolbarStyle ?? {};
   const es = props.editorStyle ?? {};
 
-  // Set initial content
+  // Set initial content (sanitized to strip script tags and event handlers)
   useEffect(() => {
     if (editorRef.current && props.value !== undefined) {
-      editorRef.current.innerHTML = props.value;
+      editorRef.current.innerHTML = sanitizeRichText(props.value);
     }
   }, []);
 
@@ -130,10 +146,11 @@ export function TextEditor(props: TextEditorProps) {
     (cmd: string, value?: string) => {
       if (props.disabled || props.readOnly) return;
 
-      // Special handling for link
+      // Special handling for link — validate URL scheme
       if (cmd === 'createLink') {
         const url = prompt('Enter URL:');
         if (!url) return;
+        if (/^(javascript|vbscript|data:text\/html)/i.test(url.trim())) return;
         document.execCommand(cmd, false, url);
       } else if (value && cmd === 'formatBlock') {
         document.execCommand(cmd, false, `<${value}>`);

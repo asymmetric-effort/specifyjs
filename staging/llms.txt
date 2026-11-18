@@ -27,6 +27,7 @@
 - performance: https://specifyjs.asymmetric-effort.com/#/docs/guides/performance
 - production-builds: https://specifyjs.asymmetric-effort.com/#/docs/guides/production-builds
 - render-safety: https://specifyjs.asymmetric-effort.com/#/docs/guides/render-safety
+- responsive-design: https://specifyjs.asymmetric-effort.com/#/docs/guides/responsive-design
 - routing: https://specifyjs.asymmetric-effort.com/#/docs/guides/routing
 - seo: https://specifyjs.asymmetric-effort.com/#/docs/guides/seo
 - state-management: https://specifyjs.asymmetric-effort.com/#/docs/guides/state-management

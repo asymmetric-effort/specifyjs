@@ -73,10 +73,10 @@ describe('client.query', () => {
     expect(url).toBe('https://api.example.com/graphql');
     expect(options.method).toBe('POST');
     expect(options.headers['Content-Type']).toBe('application/json');
-    expect(JSON.parse(options.body)).toEqual({
-      query: 'query { users { id } }',
-      variables: undefined,
-    });
+    const body = JSON.parse(options.body);
+    expect(body.query).toBe('query { users { id } }');
+    // variables is undefined, so JSON.stringify omits the key
+    expect(body.variables).toBeUndefined();
   });
 
   it('returns data from response', async () => {

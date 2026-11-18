@@ -81,9 +81,15 @@ jobs:
       - run: bun install --frozen-lockfile
       - name: Run coverage and check threshold (>=98% lines)
         run: |
-          # Some tests (REST client, router) may fail under coverage instrumentation
-          # due to mock limitations. The coverage threshold check below is the real gate.
-          bun test --coverage --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts tests/unit/ tests/integration/ ../components/ 2>&1 | tee coverage-output.txt || true
+          # Exclude tests/unit/client/ — REST/GraphQL client tests use fetch mocking
+          # that breaks under bun's coverage instrumentation (vi.spyOn doesn't intercept).
+          # These tests pass in the main test job; only coverage collection is affected.
+          bun test --coverage --preload ./tests/setup-nogginlessdom.ts --preload ./tests/setup.ts \
+            tests/unit/build/ tests/unit/components/ tests/unit/compute/ tests/unit/context/ \
+            tests/unit/core/ tests/unit/dom/ tests/unit/features/ tests/unit/hooks/ \
+            tests/unit/math/ tests/unit/router/ tests/unit/security/ tests/unit/server/ \
+            tests/unit/shared/ tests/unit/telemetry/ \
+            tests/integration/ ../components/ 2>&1 | tee coverage-output.txt || true
           # Strip ANSI codes
           sed -i 's/\x1b\[[0-9;]*m//g' coverage-output.txt
           # Extract per-file coverage, excluding v8-ignored infrastructure files

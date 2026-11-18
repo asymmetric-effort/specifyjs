@@ -30,10 +30,10 @@ function createMockFetchResponse(
 let container: HTMLDivElement;
 
 beforeEach(() => {
-  // Install a default fetch mock that rejects — prevents real network
-  // requests under coverage instrumentation. Individual tests override
-  // with vi.spyOn(globalThis, 'fetch').mockResolvedValue(...).
-  vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Unmocked fetch call'));
+  // Install a default fetch mock that returns a safe empty response.
+  // Prevents real network requests under coverage instrumentation.
+  // Individual tests override with their own vi.spyOn(globalThis, 'fetch').
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(createMockFetchResponse({}));
   container = document.createElement('div');
   document.body.appendChild(container);
 });

@@ -332,6 +332,8 @@ jobs:
           done
       - name: Run PDV against production
         working-directory: site
+        env:
+          SITE_URL: https://specifyjs.asymmetric-effort.com
         run: |
           npm install
           npx playwright install chromium --with-deps

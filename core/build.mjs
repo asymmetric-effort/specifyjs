@@ -3,7 +3,7 @@
 
 import { build } from 'esbuild';
 import { execSync } from 'child_process';
-import { writeFileSync, readdirSync, renameSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, readdirSync, renameSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const banner = '/* (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE */';
@@ -39,6 +39,34 @@ const sharedOptions = {
   banner: { js: banner },
   alias: specifyAlias,
 };
+
+/**
+ * Post-process .d.ts files to add .js extensions to relative import specifiers.
+ * Required for moduleResolution: "nodenext" compatibility (issue #170).
+ */
+function fixDtsExtensions(dir) {
+  let fixed = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      fixed += fixDtsExtensions(fullPath);
+    } else if (entry.name.endsWith('.d.ts')) {
+      let content = readFileSync(fullPath, 'utf-8');
+      const original = content;
+      // Add .js to relative specifiers that lack an extension.
+      // Matches: from './foo' or from '../bar/baz' (without .js, .d.ts, .json)
+      content = content.replace(
+        /((?:from|import)\s*['"])(\.[^'"]+?)(?<!\.[jt]s)(?<!\.json)(?<!\.d\.ts)(['"])/g,
+        '$1$2.js$3',
+      );
+      if (content !== original) {
+        writeFileSync(fullPath, content);
+        fixed++;
+      }
+    }
+  }
+  return fixed;
+}
 
 async function buildAll() {
   // ── ESM: code-splitting enabled ──────────────────────────────────────
@@ -155,14 +183,20 @@ async function buildAll() {
     console.warn('Components .d.ts via tsc failed; creating stub re-export.');
   }
 
-  // Create bundled .d.ts shims
-  writeFileSync('dist/specifyjs.d.ts', 'export * from "./types/index";\n');
-  writeFileSync('dist/specifyjs-dom.d.ts', 'export * from "./types/dom/index";\n');
-  writeFileSync('dist/specifyjs-server.d.ts', 'export * from "./types/server/index";\n');
-  writeFileSync('dist/specifyjs-client.d.ts', 'export * from "./types/client/index";\n');
-  writeFileSync('dist/specifyjs-telemetry.d.ts', 'export * from "./types/telemetry/index";\n');
-  writeFileSync('dist/specifyjs-components.d.ts', 'export * from "./types/core/src/components-barrel";\n');
-  writeFileSync('dist/specifyjs-build.d.ts', 'export * from "./types/build/index";\n');
+  // Fix extensionless relative imports in .d.ts files (issue #170).
+  // Under moduleResolution: "nodenext", ESM packages need explicit .js
+  // extensions on relative imports in declaration files.
+  console.log('Fixing .d.ts relative import extensions...');
+  fixDtsExtensions('dist/types');
+
+  // Create bundled .d.ts shims (also need .js extensions)
+  writeFileSync('dist/specifyjs.d.ts', 'export * from "./types/index.js";\n');
+  writeFileSync('dist/specifyjs-dom.d.ts', 'export * from "./types/dom/index.js";\n');
+  writeFileSync('dist/specifyjs-server.d.ts', 'export * from "./types/server/index.js";\n');
+  writeFileSync('dist/specifyjs-client.d.ts', 'export * from "./types/client/index.js";\n');
+  writeFileSync('dist/specifyjs-telemetry.d.ts', 'export * from "./types/telemetry/index.js";\n');
+  writeFileSync('dist/specifyjs-components.d.ts', 'export * from "./types/core/src/components-barrel.js";\n');
+  writeFileSync('dist/specifyjs-build.d.ts', 'export * from "./types/build/index.js";\n');
 
   console.log('Done.');
 }

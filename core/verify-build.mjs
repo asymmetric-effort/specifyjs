@@ -80,7 +80,47 @@ if (hookErrorFiles.length > 1) {
   errors++;
 }
 
-console.log(`Verified ${checked} import specifiers across ${esmFiles.length} files.`);
+// Check for extensionless relative imports in .d.ts files (issue #170).
+// Under moduleResolution: "nodenext", extensionless specifiers in ESM
+// declaration files resolve to `any`, breaking type safety for consumers.
+function findDtsFiles(dir) {
+  const results = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...findDtsFiles(fullPath));
+    } else if (entry.name.endsWith('.d.ts')) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+const dtsFiles = findDtsFiles(DIST);
+let dtsExtensionlessCount = 0;
+
+for (const file of dtsFiles) {
+  const content = readFileSync(file, 'utf-8');
+  const regex = /(?:from|import)\s*["'](\.[^"']+)["']/g;
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    const specifier = match[1];
+    // Relative specifier without .js or .d.ts extension
+    if (!specifier.endsWith('.js') && !specifier.endsWith('.d.ts') && !specifier.endsWith('.json')) {
+      console.error(`EXTENSIONLESS: ${file} → ${specifier} (needs .js extension for nodenext resolution)`);
+      dtsExtensionlessCount++;
+      errors++;
+    }
+  }
+}
+
+if (dtsExtensionlessCount > 0) {
+  console.error(`${dtsExtensionlessCount} extensionless relative import(s) in .d.ts files.`);
+} else {
+  console.log(`All .d.ts files have proper extensions (${dtsFiles.length} files checked).`);
+}
+
+console.log(`Verified ${checked} import specifiers across ${esmFiles.length} JS files + ${dtsFiles.length} .d.ts files.`);
 if (errors > 0) {
   console.error(`${errors} error(s) found.`);
   process.exit(1);

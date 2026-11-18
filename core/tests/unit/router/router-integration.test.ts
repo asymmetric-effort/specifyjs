@@ -256,7 +256,7 @@ describe('Route — parent params merge', () => {
         createElement(
           Route,
           { path: '/users/:userId' },
-          createElement(Route, { path: '/users/:userId/posts/:postId', component: PostViewer }),
+          createElement(Route, { path: '/posts/:postId', component: PostViewer }),
         ),
       ),
     );

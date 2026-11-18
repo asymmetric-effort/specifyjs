@@ -52,13 +52,13 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
-      - run: bun run test:coverage
+      - run: bun run test:coverage 2>&1 | tee coverage-report.txt
       - name: Upload coverage
         if: always() && !env.ACT
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
-          path: core/coverage/
+          path: core/coverage-report.txt
           retention-days: 7
 
   # ── Stage 2a: Coverage Check (parallel with Build) ──────────────────

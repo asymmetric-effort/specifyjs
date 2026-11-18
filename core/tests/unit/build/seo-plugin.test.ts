@@ -3,43 +3,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from '@asymmetric-effort/nogginlessdom';
 import type { Plugin } from 'vite';
-
-// Mock fs and path before importing the module under test
-vi.module('fs', () => {
-  const writtenFiles: Record<string, string> = {};
-  return {
-    default: {
-      existsSync: vi.fn(() => false),
-      readdirSync: vi.fn(() => []),
-      writeFileSync: vi.fn((filePath: string, content: string) => {
-        writtenFiles[filePath] = content;
-      }),
-      readFileSync: vi.fn(
-        () => '<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>',
-      ),
-    },
-    existsSync: vi.fn(() => false),
-    readdirSync: vi.fn(() => []),
-    writeFileSync: vi.fn((filePath: string, content: string) => {
-      writtenFiles[filePath] = content;
-    }),
-    readFileSync: vi.fn(
-      () => '<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>',
-    ),
-    __writtenFiles: writtenFiles,
-  };
-});
-
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { specifyJsSeoPlugin } from '../../../src/build/seo-plugin';
 import type { SeoPluginConfig } from '../../../src/build/seo-plugin';
 
-function getWrittenFile(filename: string): string | undefined {
-  const calls = vi.mocked(fs.writeFileSync).mock.calls;
-  for (const call of calls) {
-    if (String(call[0]).endsWith(filename)) {
-      return String(call[1]);
-    }
+/** Read a file written to the temp dist directory. */
+function readDistFile(distDir: string, filename: string): string | undefined {
+  const filePath = path.join(distDir, filename);
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, 'utf-8');
   }
   return undefined;
 }
@@ -61,14 +35,30 @@ describe('specifyJsSeoPlugin', () => {
     repository: 'https://github.com/test/project',
   };
 
+  let tmpDir: string;
+  let distDir: string;
+  let originalCwd: typeof process.cwd;
+  const today = new Date().toISOString().split('T')[0] ?? '';
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-03-15T12:00:00Z').getTime());
-    vi.spyOn(Date.prototype, 'toISOString').mockReturnValue('2026-03-15T12:00:00.000Z');
+    // Create a real temp directory with dist/ subdirectory
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seo-plugin-test-'));
+    distDir = path.join(tmpDir, 'dist');
+    fs.mkdirSync(distDir);
+
+    // Mock process.cwd() to return our temp dir so the plugin writes to our dist/
+    originalCwd = process.cwd;
+    process.cwd = () => tmpDir;
+
+    // Capture today's date for assertions (avoid brittle date mocks)
+    // The plugin uses: new Date().toISOString().split('T')[0]
   });
 
   afterEach(() => {
+    process.cwd = originalCwd;
     vi.restoreAllMocks();
+    // Clean up temp directory
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
   it('returns a Vite plugin with name specifyjs-seo', () => {
@@ -82,54 +72,40 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(baseConfig);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toBeDefined();
       expect(sitemap).toContain('<?xml version="1.0" encoding="UTF-8"?>');
       expect(sitemap).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
       expect(sitemap).toContain(
-        '<url><loc>https://example.com/</loc><lastmod>2026-03-15</lastmod></url>',
+        `<url><loc>https://example.com/</loc><lastmod>${today}</lastmod></url>`,
       );
       expect(sitemap).toContain(
-        '<url><loc>https://example.com/#/about</loc><lastmod>2026-03-15</lastmod></url>',
+        `<url><loc>https://example.com/#/about</loc><lastmod>${today}</lastmod></url>`,
       );
       expect(sitemap).toContain(
-        '<url><loc>https://example.com/#/contact</loc><lastmod>2026-03-15</lastmod></url>',
+        `<url><loc>https://example.com/#/contact</loc><lastmod>${today}</lastmod></url>`,
       );
       expect(sitemap).toContain('</urlset>');
     });
 
     it('includes doc routes from docsDir (walkDocs)', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [
-            { name: 'guides', isDirectory: () => true },
-            { name: 'api', isDirectory: () => true },
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
-        }
-        if (dirStr.endsWith('/guides')) {
-          return [
-            { name: 'getting-started.md', isDirectory: () => false },
-            { name: 'advanced.md', isDirectory: () => false },
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
-        }
-        if (dirStr.endsWith('/api')) {
-          return [{ name: 'hooks.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      // Create a real docs directory structure
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.mkdirSync(path.join(docsDir, 'guides'));
+      fs.mkdirSync(path.join(docsDir, 'api'));
+      fs.writeFileSync(path.join(docsDir, 'guides', 'getting-started.md'), '# Getting Started');
+      fs.writeFileSync(path.join(docsDir, 'guides', 'advanced.md'), '# Advanced');
+      fs.writeFileSync(path.join(docsDir, 'api', 'hooks.md'), '# Hooks');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toBeDefined();
       expect(sitemap).toContain('https://example.com/#/docs/guides/getting-started');
       expect(sitemap).toContain('https://example.com/#/docs/guides/advanced');
@@ -141,7 +117,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toContain('<url><loc>https://example.com/</loc>');
     });
   });
@@ -151,7 +127,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(baseConfig);
       invokeCloseBundle(plugin);
 
-      const robots = getWrittenFile('robots.txt');
+      const robots = readDistFile(distDir, 'robots.txt');
       expect(robots).toBeDefined();
       expect(robots).toContain('User-agent: *');
       expect(robots).toContain('Allow: /');
@@ -166,7 +142,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const robots = getWrittenFile('robots.txt');
+      const robots = readDistFile(distDir, 'robots.txt');
       expect(robots).toContain('Disallow: /admin');
       expect(robots).toContain('Disallow: /private');
     });
@@ -176,7 +152,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const robots = getWrittenFile('robots.txt');
+      const robots = readDistFile(distDir, 'robots.txt');
       expect(robots).toBeDefined();
       expect(robots).toContain('User-agent: *');
       expect(robots).toContain('Allow: /');
@@ -194,7 +170,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(baseConfig);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toBeDefined();
       expect(llms).toContain('# TestProject');
       expect(llms).toContain('> A test project for unit testing.');
@@ -214,43 +190,29 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toContain('> Line one');
       expect(llms).toContain('> Line two');
       expect(llms).toContain('> Line three');
     });
 
     it('includes guide and api doc links in llms.txt', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [
-            { name: 'guides', isDirectory: () => true },
-            { name: 'api', isDirectory: () => true },
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
-        }
-        if (dirStr.endsWith('/guides')) {
-          return [{ name: 'intro.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        if (dirStr.endsWith('/api')) {
-          return [{ name: 'core.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      // Create real docs directory structure
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.mkdirSync(path.join(docsDir, 'guides'));
+      fs.mkdirSync(path.join(docsDir, 'api'));
+      fs.writeFileSync(path.join(docsDir, 'guides', 'intro.md'), '# Intro');
+      fs.writeFileSync(path.join(docsDir, 'api', 'core.md'), '# Core');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toContain('## Documentation');
       expect(llms).toContain('- intro: https://example.com/#/docs/guides/intro');
       expect(llms).toContain('## API Reference');
@@ -258,59 +220,39 @@ describe('specifyJsSeoPlugin', () => {
     });
 
     it('omits Documentation section when no guides', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [{ name: 'api', isDirectory: () => true }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        if (dirStr.endsWith('/api')) {
-          return [{ name: 'core.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      // Create docs with only api subdirectory
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.mkdirSync(path.join(docsDir, 'api'));
+      fs.writeFileSync(path.join(docsDir, 'api', 'core.md'), '# Core');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).not.toContain('## Documentation');
       expect(llms).toContain('## API Reference');
     });
 
     it('omits API Reference section when no api docs', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [{ name: 'guides', isDirectory: () => true }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        if (dirStr.endsWith('/guides')) {
-          return [{ name: 'intro.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      // Create docs with only guides subdirectory
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.mkdirSync(path.join(docsDir, 'guides'));
+      fs.writeFileSync(path.join(docsDir, 'guides', 'intro.md'), '# Intro');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toContain('## Documentation');
       expect(llms).not.toContain('## API Reference');
     });
@@ -323,7 +265,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).not.toContain('## npm');
       expect(llms).not.toContain('## Install');
       expect(llms).not.toContain('npm install');
@@ -336,7 +278,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).not.toContain('## Repository');
     });
 
@@ -347,7 +289,7 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).not.toContain('## License');
       expect(llms).not.toContain('## Author');
     });
@@ -359,69 +301,47 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toContain('# Site');
     });
   });
 
   describe('walkDocs — iterative directory traversal', () => {
     it('handles nested directories', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [{ name: 'guides', isDirectory: () => true }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        if (dirStr.endsWith('/guides')) {
-          return [
-            { name: 'sub', isDirectory: () => true },
-            { name: 'top-level.md', isDirectory: () => false },
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
-        }
-        if (dirStr.endsWith('/sub')) {
-          return [{ name: 'nested.md', isDirectory: () => false }] as unknown as ReturnType<
-            typeof fs.readdirSync
-          >;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.mkdirSync(path.join(docsDir, 'guides'));
+      fs.mkdirSync(path.join(docsDir, 'guides', 'sub'));
+      fs.writeFileSync(path.join(docsDir, 'guides', 'top-level.md'), '# Top');
+      fs.writeFileSync(path.join(docsDir, 'guides', 'sub', 'nested.md'), '# Nested');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toContain('https://example.com/#/docs/guides/top-level');
       expect(sitemap).toContain('https://example.com/#/docs/guides/sub/nested');
     });
 
     it('ignores non-.md files', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readdirSync).mockImplementation((dir: unknown) => {
-        const dirStr = String(dir);
-        if (dirStr.endsWith('/docs')) {
-          return [
-            { name: 'readme.md', isDirectory: () => false },
-            { name: 'image.png', isDirectory: () => false },
-            { name: 'notes.txt', isDirectory: () => false },
-          ] as unknown as ReturnType<typeof fs.readdirSync>;
-        }
-        return [] as unknown as ReturnType<typeof fs.readdirSync>;
-      });
+      const docsDir = path.join(tmpDir, 'docs');
+      fs.mkdirSync(docsDir);
+      fs.writeFileSync(path.join(docsDir, 'readme.md'), '# Readme');
+      fs.writeFileSync(path.join(docsDir, 'image.png'), 'fake image');
+      fs.writeFileSync(path.join(docsDir, 'notes.txt'), 'notes');
 
       const config: SeoPluginConfig = {
         ...baseConfig,
-        docsDir: '/fake/docs',
+        docsDir,
       };
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toContain('https://example.com/#/docs/readme');
       expect(sitemap).not.toContain('image.png');
       expect(sitemap).not.toContain('notes.txt');
@@ -430,8 +350,9 @@ describe('specifyJsSeoPlugin', () => {
 
   describe('JSON-LD injection', () => {
     it('injects a single JSON-LD schema into index.html', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
+      // Create an index.html in dist/ for the plugin to read
+      fs.writeFileSync(
+        path.join(distDir, 'index.html'),
         '<!DOCTYPE html><html><head></head><body></body></html>',
       );
 
@@ -443,19 +364,16 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      // Find the index.html write call
-      const calls = vi.mocked(fs.writeFileSync).mock.calls;
-      const indexWrite = calls.find((c) => String(c[0]).endsWith('index.html'));
-      expect(indexWrite).toBeDefined();
-      const html = String(indexWrite![1]);
+      const html = readDistFile(distDir, 'index.html');
+      expect(html).toBeDefined();
       expect(html).toContain('<script type="application/ld+json">');
       expect(html).toContain('"@type":"WebSite"');
       expect(html).toContain('</head>');
     });
 
     it('injects multiple JSON-LD schemas', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue(
+      fs.writeFileSync(
+        path.join(distDir, 'index.html'),
         '<!DOCTYPE html><html><head></head><body></body></html>',
       );
 
@@ -470,21 +388,17 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const calls = vi.mocked(fs.writeFileSync).mock.calls;
-      const indexWrite = calls.find((c) => String(c[0]).endsWith('index.html'));
-      expect(indexWrite).toBeDefined();
-      const html = String(indexWrite![1]);
+      const html = readDistFile(distDir, 'index.html');
+      expect(html).toBeDefined();
       // Should have two script tags
-      const matches = html.match(/<script type="application\/ld\+json">/g);
+      const matches = html!.match(/<script type="application\/ld\+json">/g);
       expect(matches).toHaveLength(2);
       expect(html).toContain('"@type":"WebSite"');
       expect(html).toContain('"@type":"Organization"');
     });
 
     it('skips JSON-LD when index.html does not exist', () => {
-      // existsSync returns false for index.html check
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-
+      // No index.html in dist/
       const config: SeoPluginConfig = {
         ...baseConfig,
         jsonLd: { '@type': 'WebSite' },
@@ -492,16 +406,13 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      // readFileSync should not be called for index.html
-      // (writeFileSync should only be called for sitemap, robots, llms)
-      const calls = vi.mocked(fs.writeFileSync).mock.calls;
-      const indexWrite = calls.find((c) => String(c[0]).endsWith('index.html'));
-      expect(indexWrite).toBeUndefined();
+      // index.html should not exist in dist/
+      const html = readDistFile(distDir, 'index.html');
+      expect(html).toBeUndefined();
     });
 
     it('logs JSON-LD in summary when provided', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockReturnValue('<html><head></head><body></body></html>');
+      fs.writeFileSync(path.join(distDir, 'index.html'), '<html><head></head><body></body></html>');
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const config: SeoPluginConfig = {
@@ -522,13 +433,13 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
       expect(sitemap).toContain('https://minimal.com/');
 
-      const robots = getWrittenFile('robots.txt');
+      const robots = readDistFile(distDir, 'robots.txt');
       expect(robots).toContain('Sitemap: https://minimal.com/sitemap.xml');
 
-      const llms = getWrittenFile('llms.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
       expect(llms).toContain('# Site');
       expect(llms).toContain('## Website: https://minimal.com');
       // Should not contain optional sections
@@ -540,10 +451,9 @@ describe('specifyJsSeoPlugin', () => {
     });
 
     it('handles missing docsDir gracefully', () => {
-      vi.mocked(fs.existsSync).mockReturnValue(false);
       const config: SeoPluginConfig = {
         siteUrl: 'https://example.com',
-        docsDir: '/nonexistent/docs',
+        docsDir: path.join(tmpDir, 'nonexistent-docs'),
       };
       const plugin = specifyJsSeoPlugin(config);
 
@@ -559,8 +469,11 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      // readdirSync should not be called when docsDir is not provided
-      expect(fs.readdirSync).not.toHaveBeenCalled();
+      // Sitemap should only contain explicitly provided routes, no doc routes
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
+      expect(sitemap).toContain('https://example.com/');
+      expect(sitemap).toContain('https://example.com/#/page');
+      expect(sitemap).not.toContain('/#/docs/');
     });
   });
 
@@ -575,9 +488,9 @@ describe('specifyJsSeoPlugin', () => {
       const plugin = specifyJsSeoPlugin(config);
       invokeCloseBundle(plugin);
 
-      const sitemap = getWrittenFile('sitemap.xml');
-      const robots = getWrittenFile('robots.txt');
-      const llms = getWrittenFile('llms.txt');
+      const sitemap = readDistFile(distDir, 'sitemap.xml');
+      const robots = readDistFile(distDir, 'robots.txt');
+      const llms = readDistFile(distDir, 'llms.txt');
 
       // Every URL reference should use the configured siteUrl
       expect(sitemap).toContain('https://custom-domain.io/');
@@ -615,12 +528,10 @@ describe('specifyJsSeoPlugin', () => {
     const plugin = specifyJsSeoPlugin(baseConfig);
     invokeCloseBundle(plugin);
 
-    // Should have written 3 files
-    expect(fs.writeFileSync).toHaveBeenCalledTimes(3);
-
-    const sitemap = getWrittenFile('sitemap.xml');
-    const robots = getWrittenFile('robots.txt');
-    const llms = getWrittenFile('llms.txt');
+    // All three files should exist in dist/
+    const sitemap = readDistFile(distDir, 'sitemap.xml');
+    const robots = readDistFile(distDir, 'robots.txt');
+    const llms = readDistFile(distDir, 'llms.txt');
 
     expect(sitemap).toBeDefined();
     expect(robots).toBeDefined();

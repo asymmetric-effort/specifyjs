@@ -369,6 +369,26 @@ function UnityDesktopInner(props: {
   const { apps, user, onAppOpen, onLogout, theme = 'dark', children } = props;
 
   // -----------------------------------------------------------------------
+  // Mobile fallback — desktop-only layout
+  // -----------------------------------------------------------------------
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile) {
+    return createElement('div', {
+      style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100%', minHeight: '300px', padding: '32px', textAlign: 'center',
+        backgroundColor: '#2c001e', color: '#ffffff', fontFamily: 'Ubuntu, sans-serif',
+      },
+    },
+      createElement('div', { style: { fontSize: '48px', marginBottom: '16px' } }, '\uD83D\uDDA5\uFE0F'),
+      createElement('h3', { style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px' } }, 'Desktop Experience'),
+      createElement('p', { style: { fontSize: '14px', opacity: '0.8', maxWidth: '300px' } },
+        'The Unity Desktop layout is designed for desktop screens. Please view on a device with a wider display.'),
+    );
+  }
+
+  // -----------------------------------------------------------------------
   // Read signals from WindowManager context
   // -----------------------------------------------------------------------
 

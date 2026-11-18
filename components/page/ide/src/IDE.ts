@@ -212,6 +212,26 @@ const SAMPLE_CODE = FILE_CONTENTS['App.ts'];
 // ---------------------------------------------------------------------------
 
 export function IDE(props: IDEProps) {
+  // -------------------------------------------------------------------------
+  // Mobile fallback — desktop-only layout
+  // -------------------------------------------------------------------------
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile) {
+    return createElement('div', {
+      style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100%', minHeight: '300px', padding: '32px', textAlign: 'center',
+        backgroundColor: '#1e1e1e', color: '#cccccc', fontFamily: '"Segoe UI", Roboto, Arial, sans-serif',
+      },
+    },
+      createElement('div', { style: { fontSize: '48px', marginBottom: '16px' } }, '\uD83D\uDCBB'),
+      createElement('h3', { style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px' } }, 'Desktop Experience'),
+      createElement('p', { style: { fontSize: '14px', opacity: '0.8', maxWidth: '300px' } },
+        'The IDE layout requires a desktop-sized screen. Please view on a device with a wider display.'),
+    );
+  }
+
   const [activeFile, setActiveFile] = useState<string>('App.ts');
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({
     src: true,

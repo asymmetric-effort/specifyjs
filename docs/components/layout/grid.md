@@ -44,9 +44,14 @@ import { Grid, GridItem } from 'specifyjs/components/layout/grid';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `minWidth` | `string` | -- | Min-width media query value (e.g. `'768px'`) |
+| `breakpoint` | `Breakpoint` | -- | Breakpoint name shorthand (e.g. `'md'`, `'lg'`). Resolves to the min-width from the configured breakpoint scale. Takes precedence over `minWidth` when both are provided. See [Responsive Design](../../guides/responsive-design.md) for the full breakpoint scale. |
 | `columns` | `number \| string` | -- | Column template override at this breakpoint |
 | `rows` | `string` | -- | Row template override |
 | `gap` | `string` | -- | Gap override |
+
+> **Tip:** Use the `breakpoint` shorthand instead of hard-coding pixel values
+> in `minWidth`. This keeps your grid responsive definitions in sync with the
+> global breakpoint scale configured via `configureBreakpoints()`.
 
 ## Usage
 
@@ -108,6 +113,28 @@ createElement(
   createElement(GridItem, { gridArea: 'footer' }, 'Footer'),
 );
 ```
+
+### Responsive breakpoints with named shorthand
+
+Use the `breakpoint` property instead of `minWidth` to reference the global breakpoint scale.
+
+```ts
+createElement(
+  Grid,
+  {
+    columns: 1,
+    gap: '12px',
+    responsive: [
+      { breakpoint: 'sm', columns: 2 },
+      { breakpoint: 'lg', columns: 3, gap: '24px' },
+    ],
+  },
+  ...children,
+);
+```
+
+This is equivalent to `{ minWidth: '640px', columns: 2 }` and
+`{ minWidth: '1024px', columns: 3, gap: '24px' }` with the default scale.
 
 ### Alignment
 

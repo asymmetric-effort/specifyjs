@@ -665,6 +665,26 @@ function buildMarketDepth(): unknown {
 // ---------------------------------------------------------------------------
 
 export function TradingDashboard(props: TradingDashboardProps) {
+  // -------------------------------------------------------------------------
+  // Mobile fallback — desktop-only layout
+  // -------------------------------------------------------------------------
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  if (isMobile) {
+    return createElement('div', {
+      style: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100%', minHeight: '300px', padding: '32px', textAlign: 'center',
+        backgroundColor: '#0d0d1a', color: '#ccccdd', fontFamily: '"Inter", "Segoe UI", Roboto, sans-serif',
+      },
+    },
+      createElement('div', { style: { fontSize: '48px', marginBottom: '16px' } }, '\uD83D\uDCC8'),
+      createElement('h3', { style: { fontSize: '18px', fontWeight: '600', marginBottom: '8px' } }, 'Desktop Experience'),
+      createElement('p', { style: { fontSize: '14px', opacity: '0.8', maxWidth: '300px' } },
+        'The Trading Dashboard requires a desktop-sized screen. Please view on a device with a wider display.'),
+    );
+  }
+
   const [priceOffset, setPriceOffset] = useState(0);
   const [clockTime, setClockTime] = useState('--:--:--');
   const [liveVisible, setLiveVisible] = useState(true);

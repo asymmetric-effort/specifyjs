@@ -134,3 +134,9 @@ export function useInsertionEffect(
 // Custom hooks (not dispatcher-based)
 export { useHead } from './use-head';
 export type { HeadMeta, HeadHttpEquiv } from './use-head';
+export { useMediaQuery } from './use-media-query';
+export { useWindowSize } from './use-window-size';
+export type { WindowSize } from './use-window-size';
+export { useBreakpoint, useBreakpointValue } from './use-breakpoint';
+export { getBreakpoints, configureBreakpoints, breakpointQuery } from './breakpoints';
+export type { Breakpoint } from './breakpoints';

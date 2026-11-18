@@ -35,6 +35,13 @@ export {
   useSyncExternalStore,
   useInsertionEffect,
   useHead,
+  useMediaQuery,
+  useWindowSize,
+  useBreakpoint,
+  useBreakpointValue,
+  getBreakpoints,
+  configureBreakpoints,
+  breakpointQuery,
 } from './hooks/index';
 
 // Special component types
@@ -75,3 +82,7 @@ export type {
   ErrorInfo,
   Fiber,
 } from './shared/types';
+
+export type { HeadMeta, HeadHttpEquiv } from './hooks/use-head';
+export type { WindowSize } from './hooks/use-window-size';
+export type { Breakpoint } from './hooks/breakpoints';

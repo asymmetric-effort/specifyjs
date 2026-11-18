@@ -20,6 +20,16 @@ function getWindowSize() { ... }
 function fetchData() { ... }
 ```
 
+> **Note:** `useWindowSize` is now a built-in hook provided by SpecifyJS.
+> You do not need to write your own — import it directly:
+>
+> ```typescript
+> import { useWindowSize } from 'specifyjs/hooks';
+> ```
+>
+> See the [Responsive Design](responsive-design.md) guide for details on
+> `useWindowSize` and other responsive hooks.
+
 ## Building a useFetch Hook
 
 A hook that fetches data from an API endpoint:

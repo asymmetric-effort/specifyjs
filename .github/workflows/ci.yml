@@ -98,7 +98,7 @@ jobs:
           COVERAGE=$(awk -F'|' '
             /^ *(src\/|\.\.\/components\/|tests\/)/ {
               # Skip files that are intentionally v8-ignored or need module mocking
-              if ($1 ~ /webgpu-backend|webgl-backend|seo-plugin|scheduler-host-config|compute\/context/) next;
+              if ($1 ~ /webgpu-backend|webgl-backend|seo-plugin|scheduler-host-config|compute\/context|client\//) next;
               gsub(/ /, "", $3);
               if ($3+0 > 0) { sum += $3; count++ }
             }

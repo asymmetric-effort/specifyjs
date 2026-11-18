@@ -29,13 +29,29 @@ function createMockFetchResponse(
 
 let container: HTMLDivElement;
 
+// Ensure fetch exists as a function so vi.spyOn can intercept it.
+// Under coverage instrumentation, spyOn may fail to intercept the native
+// fetch, allowing real network requests to escape. This guard ensures
+// the spy target is always a plain function that can be replaced.
+if (typeof globalThis.fetch !== 'function') {
+  globalThis.fetch = (() => Promise.reject(new Error('fetch not available'))) as typeof fetch;
+}
+const _originalFetch = globalThis.fetch;
+
 beforeEach(() => {
+  // Reset fetch to a rejecting stub before each test.
+  // Individual tests install their own mock via vi.spyOn(globalThis, 'fetch').
+  globalThis.fetch = (() =>
+    Promise.reject(
+      new Error('Unmocked fetch call — add vi.spyOn(globalThis, "fetch")'),
+    )) as typeof fetch;
   container = document.createElement('div');
   document.body.appendChild(container);
 });
 
 afterEach(() => {
   document.body.removeChild(container);
+  globalThis.fetch = _originalFetch;
   vi.restoreAllMocks();
 });
 

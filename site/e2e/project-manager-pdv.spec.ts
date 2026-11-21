@@ -676,19 +676,23 @@ test.describe('Project Manager PDV', () => {
     expect(box).not.toBeNull();
     await page.mouse.move(box!.x + box!.width / 2, box!.y + 10);
     await page.mouse.down();
-    // Move to trigger drag — use steps for reliable event dispatch
-    await page.mouse.move(box!.x + box!.width / 2 + 20, box!.y + 30, { steps: 5 });
-    await page.waitForTimeout(500);
+    // Move a significant distance with many steps for reliable drag detection
+    await page.mouse.move(box!.x + box!.width / 2 + 80, box!.y + 80, { steps: 15 });
 
-    // While dragging, z-index should be elevated
-    const zDuring = await firstCard.evaluate((el: Element) => {
-      return parseInt(getComputedStyle(el).zIndex || '0', 10);
-    });
+    // Poll for elevated z-index — the drag handler may apply it asynchronously
+    let zDuring = 0;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      zDuring = await firstCard.evaluate((el: Element) => {
+        return parseInt(getComputedStyle(el).zIndex || '0', 10);
+      });
+      if (zDuring > zBefore) break;
+      await page.waitForTimeout(100);
+    }
     expect(zDuring).toBeGreaterThan(zBefore);
 
     // Release
     await page.mouse.up();
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     // After drag, z-index should return to normal
     const zAfter = await firstCard.evaluate((el: Element) => {

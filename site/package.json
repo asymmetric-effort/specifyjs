@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@asymmetric-effort/nogginlessdom": "^0.0.28",
-    "@playwright/test": "^1.52.0",
+    "@playwright/test": "^1.65.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.16"
   }

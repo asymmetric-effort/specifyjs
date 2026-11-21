@@ -174,7 +174,7 @@ jobs:
   e2e:
     name: E2E (${{ matrix.browser }})
     needs: [build, coverage]
-    runs-on: ubuntu-24.04  # Playwright doesn't support ubuntu-26.04 yet
+    runs-on: ubuntu-26.04
     strategy:
       matrix:
         browser: [chromium, firefox, webkit]
@@ -254,7 +254,7 @@ jobs:
   pdv:
     name: Post-Deployment Verification
     needs: deploy
-    runs-on: ubuntu-24.04  # Playwright doesn't support ubuntu-26.04 yet
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -301,7 +301,7 @@ jobs:
   promote:
     name: Promote to Production
     needs: pdv
-    runs-on: ubuntu-24.04  # Playwright doesn't support ubuntu-26.04 yet
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

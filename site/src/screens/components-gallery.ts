@@ -98,6 +98,7 @@ import {
 } from "../../../components/viz/force-graph/src/index";
 import { matN, matNSet, matNGet } from "../../../components/math/src/mat";
 import { solve } from "../../../components/math/src/solver";
+import { VizThemeProvider } from "../../../components/viz/theme/src/index";
 import { SankeyDiagram } from "../../../components/viz/sankey/src/index";
 import { ChordDiagram } from "../../../components/viz/chord/src/index";
 import { DecompositionTree } from "../../../components/viz/decomposition-tree/src/index";
@@ -265,6 +266,8 @@ export function ComponentsGallery() {
     "Form Components",
   );
 
+  const [vizTheme, setVizTheme] = useState<"casual" | "crisp">("casual");
+
   const toggle = useCallback(
     ((...args: unknown[]) => {
       const name = args[0] as string;
@@ -357,8 +360,49 @@ export function ComponentsGallery() {
       preview("Splitter", SplitterDemo, "components/layout/splitter"),
       preview("Tabs Layout", TabsLayoutDemo, "components/layout/tabs"),
     ]),
-    accordionSection("Charts & Graphs", "12 components", openSection, toggle, [
-      preview("Bar Graph", BarGraphDemo, "components/viz/2D-bar-graph"),
+    createElement(
+      VizThemeProvider,
+      { theme: vizTheme },
+      createElement(
+        "div",
+        {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "8px 16px",
+            borderBottom: "1px solid var(--color-border, #e2e8f0)",
+          },
+        },
+        createElement(
+          "span",
+          {
+            style: {
+              fontSize: "12px",
+              fontWeight: "600",
+              color: "var(--color-text-secondary, #64748b)",
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            },
+          },
+          "Viz Theme",
+        ),
+        createElement(Button, {
+          label: vizTheme === "casual" ? "Casual" : "Crisp",
+          onClick: () =>
+            setVizTheme((prev: "casual" | "crisp") =>
+              prev === "casual" ? "crisp" : "casual",
+            ),
+          style: {
+            fontSize: "11px",
+            padding: "2px 10px",
+            borderRadius: "4px",
+            minWidth: "60px",
+          },
+        }),
+      ),
+      accordionSection("Charts & Graphs", "12 components", openSection, toggle, [
+        preview("Bar Graph", BarGraphDemo, "components/viz/2D-bar-graph"),
       preview("Line Graph", LineGraphDemo, "components/viz/2D-line-graph"),
       preview("Time-Series", TimeSeriesDemo, "components/viz/2D-line-graph"),
       preview("Pie Chart", PieChartDemo, "components/viz/2D-pie-graph"),
@@ -454,6 +498,7 @@ export function ComponentsGallery() {
       ),
       preview("Bloch Sphere", BlochSphereDemo, "components/viz/bloch-sphere"),
     ]),
+    ), // end VizThemeProvider
     createElement(
       FeatureGate,
       { flag: "page-layouts", fallback: null },

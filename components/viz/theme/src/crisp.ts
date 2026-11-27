@@ -21,9 +21,9 @@ export const crisp: VizTheme = deepFreeze({
     title: '13px',
   },
   lineWidth: {
-    grid: 0.5,
-    axis: 1,
-    series: 1.5,
+    grid: 0.4,
+    axis: 0.75,
+    series: 1,
   },
   lineCap: 'butt',
   spacing: {

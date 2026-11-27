@@ -183,12 +183,12 @@ describe('crisp theme', () => {
     expect(crisp.fontSize.title).toBe('13px');
   });
 
-  it('lineWidth.grid is 0.5', () => {
-    expect(crisp.lineWidth.grid).toBe(0.5);
+  it('lineWidth.grid is 0.4', () => {
+    expect(crisp.lineWidth.grid).toBe(0.4);
   });
 
-  it('lineWidth.series is 1.5', () => {
-    expect(crisp.lineWidth.series).toBe(1.5);
+  it('lineWidth.series is 1', () => {
+    expect(crisp.lineWidth.series).toBe(1);
   });
 
   it('lineCap is butt', () => {

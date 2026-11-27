@@ -296,7 +296,7 @@ export function ComponentsGallery() {
         },
       },
       createElement(
-        "span",
+        "label",
         {
           style: {
             fontSize: "12px",
@@ -304,23 +304,34 @@ export function ComponentsGallery() {
             color: "var(--color-text-secondary, #64748b)",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
           },
         },
         "Viz Theme:",
+        createElement(
+          "select",
+          {
+            value: vizTheme,
+            onChange: (e: Event) => {
+              const val = (e.target as HTMLSelectElement).value;
+              if (val === "casual" || val === "crisp") setVizTheme(val);
+            },
+            style: {
+              fontSize: "12px",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              border: "1px solid var(--color-border, #e2e8f0)",
+              backgroundColor: "var(--color-bg, #ffffff)",
+              color: "var(--color-text, #1f2937)",
+              cursor: "pointer",
+            },
+          },
+          createElement("option", { value: "casual" }, "Casual"),
+          createElement("option", { value: "crisp" }, "Crisp"),
+        ),
       ),
-      createElement(Button, {
-        label: vizTheme === "casual" ? "Casual" : "Crisp",
-        onClick: () =>
-          setVizTheme((prev: "casual" | "crisp") =>
-            prev === "casual" ? "crisp" : "casual",
-          ),
-        style: {
-          fontSize: "11px",
-          padding: "2px 10px",
-          borderRadius: "4px",
-          minWidth: "60px",
-        },
-      }),
     ),
     accordionSection("Form Components", "18 components", openSection, toggle, [
       preview("Toggle", ToggleDemo, "components/form/toggle"),

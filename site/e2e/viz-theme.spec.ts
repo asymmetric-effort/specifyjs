@@ -3,55 +3,47 @@ import { test, expect } from '@playwright/test';
 /**
  * Visualization Theme System E2E Tests
  *
- * Verifies the casual/crisp theme toggle works in the component gallery
+ * Verifies the casual/crisp theme dropdown works in the component gallery
  * and that themes produce visually different output.
  */
 
-
-test.describe('Viz Theme Toggle', () => {
+test.describe('Viz Theme Dropdown', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });
   });
 
-  test('theme toggle button exists in viz sections', async ({ page }) => {
-    // Look for the Casual/Crisp toggle button
-    const toggle = page.locator('button', { hasText: /Casual|Crisp/ });
-    await expect(toggle.first()).toBeVisible({ timeout: 10000 });
+  test('theme dropdown exists in gallery', async ({ page }) => {
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await expect(select).toBeVisible({ timeout: 10000 });
   });
 
-  test('default theme is Casual', async ({ page }) => {
-    const toggle = page.locator('button', { hasText: 'Casual' });
-    await expect(toggle.first()).toBeVisible({ timeout: 10000 });
+  test('default theme is casual', async ({ page }) => {
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await expect(select).toHaveValue('casual');
   });
 
-  test('clicking toggle switches to Crisp', async ({ page }) => {
-    const toggle = page.locator('button', { hasText: 'Casual' }).first();
-    await toggle.scrollIntoViewIfNeeded();
-    await toggle.click();
-    await expect(page.locator('button', { hasText: 'Crisp' }).first()).toBeVisible();
+  test('selecting crisp changes value', async ({ page }) => {
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await select.selectOption('crisp');
+    await expect(select).toHaveValue('crisp');
   });
 
-  test('clicking Crisp switches back to Casual', async ({ page }) => {
-    // Switch to Crisp
-    const casualBtn = page.locator('button', { hasText: 'Casual' }).first();
-    await casualBtn.scrollIntoViewIfNeeded();
-    await casualBtn.click();
-    // Switch back
-    const crispBtn = page.locator('button', { hasText: 'Crisp' }).first();
-    await crispBtn.click();
-    await expect(page.locator('button', { hasText: 'Casual' }).first()).toBeVisible();
+  test('selecting casual restores value', async ({ page }) => {
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await select.selectOption('crisp');
+    await select.selectOption('casual');
+    await expect(select).toHaveValue('casual');
   });
 
-  test('no JavaScript errors during theme toggle', async ({ page }) => {
+  test('no JavaScript errors during theme change', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
-    const toggle = page.locator('button', { hasText: 'Casual' }).first();
-    await toggle.scrollIntoViewIfNeeded();
-    await toggle.click();
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await select.selectOption('crisp');
     await page.waitForTimeout(500);
-    await page.locator('button', { hasText: 'Crisp' }).first().click();
+    await select.selectOption('casual');
     await page.waitForTimeout(500);
 
     expect(errors).toEqual([]);
@@ -71,21 +63,17 @@ test.describe('Viz Theme — Chart Rendering', () => {
   });
 
   test('casual theme: SVG text uses sans-serif font', async ({ page }) => {
-    // Find any SVG text element in the chart previews
     const svgText = page.locator('.dialog-body svg text').first();
     await expect(svgText).toBeVisible({ timeout: 10000 });
     const fontFamily = await svgText.evaluate((el) => {
       return getComputedStyle(el).fontFamily || el.getAttribute('font-family') || '';
     });
-    // Casual uses 'sans-serif'
     expect(fontFamily).toContain('sans-serif');
   });
 
   test('crisp theme: SVG text uses Inter font stack', async ({ page }) => {
-    // Switch to Crisp
-    const toggle = page.locator('button', { hasText: 'Casual' }).first();
-    await toggle.scrollIntoViewIfNeeded();
-    await toggle.click();
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await select.selectOption('crisp');
     await page.waitForTimeout(500);
 
     const svgText = page.locator('.dialog-body svg text').first();
@@ -93,7 +81,6 @@ test.describe('Viz Theme — Chart Rendering', () => {
     const fontFamily = await svgText.evaluate((el) => {
       return getComputedStyle(el).fontFamily || el.getAttribute('font-family') || '';
     });
-    // Crisp uses Inter stack — should NOT be plain 'sans-serif'
     expect(fontFamily).not.toBe('sans-serif');
   });
 
@@ -106,9 +93,8 @@ test.describe('Viz Theme — Chart Rendering', () => {
   });
 
   test('crisp theme: chart containers have no border-radius', async ({ page }) => {
-    const toggle = page.locator('button', { hasText: 'Casual' }).first();
-    await toggle.scrollIntoViewIfNeeded();
-    await toggle.click();
+    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    await select.selectOption('crisp');
     await page.waitForTimeout(500);
 
     const wrapper = page.locator('.dialog-body .viz-wrapper').first();

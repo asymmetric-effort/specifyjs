@@ -48,7 +48,7 @@ export function VizThemeProvider(props: VizThemeProviderProps): SpecNode {
   }, [theme]);
 
   return createElement(
-    VizThemeContext.Provider as unknown as string,
+    VizThemeContext.Provider,
     { value: resolved },
     children,
   );

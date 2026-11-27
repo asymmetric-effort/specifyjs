@@ -391,3 +391,24 @@ describe('viz component theme migration', () => {
     });
   }
 });
+
+// ── VizThemeProvider exports ────────────────────────────────────────────
+
+import { VizThemeProvider, useVizTheme } from '../src/VizThemeProvider';
+
+describe('VizThemeProvider', () => {
+  it('is exported as a function', () => {
+    expect(typeof VizThemeProvider).toBe('function');
+  });
+
+  it('accepts theme prop in its type signature', () => {
+    // Verify the function has the expected arity (props object)
+    expect(VizThemeProvider.length).toBe(1);
+  });
+});
+
+describe('useVizTheme', () => {
+  it('is exported as a function', () => {
+    expect(typeof useVizTheme).toBe('function');
+  });
+});

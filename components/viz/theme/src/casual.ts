@@ -39,6 +39,10 @@ export const casual: VizTheme = deepFreeze({
     tickLength: 0,
     tickWidth: 0,
   },
+  points: {
+    show: true,
+    radius: 4,
+  },
   legend: {
     swatchSize: 12,
     spacing: '8px',

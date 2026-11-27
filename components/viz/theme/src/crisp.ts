@@ -39,6 +39,10 @@ export const crisp: VizTheme = deepFreeze({
     tickLength: 4,
     tickWidth: 1,
   },
+  points: {
+    show: false,
+    radius: 2,
+  },
   legend: {
     swatchSize: 8,
     spacing: '6px',

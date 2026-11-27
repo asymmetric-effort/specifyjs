@@ -32,6 +32,8 @@ describe('VizTheme type shape', () => {
     expect(typeof theme.axis.showMinorGrid).toBe('boolean');
     expect(typeof theme.axis.tickLength).toBe('number');
     expect(typeof theme.axis.tickWidth).toBe('number');
+    expect(typeof theme.points.show).toBe('boolean');
+    expect(typeof theme.points.radius).toBe('number');
     expect(typeof theme.legend.swatchSize).toBe('number');
     expect(typeof theme.legend.spacing).toBe('string');
     expect(typeof theme.animation.duration).toBe('number');
@@ -121,6 +123,14 @@ describe('casual theme', () => {
     expect(casual.axis.tickLength).toBe(0);
   });
 
+  it('points.show is true', () => {
+    expect(casual.points.show).toBe(true);
+  });
+
+  it('points.radius is 4', () => {
+    expect(casual.points.radius).toBe(4);
+  });
+
   it('axis.tickWidth is 0', () => {
     expect(casual.axis.tickWidth).toBe(0);
   });
@@ -202,6 +212,14 @@ describe('crisp theme', () => {
 
   it('axis.tickWidth is 1', () => {
     expect(crisp.axis.tickWidth).toBe(1);
+  });
+
+  it('points.show is false (no data point markers)', () => {
+    expect(crisp.points.show).toBe(false);
+  });
+
+  it('points.radius is 2 (small if shown via override)', () => {
+    expect(crisp.points.radius).toBe(2);
   });
 
   it('legend.swatchSize is 8', () => {

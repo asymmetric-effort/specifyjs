@@ -91,7 +91,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
     sync: syncMode = false,
     points = [],
     showGrid = true,
-    pointRadius = 3,
+    pointRadius = theme.points.radius,
     pointColor = "#3b82f6",
     curveColor = "#3b82f6",
     onPointClick,

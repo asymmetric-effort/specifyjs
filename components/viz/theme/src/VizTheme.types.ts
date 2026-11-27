@@ -57,6 +57,13 @@ export interface VizTheme {
     /** Width of tick mark strokes in pixels */
     tickWidth: number;
   };
+  /** Data point markers (line/scatter/bubble charts) */
+  points: {
+    /** Whether to show point markers by default */
+    show: boolean;
+    /** Point marker radius in pixels */
+    radius: number;
+  };
   /** Legend appearance */
   legend: {
     /** Size of color swatch in pixels */

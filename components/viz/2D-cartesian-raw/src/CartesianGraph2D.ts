@@ -113,7 +113,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
     yRange: initYRange = [-5, 5],
     showGrid = true,
     showAxes = true,
-    pointRadius = 3,
+    pointRadius = theme.points.radius,
     pointColor = "#3b82f6",
     curveColor = "#3b82f6",
     gridColor = "#e2e8f0",

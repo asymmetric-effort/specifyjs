@@ -16,6 +16,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -344,6 +345,9 @@ export function TreeMap(props: TreeMapProps) {
   // Build SVG elements
   const elements: ReturnType<typeof createElement>[] = [];
 
+  // Colorblind-accessible pattern definitions
+  elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+
   // Title
   if (title) {
     elements.push(
@@ -381,6 +385,19 @@ export function TreeMap(props: TreeMapProps) {
         'stroke-width': borderWidth > 0 ? String(borderWidth) : undefined,
         role: 'graphics-symbol',
         'aria-label': `${r.label}: ${r.value}`,
+      }),
+    );
+
+    // Colorblind pattern overlay
+    elements.push(
+      createElement('rect', {
+        key: `cell-pattern-${i}`,
+        x: String(r.x),
+        y: String(r.y),
+        width: String(Math.max(0, r.w)),
+        height: String(Math.max(0, r.h)),
+        fill: getPatternFill(i),
+        'pointer-events': 'none',
       }),
     );
 

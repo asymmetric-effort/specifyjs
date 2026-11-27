@@ -14,8 +14,9 @@
  */
 
 import { createElement } from 'specifyjs';
-import { useMemo } from 'specifyjs/hooks';
+import { useMemo, useState } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -309,7 +310,12 @@ export function Sunburst(props: SunburstProps) {
     [data, innerRadius, maxRadius, colors],
   );
 
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   const elements: ReturnType<typeof createElement>[] = [];
+
+  // Colorblind-accessible pattern definitions
+  elements.push(createPatternDefs() as ReturnType<typeof createElement>);
 
   // Title
   if (title) {
@@ -347,6 +353,23 @@ export function Sunburst(props: SunburstProps) {
         'stroke-width': strokeWidth > 0 ? String(strokeWidth) : undefined,
         role: 'graphics-symbol',
         'aria-label': `${seg.label}: ${seg.value}`,
+        onMouseEnter: () => setHoveredIdx(i),
+        onMouseLeave: () => setHoveredIdx(null),
+        style: {
+          cursor: 'pointer',
+          filter: hoveredIdx === i ? 'brightness(1.2)' : 'none',
+          transition: 'filter 0.15s',
+        },
+      }),
+    );
+
+    // Colorblind pattern overlay
+    elements.push(
+      createElement('path', {
+        key: `arc-pattern-${i}`,
+        d,
+        fill: getPatternFill(i),
+        'pointer-events': 'none',
       }),
     );
 

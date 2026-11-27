@@ -10,3 +10,5 @@ export type {
 
 export { scaleValue, inverseScale, generateLogTicks } from './log-scale';
 export type { ScaleType } from './log-scale';
+
+export { createPatternDefs, getPatternId, getPatternFill } from './colorblind-patterns';

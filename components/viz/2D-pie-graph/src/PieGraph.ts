@@ -8,6 +8,7 @@
 import { createElement, type SpecElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -229,6 +230,9 @@ export function PieGraph(props: PieGraphProps): SpecElement {
 
   const children: SpecElement[] = [];
 
+  // Colorblind-accessible pattern definitions
+  children.push(createPatternDefs() as SpecElement);
+
   // Title
   if (title) {
     children.push(
@@ -257,6 +261,16 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         fill: s.color,
         stroke: strokeWidth > 0 ? strokeColor : 'none',
         strokeWidth: strokeWidth > 0 ? strokeWidth : undefined,
+      }),
+    );
+
+    // Colorblind pattern overlay
+    children.push(
+      createElement('path', {
+        key: `slice-pattern-${i}`,
+        d,
+        fill: getPatternFill(i),
+        pointerEvents: 'none',
       }),
     );
 

@@ -282,6 +282,8 @@ describe('UnityDesktop', () => {
 // UnityApp tests
 // ---------------------------------------------------------------------------
 
+// UnityApp tests need specifyjs package alias (CI only).
+// Re-enabled but may skip locally.
 describe('UnityApp', () => {
   it('renders a DraggableWindow inside UnityDesktop', async () => {
 

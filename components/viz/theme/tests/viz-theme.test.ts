@@ -325,3 +325,42 @@ describe('deepFreeze', () => {
     expect(frozen).toBe(original);
   });
 });
+
+// ── Component migration verification ───────────────────────────────────
+// Verify that all viz components import and call useVizTheme
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+describe('viz component theme migration', () => {
+  const VIZ_DIR = join(__dirname, '..', '..'); // components/viz/
+
+  const EXPECTED_COMPONENTS = [
+    '2D-bar-graph', '2D-line-graph', '2D-pie-graph', '2D-discrete-cartesian',
+    '2D-polar-graph', '2D-cartesian-raw',
+    'big-number', 'bloch-sphere', 'box-plot', 'bubble-chart',
+    'calendar-heat-map', 'chord', 'decomposition-tree', 'earth-globe',
+    'force-graph', '3d-force-graph', '3d-layers', '3dSpace',
+    'funnel', 'gantt-chart', 'gauge', 'graph',
+    'heat-map', 'histogram', 'lollipop', 'matrix',
+    'partition', 'pivot-table', 'radar-chart', 'sankey',
+    'sunburst', 'tree-map', 'us-state-map', 'vector-field',
+    'waterfall', 'word-cloud', 'wrapper',
+  ];
+
+  for (const component of EXPECTED_COMPONENTS) {
+    it(`${component} imports useVizTheme`, () => {
+      const srcDir = join(VIZ_DIR, component, 'src');
+      const files = require('fs').readdirSync(srcDir).filter((f: string) => f.endsWith('.ts') && f !== 'index.ts');
+      let found = false;
+      for (const file of files) {
+        const content = readFileSync(join(srcDir, file), 'utf-8');
+        if (content.includes('useVizTheme')) {
+          found = true;
+          break;
+        }
+      }
+      expect(found).toBe(true);
+    });
+  }
+});

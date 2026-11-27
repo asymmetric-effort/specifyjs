@@ -223,10 +223,10 @@ function renderMarkdown(md: string): ReturnType<typeof createElement>[] {
                       style: {
                         textAlign: 'left',
                         padding: '10px 12px',
-                        borderBottom: '2px solid #e2e8f0',
+                        borderBottom: '2px solid var(--color-border, #e2e8f0)',
                         fontWeight: '600',
-                        color: '#334155',
-                        backgroundColor: '#f8fafc',
+                        color: 'var(--color-text, #334155)',
+                        backgroundColor: 'var(--color-bg-subtle, #f8fafc)',
                         whiteSpace: 'nowrap',
                       },
                     }, renderInline(cell)),
@@ -238,7 +238,7 @@ function renderMarkdown(md: string): ReturnType<typeof createElement>[] {
                   createElement('tr', {
                     key: `tr-${ri}`,
                     style: {
-                      backgroundColor: ri % 2 === 0 ? '#ffffff' : '#f8fafc',
+                      backgroundColor: ri % 2 === 0 ? 'var(--color-bg, #ffffff)' : 'var(--color-bg-subtle, #f8fafc)',
                     },
                   },
                     ...row.map((cell, ci) =>
@@ -246,8 +246,8 @@ function renderMarkdown(md: string): ReturnType<typeof createElement>[] {
                         key: `td-${ci}`,
                         style: {
                           padding: '8px 12px',
-                          borderBottom: '1px solid #e2e8f0',
-                          color: '#475569',
+                          borderBottom: '1px solid var(--color-border, #e2e8f0)',
+                          color: 'var(--color-text-muted, #475569)',
                         },
                       }, renderInline(cell)),
                     ),
@@ -274,12 +274,12 @@ function renderMarkdown(md: string): ReturnType<typeof createElement>[] {
       const text = headingMatch[2];
       const tag = `h${Math.min(level, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
       const styles: Record<string, Record<string, string>> = {
-        h1: { fontSize: '28px', fontWeight: '700', color: '#0f172a', margin: '32px 0 16px', paddingBottom: '8px', borderBottom: '2px solid #e2e8f0' },
-        h2: { fontSize: '22px', fontWeight: '600', color: '#1e293b', margin: '28px 0 12px', paddingBottom: '6px', borderBottom: '1px solid #e2e8f0' },
-        h3: { fontSize: '18px', fontWeight: '600', color: '#334155', margin: '24px 0 8px' },
-        h4: { fontSize: '16px', fontWeight: '600', color: '#475569', margin: '20px 0 8px' },
-        h5: { fontSize: '14px', fontWeight: '600', color: '#475569', margin: '16px 0 4px' },
-        h6: { fontSize: '13px', fontWeight: '600', color: '#64748b', margin: '12px 0 4px' },
+        h1: { fontSize: '28px', fontWeight: '700', color: 'var(--color-primary, #3b82f6)', margin: '32px 0 16px', paddingBottom: '8px', borderBottom: '2px solid var(--color-border, #e2e8f0)' },
+        h2: { fontSize: '22px', fontWeight: '600', color: 'var(--color-primary, #3b82f6)', margin: '28px 0 12px', paddingBottom: '6px', borderBottom: '1px solid var(--color-border, #e2e8f0)' },
+        h3: { fontSize: '18px', fontWeight: '600', color: 'var(--color-text, #334155)', margin: '24px 0 8px' },
+        h4: { fontSize: '16px', fontWeight: '600', color: 'var(--color-text-muted, #475569)', margin: '20px 0 8px' },
+        h5: { fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted, #475569)', margin: '16px 0 4px' },
+        h6: { fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted, #64748b)', margin: '12px 0 4px' },
       };
       elements.push(
         createElement(tag, {
@@ -302,12 +302,12 @@ function renderMarkdown(md: string): ReturnType<typeof createElement>[] {
         createElement('blockquote', {
           key: `bq-${elements.length}`,
           style: {
-            borderLeft: '4px solid #6366f1',
+            borderLeft: '4px solid var(--color-primary, #6366f1)',
             padding: '12px 16px',
             margin: '16px 0',
-            backgroundColor: '#f0f0ff',
+            backgroundColor: 'var(--color-bg-muted, #f0f0ff)',
             borderRadius: '0 6px 6px 0',
-            color: '#475569',
+            color: 'var(--color-text-muted, #475569)',
             fontSize: '14px',
             lineHeight: '1.6',
           },
@@ -669,8 +669,8 @@ export function DocsViewer() {
       style: {
         width: '280px',
         minWidth: '280px',
-        borderRight: '1px solid #e2e8f0',
-        backgroundColor: '#fafbfc',
+        borderRight: '1px solid var(--color-border, #e2e8f0)',
+        backgroundColor: 'var(--color-bg-subtle, #fafbfc)',
         overflowY: 'auto',
         padding: '16px 8px',
         maxHeight: '75vh',
@@ -772,7 +772,7 @@ export function DocsViewer() {
               color: '#94a3b8',
             },
           },
-            createElement('h2', { style: { color: '#64748b', marginBottom: '12px' } }, 'Document Not Found'),
+            createElement('h2', { style: { color: 'var(--color-text-muted, #64748b)', marginBottom: '12px' } }, 'Document Not Found'),
             createElement('p', null, `No document found at path: ${activePath}`),
             createElement('button', {
               onClick: () => handleSelect('README'),

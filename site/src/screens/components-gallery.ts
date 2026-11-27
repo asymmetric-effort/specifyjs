@@ -1,13 +1,14 @@
 // (c) 2025-2026 Asymmetric Effort, LLC. MIT LICENSE
 // SPDX-License-Identifier: MIT
 
-import { createElement, FeatureGate, useFeatureFlags } from "specifyjs";
+import { createElement, createContext, FeatureGate, useFeatureFlags } from "specifyjs";
 import {
   useState,
   useCallback,
   useEffect,
   useRef,
   useHead,
+  useContext,
 } from "specifyjs/hooks";
 // Page layout components
 import { UnityDesktop } from "../../../components/page/unity-desktop/src/index";
@@ -113,6 +114,14 @@ import {
 import { ForceGraph3D } from "../../../components/viz/3d-force-graph/src/index";
 import type { ForceGraph3DNode, ForceGraph3DEdge } from "../../../components/viz/3d-force-graph/src/types";
 import { LED_ZEPPELIN_WORDS } from "../data/led-zeppelin-words";
+
+// -- Colorblind patterns context (gallery-scoped) ---------------------------
+
+const ColorblindContext = createContext<boolean>(false);
+
+function useColorblindPatterns(): boolean {
+  return useContext(ColorblindContext);
+}
 
 const REPO_BASE = "https://github.com/asymmetric-effort/specifyjs/tree/main";
 
@@ -267,6 +276,7 @@ export function ComponentsGallery() {
   );
 
   const [vizTheme, setVizTheme] = useState<"casual" | "crisp">("casual");
+  const [colorblind, setColorblind] = useState(false);
 
   const toggle = useCallback(
     ((...args: unknown[]) => {
@@ -279,6 +289,9 @@ export function ComponentsGallery() {
   return createElement(
     VizThemeProvider,
     { theme: vizTheme },
+    createElement(
+    ColorblindContext.Provider,
+    { value: colorblind },
     createElement(
     "div",
     { className: "accordion" },
@@ -330,6 +343,44 @@ export function ComponentsGallery() {
           },
           createElement("option", { value: "casual" }, "Casual"),
           createElement("option", { value: "crisp" }, "Crisp"),
+        ),
+      ),
+      createElement(
+        "label",
+        {
+          style: {
+            fontSize: "12px",
+            fontWeight: "600",
+            color: "var(--color-text-secondary, #64748b)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginLeft: "16px",
+          },
+        },
+        "Colorblind:",
+        createElement(
+          "select",
+          {
+            value: colorblind ? "true" : "false",
+            onChange: (e: Event) => {
+              setColorblind((e.target as HTMLSelectElement).value === "true");
+            },
+            "data-testid": "colorblind-toggle",
+            style: {
+              fontSize: "12px",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              border: "1px solid var(--color-border, #e2e8f0)",
+              backgroundColor: "var(--color-bg, #ffffff)",
+              color: "var(--color-text, #1f2937)",
+              cursor: "pointer",
+            },
+          },
+          createElement("option", { value: "false" }, "Off"),
+          createElement("option", { value: "true" }, "On"),
         ),
       ),
     ),
@@ -520,6 +571,7 @@ export function ComponentsGallery() {
       ]),
     ),
     ), // end accordion div
+    ), // end ColorblindContext.Provider
   ); // end VizThemeProvider
 }
 
@@ -929,6 +981,7 @@ function FilterListDemo() {
 
 // ─── Visualization ────────────────────────────────────────────────────
 function BarGraphDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(BarGraph, {
     data: [
       { label: "Q1", value: 42, color: "#3b82f6" },
@@ -941,6 +994,7 @@ function BarGraphDemo() {
     showValues: true,
     showGrid: true,
     title: "Quarterly Revenue",
+    colorblindPatterns: cbp,
   });
 }
 
@@ -982,6 +1036,7 @@ function LogScaleDemo() {
 }
 
 function PieChartDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(PieGraph, {
     data: [
       { label: "TypeScript", value: 60, color: "#3b82f6" },
@@ -994,10 +1049,12 @@ function PieChartDemo() {
     showValues: true,
     showLegend: true,
     legendPosition: "right",
+    colorblindPatterns: cbp,
   });
 }
 
 function ForceGraphDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(ForceGraph, {
     nodes: [
       { id: "A", color: "#3b82f6" },
@@ -1018,6 +1075,7 @@ function ForceGraphDemo() {
     width: 240,
     height: 160,
     showLabels: true,
+    colorblindPatterns: cbp,
   });
 }
 
@@ -2091,6 +2149,7 @@ function TimeSeriesDemo() {
 }
 
 function DonutChartDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(PieGraph, {
     data: [
       { label: "Desktop", value: 45, color: "#3b82f6" },
@@ -2106,10 +2165,12 @@ function DonutChartDemo() {
     showValues: true,
     showLegend: true,
     legendPosition: "right",
+    colorblindPatterns: cbp,
   });
 }
 
 function HistogramDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(Histogram, {
     data: [
       12, 15, 22, 28, 35, 42, 45, 50, 55, 58, 62, 65, 68, 72, 75, 78, 80, 82,
@@ -2122,10 +2183,12 @@ function HistogramDemo() {
     showGrid: true,
     showValues: true,
     title: "Score Distribution",
+    colorblindPatterns: cbp,
   });
 }
 
 function BoxPlotDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(BoxPlot, {
     data: [
       {
@@ -2140,10 +2203,12 @@ function BoxPlotDemo() {
     showOutliers: true,
     showMean: true,
     showGrid: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function BubbleChartDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(BubbleChart, {
     data: [
       { x: 20, y: 80, r: 15, label: "A", color: "#3b82f6" },
@@ -2158,10 +2223,12 @@ function BubbleChartDemo() {
     showGrid: true,
     showAxes: true,
     showLabels: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function LollipopDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(LollipopChart, {
     data: [
       { label: "React", value: 85, color: "#3b82f6" },
@@ -2175,10 +2242,12 @@ function LollipopDemo() {
     orientation: "horizontal",
     showValues: true,
     showGrid: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function WaterfallDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(WaterfallChart, {
     data: [
       { label: "Revenue", value: 420, type: "increase" },
@@ -2193,10 +2262,12 @@ function WaterfallDemo() {
     showValues: true,
     showConnectors: true,
     showGrid: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function FunnelDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(FunnelChart, {
     data: [
       { label: "Visitors", value: 10000, color: "#3b82f6" },
@@ -2210,6 +2281,7 @@ function FunnelDemo() {
     showLabels: true,
     showValues: true,
     showPercentage: true,
+    colorblindPatterns: cbp,
   });
 }
 
@@ -2227,6 +2299,7 @@ function BigNumberDemo() {
 }
 
 function GaugeDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(Gauge, {
     value: 72,
     min: 0,
@@ -2240,10 +2313,12 @@ function GaugeDemo() {
     label: "Performance",
     unit: "%",
     colors: ["#ef4444", "#f59e0b", "#10b981"],
+    colorblindPatterns: cbp,
   });
 }
 
 function RadarDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(RadarChart, {
     axes: [
       { label: "Speed" },
@@ -2261,6 +2336,7 @@ function RadarDemo() {
     height: 280,
     showLabels: true,
     showLegend: true,
+    colorblindPatterns: cbp,
   });
 }
 
@@ -2285,6 +2361,7 @@ function WordCloudDemo() {
 }
 
 function HeatMapDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(HeatMap, {
     data: [
       [5, 3, 8, 2, 6],
@@ -2298,10 +2375,12 @@ function HeatMapDemo() {
     height: 160,
     showValues: true,
     title: "Activity",
+    colorblindPatterns: cbp,
   });
 }
 
 function CalendarHeatMapDemo() {
+  const cbp = useColorblindPatterns();
   const data: { date: string; value: number }[] = [];
   const base = new Date("2026-01-01");
   for (let d = 0; d < 120; d++) {
@@ -2316,6 +2395,7 @@ function CalendarHeatMapDemo() {
     height: 120,
     showMonthLabels: true,
     showDayLabels: true,
+    colorblindPatterns: cbp,
   });
 }
 
@@ -2357,6 +2437,7 @@ function MatrixDemo() {
 }
 
 function GanttDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(GanttChart, {
     tasks: [
       { id: "1", label: "Research", start: 0, duration: 3, color: "#3b82f6" },
@@ -2370,10 +2451,12 @@ function GanttDemo() {
     showGrid: true,
     showLabels: true,
     timeUnit: "weeks",
+    colorblindPatterns: cbp,
   });
 }
 
 function TreeMapDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(TreeMap, {
     data: {
       label: "Portfolio",
@@ -2389,10 +2472,12 @@ function TreeMapDemo() {
     height: 160,
     showLabels: true,
     showValues: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function SunburstDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(Sunburst, {
     data: {
       label: "Total",
@@ -2420,10 +2505,12 @@ function SunburstDemo() {
     height: 240,
     showLabels: true,
     colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"],
+    colorblindPatterns: cbp,
   });
 }
 
 function SankeyDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(SankeyDiagram, {
     nodes: [
       { id: "a", label: "Source A" },
@@ -2442,10 +2529,12 @@ function SankeyDemo() {
     height: 180,
     showLabels: true,
     showValues: true,
+    colorblindPatterns: cbp,
   });
 }
 
 function ChordDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(ChordDiagram, {
     matrix: [
       [0, 20, 10, 5],
@@ -2458,10 +2547,12 @@ function ChordDemo() {
     height: 240,
     showLabels: true,
     colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
+    colorblindPatterns: cbp,
   });
 }
 
 function PartitionDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(Partition, {
     data: {
       label: "Root",
@@ -2490,10 +2581,12 @@ function PartitionDemo() {
     showLabels: true,
     showValues: true,
     colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"],
+    colorblindPatterns: cbp,
   });
 }
 
 function DecompositionTreeDemo() {
+  const cbp = useColorblindPatterns();
   return createElement(DecompositionTree, {
     data: {
       label: "Revenue",
@@ -2522,6 +2615,7 @@ function DecompositionTreeDemo() {
     orientation: "horizontal",
     showValues: true,
     showConnectors: true,
+    colorblindPatterns: cbp,
   });
 }
 
@@ -3008,6 +3102,7 @@ function createForce(mode: PhysicsMode, n: number) {
 }
 
 function DoublePendulumDemo() {
+  const cbp = useColorblindPatterns();
   const [jointCount, setJointCount] = useState(3);
   const [mode, setMode] = useState<PhysicsMode>("verlet");
   const [gravCoeff, setGravCoeff] = useState(100);
@@ -3068,6 +3163,7 @@ function DoublePendulumDemo() {
           nodeRadius: 7,
           showLabels: false,
           edgeWidth: 2,
+          colorblindPatterns: cbp,
         }),
       ),
       createElement(

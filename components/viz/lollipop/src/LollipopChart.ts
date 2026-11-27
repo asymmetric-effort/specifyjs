@@ -20,6 +20,7 @@
 import { createElement } from "../../../../core/src/index";
 import { useMemo, useCallback } from "../../../../core/src/hooks/index";
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -56,6 +57,8 @@ export interface LollipopChartProps {
   title?: string;
   /** Padding around chart area in px (default: 60) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on dots (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -89,6 +92,7 @@ export function LollipopChart(props: LollipopChartProps) {
     showValues = true,
     title,
     padding = 60,
+    colorblindPatterns = false,
   } = props;
 
   const isVertical = orientation === "vertical";
@@ -286,6 +290,19 @@ export function LollipopChart(props: LollipopChartProps) {
           }),
         );
 
+        if (colorblindPatterns) {
+          elements.push(
+            createElement("circle", {
+              key: `dot-pattern-${i}`,
+              cx: String(cx),
+              cy: String(tipY),
+              r: String(dotRadius),
+              fill: getPatternFill(i),
+              "pointer-events": "none",
+            }),
+          );
+        }
+
         // Value label
         if (showValues) {
           elements.push(
@@ -353,6 +370,19 @@ export function LollipopChart(props: LollipopChartProps) {
             fill,
           }),
         );
+
+        if (colorblindPatterns) {
+          elements.push(
+            createElement("circle", {
+              key: `dot-pattern-h-${i}`,
+              cx: String(tipX),
+              cy: String(cy),
+              r: String(dotRadius),
+              fill: getPatternFill(i),
+              "pointer-events": "none",
+            }),
+          );
+        }
 
         // Value label
         if (showValues) {
@@ -471,6 +501,7 @@ export function LollipopChart(props: LollipopChartProps) {
       "aria-label": title ?? "Lollipop chart",
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...gridLines,
     ...axes,

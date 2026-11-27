@@ -22,6 +22,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -54,6 +55,8 @@ export interface FunnelChartProps {
   colors?: string[];
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on sections (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Defaults -----------------------------------------------------------------
@@ -84,6 +87,7 @@ export function FunnelChart(props: FunnelChartProps) {
     gapSize = 2,
     colors = DEFAULT_COLORS,
     title,
+    colorblindPatterns = false,
   } = props;
 
   const isVertical = orientation === 'vertical';
@@ -159,6 +163,17 @@ export function FunnelChart(props: FunnelChartProps) {
           'stroke-width': '1',
         }),
       );
+
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('polygon', {
+            key: `section-pattern-${i}`,
+            points,
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       // Labels and values to the right of the funnel
       const labelX = chartPadding + funnelWidth + 12;
@@ -259,6 +274,17 @@ export function FunnelChart(props: FunnelChartProps) {
           'stroke-width': '1',
         }),
       );
+
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('polygon', {
+            key: `section-pattern-h-${i}`,
+            points,
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       // Labels below each section
       const labelX = x + sectionWidth / 2;
@@ -375,6 +401,7 @@ export function FunnelChart(props: FunnelChartProps) {
       'aria-label': title ?? 'Funnel chart',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...funnelEls,
     ...emptyState,

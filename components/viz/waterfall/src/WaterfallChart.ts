@@ -24,6 +24,7 @@ import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
 import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
 import type { ScaleType } from '../../wrapper/src/log-scale';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -64,6 +65,8 @@ export interface WaterfallChartProps {
   scaleType?: ScaleType;
   /** Base for logarithmic scale (default: 10) */
   logBase?: number;
+  /** Show colorblind-accessible pattern overlays on bars (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Internal types -----------------------------------------------------------
@@ -142,6 +145,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
     padding = 60,
     scaleType = 'linear' as ScaleType,
     logBase = 10,
+    colorblindPatterns = false,
   } = props;
 
   const chartWidth = width - padding * 2;
@@ -321,6 +325,21 @@ export function WaterfallChart(props: WaterfallChartProps) {
         }),
       );
 
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', {
+            key: `bar-pattern-${i}`,
+            x: String(x),
+            y: String(yTop),
+            width: String(barWidth),
+            height: String(barHeight),
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       // Value label
       if (showValues) {
         const labelY = b.type === 'decrease' || b.value < 0
@@ -452,6 +471,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
       'aria-label': title ?? 'Waterfall chart',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...gridLines,
     ...axes,

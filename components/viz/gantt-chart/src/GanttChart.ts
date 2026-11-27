@@ -22,6 +22,7 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -59,6 +60,8 @@ export interface GanttChartProps {
   title?: string;
   /** Padding around chart area in px (default: 50) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on task bars (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Constants ----------------------------------------------------------------
@@ -104,6 +107,7 @@ export function GanttChart(props: GanttChartProps) {
     timeUnit = 'days',
     title,
     padding = 50,
+    colorblindPatterns = false,
   } = props;
 
   // Handle empty data
@@ -322,6 +326,22 @@ export function GanttChart(props: GanttChartProps) {
         }),
       );
 
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', {
+            key: `bar-pattern-${task.id}`,
+            x: String(x),
+            y: String(y),
+            width: String(barW),
+            height: String(barHeight),
+            rx: '4',
+            ry: '4',
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       // Label on left
       if (showLabels) {
         elements.push(
@@ -404,6 +424,7 @@ export function GanttChart(props: GanttChartProps) {
       'aria-label': title ?? 'Gantt chart',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...gridLines,
     ...timeAxis,

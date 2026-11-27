@@ -19,6 +19,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -52,6 +53,8 @@ export interface CalendarHeatMapProps {
   emptyColor?: string;
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on cells (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -131,6 +134,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
     showDayLabels = true,
     emptyColor = '#ebedf0',
     title,
+    colorblindPatterns = false,
   } = props;
 
   // Build a lookup map from date string to value
@@ -213,6 +217,22 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
           'aria-label': `${key}: ${value ?? 0}`,
         }),
       );
+
+      if (colorblindPatterns && value !== undefined && value > 0) {
+        elements.push(
+          createElement('rect', {
+            key: `day-pattern-${key}`,
+            x: String(x),
+            y: String(y),
+            width: String(cellSize),
+            height: String(cellSize),
+            rx: '2',
+            ry: '2',
+            fill: getPatternFill(dayOfWeek),
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       current.setDate(current.getDate() + 1);
     }
@@ -364,6 +384,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
       'aria-label': title ?? 'Calendar heat map',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEls,
     ...monthEls,
     ...dayLabelEls,

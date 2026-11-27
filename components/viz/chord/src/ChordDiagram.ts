@@ -20,6 +20,7 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Props --------------------------------------------------------------------
 
@@ -46,6 +47,8 @@ export interface ChordDiagramProps {
   innerRadiusRatio?: number;
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on arcs (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Default palette ----------------------------------------------------------
@@ -324,6 +327,7 @@ export function ChordDiagram(props: ChordDiagramProps) {
     ribbonOpacity = 0.5,
     innerRadiusRatio = 0.9,
     title,
+    colorblindPatterns = false,
   } = props;
 
   // Handle empty/invalid data
@@ -388,6 +392,18 @@ export function ChordDiagram(props: ChordDiagramProps) {
           'aria-label': `${group.label}: ${group.value}`,
         }),
       );
+
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('path', {
+            key: `arc-pattern-${i}`,
+            d,
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       // Label
       if (showLabels) {
@@ -503,6 +519,7 @@ export function ChordDiagram(props: ChordDiagramProps) {
       'aria-label': title ?? 'Chord diagram',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...ribbonElements,
     ...arcElements,

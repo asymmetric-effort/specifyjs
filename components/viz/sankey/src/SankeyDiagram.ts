@@ -21,6 +21,7 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -64,6 +65,8 @@ export interface SankeyDiagramProps {
   title?: string;
   /** Padding around chart area in px (default: 40) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on nodes (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Default palette ----------------------------------------------------------
@@ -356,6 +359,7 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
     colors = DEFAULT_PALETTE,
     title,
     padding = 40,
+    colorblindPatterns = false,
   } = props;
 
   // Handle empty data
@@ -466,6 +470,20 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
         }),
       );
 
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', {
+            key: `node-pattern-${node.id}`,
+            x: String(node.x),
+            y: String(node.y),
+            width: String(nodeWidth),
+            height: String(node.height),
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       // Label
       if (showLabels) {
         // Place label to the right of last column nodes, left of others
@@ -542,6 +560,7 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
       'aria-label': title ?? 'Sankey diagram',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...linkElements,
     ...nodeElements,

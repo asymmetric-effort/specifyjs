@@ -25,6 +25,7 @@ import {
 import { useVizTheme } from '../../theme/src/index';
 import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
 import type { ScaleType } from '../../wrapper/src/log-scale';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -76,6 +77,8 @@ export interface BarGraphProps {
   scaleType?: ScaleType;
   /** Base for logarithmic scale (default: 10) */
   logBase?: number;
+  /** Show colorblind-accessible pattern overlays on bars (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Scale types --------------------------------------------------------------
@@ -234,6 +237,7 @@ export function BarGraph(props: BarGraphProps) {
     grouped = false,
     scaleType = 'linear' as ScaleType,
     logBase = 10,
+    colorblindPatterns = false,
   } = props;
 
   const isVertical = orientation === 'vertical';
@@ -482,6 +486,12 @@ export function BarGraph(props: BarGraphProps) {
         createElement('rect', { key: `bar-${i}`, ...rectProps }),
       );
 
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', { key: `bar-pattern-${i}`, ...rectProps, fill: getPatternFill(i), 'pointer-events': 'none' }),
+        );
+      }
+
       if (showValues) {
         elements.push(
           createElement('text', { key: `val-${i}`, ...labelProps }, labelText),
@@ -567,6 +577,20 @@ export function BarGraph(props: BarGraphProps) {
             }),
           );
 
+          if (colorblindPatterns) {
+            elements.push(
+              createElement('rect', {
+                key: `sbar-pattern-${i}-${j}`,
+                x: String(x),
+                y: String(y),
+                width: String(scales.barThickness),
+                height: String(segLen),
+                fill: getPatternFill(j),
+                'pointer-events': 'none',
+              }),
+            );
+          }
+
           if (showValues && segLen > 14) {
             elements.push(
               createElement(
@@ -602,6 +626,20 @@ export function BarGraph(props: BarGraphProps) {
                 : {}),
             }),
           );
+
+          if (colorblindPatterns) {
+            elements.push(
+              createElement('rect', {
+                key: `sbar-pattern-h-${i}-${j}`,
+                x: String(x),
+                y: String(y),
+                width: String(segLen),
+                height: String(scales.barThickness),
+                fill: getPatternFill(j),
+                'pointer-events': 'none',
+              }),
+            );
+          }
 
           if (showValues && segLen > 20) {
             elements.push(
@@ -748,6 +786,20 @@ export function BarGraph(props: BarGraphProps) {
             }),
           );
 
+          if (colorblindPatterns) {
+            elements.push(
+              createElement('rect', {
+                key: `gbar-pattern-${i}-${j}`,
+                x: String(x),
+                y: String(y),
+                width: String(subBarThickness),
+                height: String(barLen),
+                fill: getPatternFill(catIndex >= 0 ? catIndex : j),
+                'pointer-events': 'none',
+              }),
+            );
+          }
+
           if (showValues) {
             elements.push(
               createElement(
@@ -783,6 +835,20 @@ export function BarGraph(props: BarGraphProps) {
                 : {}),
             }),
           );
+
+          if (colorblindPatterns) {
+            elements.push(
+              createElement('rect', {
+                key: `gbar-pattern-h-${i}-${j}`,
+                x: String(x),
+                y: String(y),
+                width: String(barLen),
+                height: String(subBarThickness),
+                fill: getPatternFill(catIndex >= 0 ? catIndex : j),
+                'pointer-events': 'none',
+              }),
+            );
+          }
 
           if (showValues) {
             elements.push(
@@ -912,6 +978,7 @@ export function BarGraph(props: BarGraphProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...animDefs,
     ...titleEl,
     ...gridLines,

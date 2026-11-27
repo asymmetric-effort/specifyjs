@@ -23,6 +23,7 @@ import {
 import { useVizTheme } from '../../theme/src/index';
 import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
 import type { ScaleType } from '../../wrapper/src/log-scale';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -69,6 +70,8 @@ export interface BubbleChartProps {
   scaleType?: ScaleType;
   /** Base for logarithmic scale (default: 10) */
   logBase?: number;
+  /** Show colorblind-accessible pattern overlays on bubbles (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -118,6 +121,7 @@ export function BubbleChart(props: BubbleChartProps) {
     padding = 60,
     scaleType = 'linear' as ScaleType,
     logBase = 10,
+    colorblindPatterns = false,
   } = props;
 
   // Filter out invalid data points
@@ -404,6 +408,19 @@ export function BubbleChart(props: BubbleChartProps) {
         }),
       );
 
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('circle', {
+            key: `bubble-pattern-${i}`,
+            cx: String(cx),
+            cy: String(cy),
+            r: String(r),
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       if (showLabels && d.label) {
         elements.push(
           createElement(
@@ -466,6 +483,7 @@ export function BubbleChart(props: BubbleChartProps) {
       'aria-label': title ?? 'Bubble chart',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleElements,
     ...gridElements,
     ...axesElements,

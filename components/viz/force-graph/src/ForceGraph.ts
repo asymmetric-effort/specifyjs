@@ -18,6 +18,7 @@
 
 import { createElement } from "../../../../core/src/index";
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 import {
   useState,
   useEffect,
@@ -139,6 +140,8 @@ export interface ForceGraphProps {
   customForce?: CustomForceFunction;
   /** Trail configurations — render fading path trails for specific nodes */
   trails?: TrailConfig[];
+  /** Show colorblind-accessible pattern overlays on nodes (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Internal simulation state uses exported ForceSimNode ---------------------
@@ -413,6 +416,7 @@ export function ForceGraph(props: ForceGraphProps) {
     title,
     customForce,
     trails,
+    colorblindPatterns = false,
   } = props;
 
   // Handle empty data
@@ -757,6 +761,20 @@ export function ForceGraph(props: ForceGraphProps) {
         }),
       );
 
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement("circle", {
+            key: `node-pattern-${n.id}`,
+            cx: String(n.x),
+            cy: String(n.y),
+            r: String(nodeRadius),
+            fill: getPatternFill(i),
+            "pointer-events": "none",
+          }),
+        );
+      }
+
       // Label
       if (showLabels) {
         elements.push(
@@ -861,6 +879,7 @@ export function ForceGraph(props: ForceGraphProps) {
       onMouseLeave: handleMouseLeaveGraph,
     },
     ...defs,
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...trailElements,
     ...edgeElements,

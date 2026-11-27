@@ -19,6 +19,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -59,6 +60,8 @@ export interface RadarChartProps {
   gridColor?: string;
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on series polygons (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -97,6 +100,7 @@ export function RadarChart(props: RadarChartProps) {
     showDots = theme.points.show,
     gridColor = '#d1d5db',
     title,
+    colorblindPatterns = false,
   } = props;
 
   const axisCount = axes.length;
@@ -281,6 +285,18 @@ export function RadarChart(props: RadarChartProps) {
         }),
       );
 
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('polygon', {
+            key: `series-pattern-${si}`,
+            points: polyPoints.join(' '),
+            fill: getPatternFill(si),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       // Outline polygon
       elements.push(
         createElement('polygon', {
@@ -415,6 +431,7 @@ export function RadarChart(props: RadarChartProps) {
       'aria-label': title ?? 'Radar chart',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEls,
     ...gridEls,
     ...labelEls,

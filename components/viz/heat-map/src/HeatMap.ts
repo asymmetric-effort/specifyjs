@@ -19,6 +19,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Props --------------------------------------------------------------------
 
@@ -49,6 +50,8 @@ export interface HeatMapProps {
   title?: string;
   /** Padding around the chart in px (default: 60) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on cells (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Color helpers ------------------------------------------------------------
@@ -124,6 +127,7 @@ export function HeatMap(props: HeatMapProps) {
     cellBorderWidth = theme.segments.strokeWidth,
     title,
     padding = 60,
+    colorblindPatterns = false,
   } = props;
 
   const rowCount = data.length;
@@ -187,6 +191,20 @@ export function HeatMap(props: HeatMapProps) {
             'stroke-width': cellBorderWidth > 0 ? String(cellBorderWidth) : undefined,
           }),
         );
+
+        if (colorblindPatterns) {
+          elements.push(
+            createElement('rect', {
+              key: `cell-pattern-${r}-${c}`,
+              x: String(x),
+              y: String(y),
+              width: String(cellWidth),
+              height: String(cellHeight),
+              fill: getPatternFill(r * colCount + c),
+              'pointer-events': 'none',
+            }),
+          );
+        }
 
         if (showValues) {
           const textColor = luminance(fillColor) > 0.5 ? '#111827' : '#ffffff';
@@ -339,6 +357,7 @@ export function HeatMap(props: HeatMapProps) {
       'aria-label': title ?? 'Heat map',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEls,
     ...cellEls,
     ...labelEls,

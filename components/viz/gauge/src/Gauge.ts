@@ -22,6 +22,7 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Props --------------------------------------------------------------------
 
@@ -60,6 +61,8 @@ export interface GaugeProps {
   needleColor?: string;
   /** Background arc color (default: '#e5e7eb') */
   backgroundColor?: string;
+  /** Show colorblind-accessible pattern overlays on gauge segments (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -128,6 +131,7 @@ export function Gauge(props: GaugeProps) {
     colors = ['#22c55e', '#f59e0b', '#ef4444'],
     needleColor = '#374151',
     backgroundColor = '#e5e7eb',
+    colorblindPatterns = false,
   } = props;
 
   // Ensure valid range
@@ -208,6 +212,20 @@ export function Gauge(props: GaugeProps) {
           opacity: '0.85',
         }),
       );
+
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('path', {
+            key: `seg-pattern-${i}`,
+            d,
+            fill: 'none',
+            stroke: getPatternFill(i),
+            'stroke-width': String(arcWidth),
+            'stroke-linecap': i === 0 || i === colors.length - 1 ? theme.lineCap : 'butt',
+            'pointer-events': 'none',
+          }),
+        );
+      }
     }
 
     return elements;
@@ -431,6 +449,7 @@ export function Gauge(props: GaugeProps) {
       'aria-label': ariaDesc,
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...bgArc,
     ...colorSegments,
     ...ticks,

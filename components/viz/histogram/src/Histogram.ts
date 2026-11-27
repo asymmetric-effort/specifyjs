@@ -20,6 +20,7 @@ import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
 import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
 import type { ScaleType } from '../../wrapper/src/log-scale';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Props --------------------------------------------------------------------
 
@@ -52,6 +53,8 @@ export interface HistogramProps {
   scaleType?: ScaleType;
   /** Base for logarithmic scale (default: 10) */
   logBase?: number;
+  /** Show colorblind-accessible pattern overlays on bins (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Types --------------------------------------------------------------------
@@ -139,6 +142,7 @@ export function Histogram(props: HistogramProps) {
     padding = 60,
     scaleType = 'linear' as ScaleType,
     logBase = 10,
+    colorblindPatterns = false,
   } = props;
 
   const effectiveBins = Math.max(1, Math.round(numBins));
@@ -294,6 +298,21 @@ export function Histogram(props: HistogramProps) {
           fill: barColor,
         }),
       );
+
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', {
+            key: `bar-pattern-${i}`,
+            x: String(x),
+            y: String(y),
+            width: String(barWidth),
+            height: String(barHeight),
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
 
       // Value label above bar
       if (showValues && bin.count > 0) {
@@ -466,6 +485,7 @@ export function Histogram(props: HistogramProps) {
       'aria-label': title ?? 'Histogram',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEls,
     ...gridLines,
     ...axes,

@@ -24,6 +24,7 @@ import {
 import { useVizTheme } from '../../theme/src/index';
 import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
 import type { ScaleType } from '../../wrapper/src/log-scale';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -65,6 +66,8 @@ export interface BoxPlotProps {
   scaleType?: ScaleType;
   /** Base for logarithmic scale (default: 10) */
   logBase?: number;
+  /** Show colorblind-accessible pattern overlays on boxes (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Statistics ---------------------------------------------------------------
@@ -198,6 +201,7 @@ export function BoxPlot(props: BoxPlotProps) {
     padding = 60,
     scaleType = 'linear' as ScaleType,
     logBase = 10,
+    colorblindPatterns = false,
   } = props;
 
   const isVertical = orientation === 'vertical';
@@ -466,6 +470,20 @@ export function BoxPlot(props: BoxPlotProps) {
           }),
         );
 
+        if (colorblindPatterns) {
+          elements.push(
+            createElement('rect', {
+              key: `box-pattern-${i}`,
+              x: String(cx - halfBox),
+              y: String(boxTop),
+              width: String(effectiveBoxWidth),
+              height: String(Math.max(boxHeight, 1)),
+              fill: getPatternFill(i),
+              'pointer-events': 'none',
+            }),
+          );
+        }
+
         // Median line
         elements.push(
           createElement('line', {
@@ -603,6 +621,20 @@ export function BoxPlot(props: BoxPlotProps) {
           }),
         );
 
+        if (colorblindPatterns) {
+          elements.push(
+            createElement('rect', {
+              key: `box-pattern-h-${i}`,
+              x: String(boxLeft),
+              y: String(cy - halfBox),
+              width: String(Math.max(boxW, 1)),
+              height: String(effectiveBoxWidth),
+              fill: getPatternFill(i),
+              'pointer-events': 'none',
+            }),
+          );
+        }
+
         // Median line
         elements.push(
           createElement('line', {
@@ -707,6 +739,7 @@ export function BoxPlot(props: BoxPlotProps) {
       'aria-label': title ?? 'Box plot',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleElements,
     ...gridElements,
     ...axesElements,

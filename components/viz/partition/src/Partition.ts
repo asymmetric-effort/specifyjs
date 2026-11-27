@@ -17,6 +17,7 @@
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -52,6 +53,8 @@ export interface PartitionProps {
   title?: string;
   /** Padding around chart area in px (default: 10) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on cells (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Constants ----------------------------------------------------------------
@@ -227,6 +230,7 @@ export function Partition(props: PartitionProps) {
     borderWidth = theme.segments.strokeWidth,
     title,
     padding = 10,
+    colorblindPatterns = false,
   } = props;
 
   const titleOffset = title ? 30 : 0;
@@ -271,6 +275,11 @@ export function Partition(props: PartitionProps) {
 
   const elements: ReturnType<typeof createElement>[] = [];
 
+  // Colorblind-accessible pattern definitions (opt-in)
+  if (colorblindPatterns) {
+    elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+  }
+
   // Title
   if (title) {
     elements.push(
@@ -310,6 +319,21 @@ export function Partition(props: PartitionProps) {
         'aria-label': `${r.label}: ${r.value}`,
       }),
     );
+
+    // Colorblind pattern overlay (opt-in)
+    if (colorblindPatterns) {
+      elements.push(
+        createElement('rect', {
+          key: `cell-pattern-${i}`,
+          x: String(r.x),
+          y: String(r.y),
+          width: String(Math.max(0, r.w)),
+          height: String(Math.max(0, r.h)),
+          fill: getPatternFill(i),
+          'pointer-events': 'none',
+        }),
+      );
+    }
 
     // Label
     if (showLabels && r.w > 20 && r.h > 14) {

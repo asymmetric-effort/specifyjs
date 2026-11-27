@@ -20,6 +20,7 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { createPatternDefs, getPatternFill } from '../../wrapper/src/colorblind-patterns';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -57,6 +58,8 @@ export interface DecompositionTreeProps {
   title?: string;
   /** Padding around chart area in px (default: 40) */
   padding?: number;
+  /** Show colorblind-accessible pattern overlays on nodes (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Default palette ----------------------------------------------------------
@@ -292,6 +295,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
     colors = DEFAULT_PALETTE,
     title,
     padding = 40,
+    colorblindPatterns = false,
   } = props;
 
   // Handle null/undefined data
@@ -421,6 +425,23 @@ export function DecompositionTree(props: DecompositionTreeProps) {
         }),
       );
 
+      // Colorblind pattern overlay (opt-in)
+      if (colorblindPatterns) {
+        elements.push(
+          createElement('rect', {
+            key: `node-pattern-${node.id}`,
+            x: String(node.x),
+            y: String(node.y),
+            width: String(nodeWidth),
+            height: String(nodeHeight),
+            rx: '4',
+            ry: '4',
+            fill: getPatternFill(i),
+            'pointer-events': 'none',
+          }),
+        );
+      }
+
       // Label text
       const labelY = showValues && node.value
         ? node.y + nodeHeight / 2 - 2
@@ -507,6 +528,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
       'aria-label': title ?? 'Decomposition tree',
       style: { fontFamily: theme.fontFamily },
     },
+    ...(colorblindPatterns ? [createPatternDefs() as ReturnType<typeof createElement>] : []),
     ...titleEl,
     ...connectorElements,
     ...nodeElements,

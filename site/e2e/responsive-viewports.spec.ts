@@ -10,7 +10,6 @@ import { test, expect } from '@playwright/test';
 
 // Skip gallery/layout tests in PDV — dialog+accordion navigation at mobile
 // viewport is unreliable on the deployed staging site. Validated in E2E.
-const isPDV = !!process.env.SITE_URL;
 
 const VIEWPORTS = [
   { name: 'iPhone SE portrait', width: 375, height: 667, mobile: true },
@@ -63,7 +62,7 @@ for (const vp of VIEWPORTS) {
 
 // ── Mobile-specific: navigation collapses ──────────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('Mobile navigation', () => {
+test.describe('Mobile navigation', () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
   test('hamburger menu is visible on mobile', async ({ page }) => {
@@ -97,7 +96,7 @@ for (const vp of VIEWPORTS) {
 
 // ── Desktop layout mobile fallbacks ────────────────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('Desktop layout fallbacks on mobile', () => {
+test.describe('Desktop layout fallbacks on mobile', () => {
   test.use({ viewport: { width: 393, height: 852 } });
 
   test.beforeEach(async ({ page }) => {

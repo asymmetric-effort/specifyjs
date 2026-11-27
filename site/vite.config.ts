@@ -31,6 +31,22 @@ function cssBannerPlugin(): Plugin {
 }
 
 /**
+ * Vite plugin to inject specifyjs-version meta tag into index.html at build time.
+ * PDV tests use this to verify they're testing the correct deployed version.
+ */
+function versionMetaPlugin(): Plugin {
+  return {
+    name: 'specifyjs-version-meta',
+    transformIndexHtml(html) {
+      return html.replace(
+        '</head>',
+        `  <meta name="specifyjs-version" content="${corePkg.version}">\n</head>`,
+      );
+    },
+  };
+}
+
+/**
  * Load local HTTPS certs if available.
  * Run scripts/setup-dev-certs.sh to generate them.
  */
@@ -270,6 +286,7 @@ export default defineConfig({
     },
   },
   plugins: [
+    versionMetaPlugin(),
     copy404Plugin(),
     cssBannerPlugin(),
     specifyJsSeoPlugin({

@@ -8,9 +8,8 @@ import { test, expect } from '@playwright/test';
  * Validated in E2E across chromium/firefox/webkit.
  */
 
-const isPDV = !!process.env.SITE_URL;
 
-(isPDV ? test.describe.skip : test.describe)('Viz Theme Toggle (#185)', () => {
+test.describe('Viz Theme Toggle (#185)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15_000 });

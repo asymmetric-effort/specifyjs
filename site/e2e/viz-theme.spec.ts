@@ -7,9 +7,8 @@ import { test, expect } from '@playwright/test';
  * and that themes produce visually different output.
  */
 
-const isPDV = !!process.env.SITE_URL;
 
-(isPDV ? test.describe.skip : test.describe)('Viz Theme Toggle', () => {
+test.describe('Viz Theme Toggle', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });
@@ -61,7 +60,7 @@ const isPDV = !!process.env.SITE_URL;
 
 // Verify chart SVG elements reflect theme tokens
 
-(isPDV ? test.describe.skip : test.describe)('Viz Theme — Chart Rendering', () => {
+test.describe('Viz Theme — Chart Rendering', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });

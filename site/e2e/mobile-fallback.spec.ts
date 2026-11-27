@@ -3,13 +3,10 @@
 
 import { test, expect } from '@playwright/test';
 
-// Skip in PDV (staging/production) — the component gallery's dialog+accordion
 // navigation is unreliable at mobile viewport on the deployed site. These tests
 // pass in E2E (dev server) across chromium/firefox/webkit.
-const isPDV = !!process.env.SITE_URL;
-const describeOrSkip = isPDV ? test.describe.skip : test.describe;
 
-describeOrSkip('Mobile fallback for desktop layouts', () => {
+test.describe('Mobile fallback for desktop layouts', () => {
   // Use a wide viewport for navigation (the gallery needs it),
   // then resize to mobile AFTER the layout loads.
   test('Unity Desktop shows mobile fallback at mobile width', async ({ page }) => {

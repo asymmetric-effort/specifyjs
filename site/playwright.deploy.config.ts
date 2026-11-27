@@ -11,11 +11,16 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   retries: 2,
-  timeout: 30000,
+  timeout: 45000,
   use: {
     baseURL: process.env.SITE_URL || 'https://specifyjs.asymmetric-effort.com',
     trace: 'on-first-retry',
     ignoreHTTPSErrors: true,
+    // Defeat CDN caching: disable browser cache and add cache-control headers
+    extraHTTPHeaders: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
     launchOptions: {
       args: ['--disk-cache-size=0', '--disable-http-cache'],
     },

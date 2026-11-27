@@ -8,8 +8,6 @@ import { test, expect } from '@playwright/test';
  * NavWrapper component's automatic responsive behavior.
  */
 
-// Skip in PDV — deployed site may have CDN caching differences
-const isPDV = !!process.env.SITE_URL;
 
 // ── Desktop: nav links visible, no hamburger ───────────────────────────
 
@@ -48,7 +46,7 @@ test.describe('Tablet landscape (1024x768)', () => {
 
 // ── Mobile: hamburger visible, nav links hidden ────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('Mobile navigation (393x852)', () => {
+test.describe('Mobile navigation (393x852)', () => {
   test.use({ viewport: { width: 393, height: 852 } });
 
   test('hamburger button is visible on mobile', async ({ page }) => {
@@ -121,7 +119,7 @@ test.describe('Tablet landscape (1024x768)', () => {
 
 // ── iPhone SE portrait ─────────────────────────────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('iPhone SE (375x667)', () => {
+test.describe('iPhone SE (375x667)', () => {
   test.use({ viewport: { width: 375, height: 667 } });
 
   test('hamburger visible on iPhone SE', async ({ page }) => {
@@ -137,7 +135,7 @@ test.describe('Tablet landscape (1024x768)', () => {
 
 // ── iPad portrait (768px breakpoint edge) ──────────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('iPad portrait (768x1024)', () => {
+test.describe('iPad portrait (768x1024)', () => {
   test.use({ viewport: { width: 768, height: 1024 } });
 
   test('nav links visible at exactly 768px (breakpoint boundary)', async ({ page }) => {
@@ -149,7 +147,7 @@ test.describe('Tablet landscape (1024x768)', () => {
 
 // ── Viewport resize transition ─────────────────────────────────────────
 
-(isPDV ? test.describe.skip : test.describe)('Viewport resize', () => {
+test.describe('Viewport resize', () => {
   test('resizing from desktop to mobile shows hamburger', async ({ page }) => {
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/');

@@ -64,6 +64,11 @@ export interface VizTheme {
     /** Point marker radius in pixels */
     radius: number;
   };
+  /** Segment/slice styling (pie, donut, funnel, partition) */
+  segments: {
+    /** Stroke width between segments (0 = no borders) */
+    strokeWidth: number;
+  };
   /** Legend appearance */
   legend: {
     /** Size of color swatch in pixels */

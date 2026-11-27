@@ -43,6 +43,9 @@ export const casual: VizTheme = deepFreeze({
     show: true,
     radius: 4,
   },
+  segments: {
+    strokeWidth: 2,
+  },
   legend: {
     swatchSize: 12,
     spacing: '8px',

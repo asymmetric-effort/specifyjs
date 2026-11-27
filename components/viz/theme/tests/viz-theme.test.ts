@@ -34,6 +34,7 @@ describe('VizTheme type shape', () => {
     expect(typeof theme.axis.tickWidth).toBe('number');
     expect(typeof theme.points.show).toBe('boolean');
     expect(typeof theme.points.radius).toBe('number');
+    expect(typeof theme.segments.strokeWidth).toBe('number');
     expect(typeof theme.legend.swatchSize).toBe('number');
     expect(typeof theme.legend.spacing).toBe('string');
     expect(typeof theme.animation.duration).toBe('number');
@@ -131,6 +132,10 @@ describe('casual theme', () => {
     expect(casual.points.radius).toBe(4);
   });
 
+  it('segments.strokeWidth is 2', () => {
+    expect(casual.segments.strokeWidth).toBe(2);
+  });
+
   it('axis.tickWidth is 0', () => {
     expect(casual.axis.tickWidth).toBe(0);
   });
@@ -220,6 +225,10 @@ describe('crisp theme', () => {
 
   it('points.radius is 2 (small if shown via override)', () => {
     expect(crisp.points.radius).toBe(2);
+  });
+
+  it('segments.strokeWidth is 0 (no borders between pie/donut segments)', () => {
+    expect(crisp.segments.strokeWidth).toBe(0);
   });
 
   it('legend.swatchSize is 8', () => {

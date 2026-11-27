@@ -200,7 +200,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
     centerLabel,
     colors: customColors,
     strokeColor = '#fff',
-    strokeWidth = 2,
+    strokeWidth = theme.segments.strokeWidth,
     textColor = 'currentColor',
   } = props;
 

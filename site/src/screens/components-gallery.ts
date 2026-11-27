@@ -956,7 +956,6 @@ function LineGraphDemo() {
     ],
     width: 240,
     height: 200,
-    showPoints: true,
     showGrid: true,
     lineColor: "#3b82f6",
     title: "Weekly Trend",
@@ -1038,7 +1037,6 @@ function ScatterPlotDemo() {
     ],
     showGrid: true,
     showAxes: true,
-    pointRadius: 4,
     pointColor: "#3b82f6",
   });
 }
@@ -1742,7 +1740,6 @@ function CartesianRoseDemo() {
       yRange: [-1.2, 1.2],
       showGrid: true,
       showAxes: true,
-      pointRadius: 2,
       pointColor: "#3b82f6",
       curveColor: "#3b82f6",
     }),
@@ -2064,7 +2061,6 @@ function TimeSeriesDemo() {
     data: values.map((y, i) => ({ x: i, y })),
     width: 280,
     height: 220,
-    showPoints: true,
     showGrid: true,
     showArea: true,
     lineColor: "#3b82f6",

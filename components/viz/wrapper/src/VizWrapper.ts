@@ -12,6 +12,7 @@
 
 import { createElement, Fragment } from 'specifyjs';
 import { useMemo, useRef, useEffect } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Types ------------------------------------------------------------------
 
@@ -85,12 +86,21 @@ export interface VizWrapperProps {
 // -- Component --------------------------------------------------------------
 
 export function VizWrapper(props: VizWrapperProps) {
+  const theme = useVizTheme();
   const titlePos = props.titlePosition ?? 'top';
   const legendPos = props.legendPosition ?? 'bottom';
   const titleAlign = props.titleAlign ?? 'center';
   const legendAlign = props.legendAlign ?? 'center';
   const gap = props.gap ?? '12px';
   const contain = props.contain ?? 'layout style paint';
+
+  // Theme-aware defaults — prop overrides take precedence
+  const borderRadius = props.borderRadius ?? theme.border.radius;
+  const borderWidth = theme.border.width;
+  const fontFamily = props.fontFamily ?? theme.fontFamily;
+  const titleFontSize = props.titleFontSize ?? theme.fontSize.title;
+  const legendFontSize = props.legendFontSize ?? theme.fontSize.label;
+  const legendGap = props.legendGap ?? (parseInt(theme.legend.spacing, 10) || 16);
 
   // Build the outer container style
   const containerStyle: Record<string, string> = {
@@ -100,10 +110,10 @@ export function VizWrapper(props: VizWrapperProps) {
     width: typeof props.width === 'number' ? `${props.width}px` : (props.width ?? 'auto'),
     height: typeof props.height === 'number' ? `${props.height}px` : (props.height ?? 'auto'),
     backgroundColor: props.backgroundColor ?? '#ffffff',
-    border: props.border ?? '1px solid #e5e7eb',
-    borderRadius: props.borderRadius ?? '8px',
+    border: props.border ?? `${borderWidth} solid #e5e7eb`,
+    borderRadius,
     padding: props.padding ?? '16px',
-    fontFamily: props.fontFamily ?? 'inherit',
+    fontFamily,
     contain,
     overflow: 'hidden',
     position: 'relative',
@@ -117,11 +127,12 @@ export function VizWrapper(props: VizWrapperProps) {
     ? createElement('div', {
         className: 'viz-title',
         style: {
-          fontSize: props.titleFontSize ?? '16px',
+          fontSize: titleFontSize,
           fontWeight: props.titleFontWeight ?? '600',
           color: props.titleColor ?? '#1f2937',
           textAlign: titleAlign,
           flexShrink: '0',
+          fontFamily,
         },
       }, props.title)
     : null;
@@ -130,8 +141,8 @@ export function VizWrapper(props: VizWrapperProps) {
   const legendEl = props.legend && props.legend.length > 0
     ? buildLegend(props.legend, {
         align: legendAlign,
-        fontSize: props.legendFontSize ?? '12px',
-        gap: props.legendGap ?? 16,
+        fontSize: legendFontSize,
+        gap: legendGap,
         direction: legendPos === 'left' || legendPos === 'right' ? 'column' : 'row',
       })
     : null;

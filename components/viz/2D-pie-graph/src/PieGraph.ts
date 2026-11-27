@@ -46,6 +46,8 @@ export interface PieGraphProps {
   strokeColor?: string;
   strokeWidth?: number;
   textColor?: string;
+  /** Show colorblind-accessible pattern overlays on segments (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +205,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
     strokeColor = '#fff',
     strokeWidth = theme.segments.strokeWidth,
     textColor = 'currentColor',
+    colorblindPatterns = false,
   } = props;
 
   // Determine chart area dimensions (leave room for legend / title)
@@ -230,8 +233,10 @@ export function PieGraph(props: PieGraphProps): SpecElement {
 
   const children: SpecElement[] = [];
 
-  // Colorblind-accessible pattern definitions
-  children.push(createPatternDefs() as SpecElement);
+  // Colorblind-accessible pattern definitions (opt-in)
+  if (colorblindPatterns) {
+    children.push(createPatternDefs() as SpecElement);
+  }
 
   // Title
   if (title) {
@@ -264,15 +269,17 @@ export function PieGraph(props: PieGraphProps): SpecElement {
       }),
     );
 
-    // Colorblind pattern overlay
-    children.push(
-      createElement('path', {
-        key: `slice-pattern-${i}`,
-        d,
-        fill: getPatternFill(i),
-        pointerEvents: 'none',
-      }),
-    );
+    // Colorblind pattern overlay (opt-in)
+    if (colorblindPatterns) {
+      children.push(
+        createElement('path', {
+          key: `slice-pattern-${i}`,
+          d,
+          fill: getPatternFill(i),
+          pointerEvents: 'none',
+        }),
+      );
+    }
 
     // Label & value positioning
     if (showLabels || showValues) {

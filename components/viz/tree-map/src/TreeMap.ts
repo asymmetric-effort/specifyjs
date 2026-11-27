@@ -50,6 +50,8 @@ export interface TreeMapProps {
   padding?: number;
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on cells (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Constants ----------------------------------------------------------------
@@ -299,6 +301,7 @@ export function TreeMap(props: TreeMapProps) {
     borderWidth = theme.segments.strokeWidth,
     padding = 2,
     title,
+    colorblindPatterns = false,
   } = props;
 
   const titleOffset = title ? 30 : 0;
@@ -345,8 +348,10 @@ export function TreeMap(props: TreeMapProps) {
   // Build SVG elements
   const elements: ReturnType<typeof createElement>[] = [];
 
-  // Colorblind-accessible pattern definitions
-  elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+  // Colorblind-accessible pattern definitions (opt-in)
+  if (colorblindPatterns) {
+    elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+  }
 
   // Title
   if (title) {
@@ -388,18 +393,20 @@ export function TreeMap(props: TreeMapProps) {
       }),
     );
 
-    // Colorblind pattern overlay
-    elements.push(
-      createElement('rect', {
-        key: `cell-pattern-${i}`,
-        x: String(r.x),
-        y: String(r.y),
-        width: String(Math.max(0, r.w)),
-        height: String(Math.max(0, r.h)),
-        fill: getPatternFill(i),
-        'pointer-events': 'none',
-      }),
-    );
+    // Colorblind pattern overlay (opt-in)
+    if (colorblindPatterns) {
+      elements.push(
+        createElement('rect', {
+          key: `cell-pattern-${i}`,
+          x: String(r.x),
+          y: String(r.y),
+          width: String(Math.max(0, r.w)),
+          height: String(Math.max(0, r.h)),
+          fill: getPatternFill(i),
+          'pointer-events': 'none',
+        }),
+      );
+    }
 
     // Label
     if (showLabels && r.w > 20 && r.h > 14) {

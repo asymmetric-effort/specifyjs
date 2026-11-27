@@ -48,6 +48,8 @@ export interface SunburstProps {
   strokeWidth?: number;
   /** Chart title */
   title?: string;
+  /** Show colorblind-accessible pattern overlays on segments (default: false) */
+  colorblindPatterns?: boolean;
 }
 
 // -- Constants ----------------------------------------------------------------
@@ -269,6 +271,7 @@ export function Sunburst(props: SunburstProps) {
     strokeColor = '#ffffff',
     strokeWidth = theme.segments.strokeWidth,
     title,
+    colorblindPatterns = false,
   } = props;
 
   const cx = width / 2;
@@ -314,8 +317,10 @@ export function Sunburst(props: SunburstProps) {
 
   const elements: ReturnType<typeof createElement>[] = [];
 
-  // Colorblind-accessible pattern definitions
-  elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+  // Colorblind-accessible pattern definitions (opt-in)
+  if (colorblindPatterns) {
+    elements.push(createPatternDefs() as ReturnType<typeof createElement>);
+  }
 
   // Title
   if (title) {
@@ -363,15 +368,17 @@ export function Sunburst(props: SunburstProps) {
       }),
     );
 
-    // Colorblind pattern overlay
-    elements.push(
-      createElement('path', {
-        key: `arc-pattern-${i}`,
-        d,
-        fill: getPatternFill(i),
-        'pointer-events': 'none',
-      }),
-    );
+    // Colorblind pattern overlay (opt-in)
+    if (colorblindPatterns) {
+      elements.push(
+        createElement('path', {
+          key: `arc-pattern-${i}`,
+          d,
+          fill: getPatternFill(i),
+          'pointer-events': 'none',
+        }),
+      );
+    }
 
     // Label
     if (showLabels) {

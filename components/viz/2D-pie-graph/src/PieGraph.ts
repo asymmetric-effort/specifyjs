@@ -255,8 +255,8 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         key: `slice-${i}`,
         d,
         fill: s.color,
-        stroke: strokeColor,
-        strokeWidth,
+        stroke: strokeWidth > 0 ? strokeColor : 'none',
+        strokeWidth: strokeWidth > 0 ? strokeWidth : undefined,
       }),
     );
 

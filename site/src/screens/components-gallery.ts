@@ -277,8 +277,51 @@ export function ComponentsGallery() {
   ) as (name: string) => void;
 
   return createElement(
+    VizThemeProvider,
+    { theme: vizTheme },
+    createElement(
     "div",
     { className: "accordion" },
+    createElement(
+      "div",
+      {
+        "data-testid": "viz-theme-toggle",
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "8px 16px",
+          borderBottom: "1px solid var(--color-border, #e2e8f0)",
+          marginBottom: "4px",
+        },
+      },
+      createElement(
+        "span",
+        {
+          style: {
+            fontSize: "12px",
+            fontWeight: "600",
+            color: "var(--color-text-secondary, #64748b)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          },
+        },
+        "Viz Theme:",
+      ),
+      createElement(Button, {
+        label: vizTheme === "casual" ? "Casual" : "Crisp",
+        onClick: () =>
+          setVizTheme((prev: "casual" | "crisp") =>
+            prev === "casual" ? "crisp" : "casual",
+          ),
+        style: {
+          fontSize: "11px",
+          padding: "2px 10px",
+          borderRadius: "4px",
+          minWidth: "60px",
+        },
+      }),
+    ),
     accordionSection("Form Components", "18 components", openSection, toggle, [
       preview("Toggle", ToggleDemo, "components/form/toggle"),
       preview("Text Input", TextInputDemo, "components/form/textfield"),
@@ -360,48 +403,7 @@ export function ComponentsGallery() {
       preview("Splitter", SplitterDemo, "components/layout/splitter"),
       preview("Tabs Layout", TabsLayoutDemo, "components/layout/tabs"),
     ]),
-    createElement(
-      VizThemeProvider,
-      { theme: vizTheme },
-      createElement(
-        "div",
-        {
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            borderBottom: "1px solid var(--color-border, #e2e8f0)",
-          },
-        },
-        createElement(
-          "span",
-          {
-            style: {
-              fontSize: "12px",
-              fontWeight: "600",
-              color: "var(--color-text-secondary, #64748b)",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            },
-          },
-          "Viz Theme",
-        ),
-        createElement(Button, {
-          label: vizTheme === "casual" ? "Casual" : "Crisp",
-          onClick: () =>
-            setVizTheme((prev: "casual" | "crisp") =>
-              prev === "casual" ? "crisp" : "casual",
-            ),
-          style: {
-            fontSize: "11px",
-            padding: "2px 10px",
-            borderRadius: "4px",
-            minWidth: "60px",
-          },
-        }),
-      ),
-      accordionSection("Charts & Graphs", "12 components", openSection, toggle, [
+    accordionSection("Charts & Graphs", "12 components", openSection, toggle, [
         preview("Bar Graph", BarGraphDemo, "components/viz/2D-bar-graph"),
       preview("Line Graph", LineGraphDemo, "components/viz/2D-line-graph"),
       preview("Time-Series", TimeSeriesDemo, "components/viz/2D-line-graph"),
@@ -498,7 +500,6 @@ export function ComponentsGallery() {
       ),
       preview("Bloch Sphere", BlochSphereDemo, "components/viz/bloch-sphere"),
     ]),
-    ), // end VizThemeProvider
     createElement(
       FeatureGate,
       { flag: "page-layouts", fallback: null },
@@ -506,7 +507,8 @@ export function ComponentsGallery() {
         createElement(PageLayoutSelector, null),
       ]),
     ),
-  );
+    ), // end accordion div
+  ); // end VizThemeProvider
 }
 
 function accordionSection(

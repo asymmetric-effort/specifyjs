@@ -7,3 +7,6 @@ export type {
   Position,
   LegendItem,
 } from './VizWrapper';
+
+export { scaleValue, inverseScale, generateLogTicks } from './log-scale';
+export type { ScaleType } from './log-scale';

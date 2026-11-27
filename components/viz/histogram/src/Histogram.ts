@@ -18,6 +18,8 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // -- Props --------------------------------------------------------------------
 
@@ -46,6 +48,10 @@ export interface HistogramProps {
   yLabel?: string;
   /** Padding around chart area in px (default: 60) */
   padding?: number;
+  /** Scale type for the Y axis. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // -- Types --------------------------------------------------------------------
@@ -131,6 +137,8 @@ export function Histogram(props: HistogramProps) {
     xLabel,
     yLabel,
     padding = 60,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   const effectiveBins = Math.max(1, Math.round(numBins));
@@ -153,17 +161,42 @@ export function Histogram(props: HistogramProps) {
 
   // ---- Grid lines -----------------------------------------------------------
 
+  /** Map a count value to a Y pixel coordinate, respecting scaleType. */
+  const countToY = useCallback(
+    (count: number): number => {
+      if (scaleType === 'log') {
+        const logMax = logScaleValue(maxCount, 'log', logBase);
+        const logV = logScaleValue(Math.max(count, 1), 'log', logBase);
+        if (logMax === 0) return padding + chartHeight;
+        return padding + chartHeight - (logV / logMax) * chartHeight;
+      }
+      return padding + chartHeight - (count / maxCount) * chartHeight;
+    },
+    [scaleType, logBase, maxCount, padding, chartHeight],
+  );
+
   const buildGridLines = useCallback(() => {
     if (!showGrid) return [];
 
-    const step = niceStep(maxCount);
     const lines: ReturnType<typeof createElement>[] = [];
+    let gridValues: number[];
 
-    for (let v = step; v <= maxCount; v += step) {
-      const y = padding + chartHeight - (v / maxCount) * chartHeight;
+    if (scaleType === 'log') {
+      gridValues = generateLogTicks(1, maxCount, logBase);
+    } else {
+      const step = niceStep(maxCount);
+      gridValues = [];
+      for (let v = step; v <= maxCount; v += step) {
+        gridValues.push(v);
+      }
+    }
+
+    for (let idx = 0; idx < gridValues.length; idx++) {
+      const v = gridValues[idx]!;
+      const y = countToY(v);
       lines.push(
         createElement('line', {
-          key: `grid-${v}`,
+          key: `grid-${idx}`,
           x1: String(padding),
           y1: String(y),
           x2: String(padding + chartWidth),
@@ -177,7 +210,7 @@ export function Histogram(props: HistogramProps) {
         createElement(
           'text',
           {
-            key: `grid-label-${v}`,
+            key: `grid-label-${idx}`,
             x: String(padding - 8),
             y: String(y + 4),
             'text-anchor': 'end',
@@ -191,7 +224,7 @@ export function Histogram(props: HistogramProps) {
     }
 
     return lines;
-  }, [showGrid, maxCount, padding, chartWidth, chartHeight]);
+  }, [showGrid, maxCount, padding, chartWidth, chartHeight, scaleType, logBase, countToY]);
 
   // ---- Axes -----------------------------------------------------------------
 
@@ -238,7 +271,15 @@ export function Histogram(props: HistogramProps) {
 
     for (let i = 0; i < binnedData.length; i++) {
       const bin = binnedData[i]!;
-      const barHeight = (bin.count / maxCount) * chartHeight;
+      let barHeight: number;
+      if (scaleType === 'log') {
+        const logMax = logScaleValue(maxCount, 'log', logBase);
+        const logV = logScaleValue(Math.max(bin.count, 1), 'log', logBase);
+        barHeight = logMax === 0 ? 0 : (logV / logMax) * chartHeight;
+        if (bin.count === 0) barHeight = 0;
+      } else {
+        barHeight = (bin.count / maxCount) * chartHeight;
+      }
       const x = padding + i * (barWidth + barGap);
       const y = padding + chartHeight - barHeight;
 

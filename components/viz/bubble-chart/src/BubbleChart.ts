@@ -21,6 +21,8 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -63,6 +65,10 @@ export interface BubbleChartProps {
   title?: string;
   /** Padding around chart area in px (default: 60) */
   padding?: number;
+  /** Scale type for X and Y axes. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -110,6 +116,8 @@ export function BubbleChart(props: BubbleChartProps) {
     opacity = 0.7,
     title,
     padding = 60,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   // Filter out invalid data points
@@ -157,18 +165,34 @@ export function BubbleChart(props: BubbleChartProps) {
   // Scale functions
   const scaleX = useCallback(
     (v: number): number => {
+      if (scaleType === 'log') {
+        const logMin = logScaleValue(Math.max(extents.xMin, 1), 'log', logBase);
+        const logMax = logScaleValue(extents.xMax, 'log', logBase);
+        const logRange = logMax - logMin;
+        const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+        if (logRange === 0) return padding;
+        return padding + ((logV - logMin) / logRange) * chartWidth;
+      }
       const range = extents.xMax - extents.xMin;
       return padding + ((v - extents.xMin) / range) * chartWidth;
     },
-    [extents, padding, chartWidth],
+    [extents, padding, chartWidth, scaleType, logBase],
   );
 
   const scaleY = useCallback(
     (v: number): number => {
+      if (scaleType === 'log') {
+        const logMin = logScaleValue(Math.max(extents.yMin, 1), 'log', logBase);
+        const logMax = logScaleValue(extents.yMax, 'log', logBase);
+        const logRange = logMax - logMin;
+        const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+        if (logRange === 0) return padding + chartHeight;
+        return padding + chartHeight - ((logV - logMin) / logRange) * chartHeight;
+      }
       const range = extents.yMax - extents.yMin;
       return padding + chartHeight - ((v - extents.yMin) / range) * chartHeight;
     },
-    [extents, padding, chartHeight],
+    [extents, padding, chartHeight, scaleType, logBase],
   );
 
   const scaleR = useCallback(
@@ -188,13 +212,23 @@ export function BubbleChart(props: BubbleChartProps) {
     const elements: ReturnType<typeof createElement>[] = [];
 
     // X-axis grid lines
-    const xStep = niceStep(extents.xMax - extents.xMin);
-    const xStart = Math.ceil(extents.xMin / xStep) * xStep;
-    for (let v = xStart; v <= extents.xMax; v += xStep) {
+    let xGridValues: number[];
+    if (scaleType === 'log') {
+      xGridValues = generateLogTicks(Math.max(extents.xMin, 1), extents.xMax, logBase);
+    } else {
+      const xStep = niceStep(extents.xMax - extents.xMin);
+      const xStart = Math.ceil(extents.xMin / xStep) * xStep;
+      xGridValues = [];
+      for (let v = xStart; v <= extents.xMax; v += xStep) {
+        xGridValues.push(v);
+      }
+    }
+    for (let vi = 0; vi < xGridValues.length; vi++) {
+      const v = xGridValues[vi]!;
       const x = scaleX(v);
       elements.push(
         createElement('line', {
-          key: `grid-x-${v}`,
+          key: `grid-x-${vi}`,
           x1: String(x),
           y1: String(padding),
           x2: String(x),
@@ -208,7 +242,7 @@ export function BubbleChart(props: BubbleChartProps) {
         createElement(
           'text',
           {
-            key: `grid-xlabel-${v}`,
+            key: `grid-xlabel-${vi}`,
             x: String(x),
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
@@ -222,13 +256,23 @@ export function BubbleChart(props: BubbleChartProps) {
     }
 
     // Y-axis grid lines
-    const yStep = niceStep(extents.yMax - extents.yMin);
-    const yStart = Math.ceil(extents.yMin / yStep) * yStep;
-    for (let v = yStart; v <= extents.yMax; v += yStep) {
+    let yGridValues: number[];
+    if (scaleType === 'log') {
+      yGridValues = generateLogTicks(Math.max(extents.yMin, 1), extents.yMax, logBase);
+    } else {
+      const yStep = niceStep(extents.yMax - extents.yMin);
+      const yStart = Math.ceil(extents.yMin / yStep) * yStep;
+      yGridValues = [];
+      for (let v = yStart; v <= extents.yMax; v += yStep) {
+        yGridValues.push(v);
+      }
+    }
+    for (let yi = 0; yi < yGridValues.length; yi++) {
+      const v = yGridValues[yi]!;
       const y = scaleY(v);
       elements.push(
         createElement('line', {
-          key: `grid-y-${v}`,
+          key: `grid-y-${yi}`,
           x1: String(padding),
           y1: String(y),
           x2: String(padding + chartWidth),
@@ -242,7 +286,7 @@ export function BubbleChart(props: BubbleChartProps) {
         createElement(
           'text',
           {
-            key: `grid-ylabel-${v}`,
+            key: `grid-ylabel-${yi}`,
             x: String(padding - 6),
             y: String(y + 4),
             'text-anchor': 'end',
@@ -256,7 +300,7 @@ export function BubbleChart(props: BubbleChartProps) {
     }
 
     return elements;
-  }, [showGrid, extents, scaleX, scaleY, padding, chartWidth, chartHeight]);
+  }, [showGrid, extents, scaleX, scaleY, padding, chartWidth, chartHeight, scaleType, logBase]);
 
   // ---- Axes -----------------------------------------------------------------
 

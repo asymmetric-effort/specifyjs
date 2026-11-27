@@ -414,9 +414,10 @@ export function ComponentsGallery() {
       preview("Splitter", SplitterDemo, "components/layout/splitter"),
       preview("Tabs Layout", TabsLayoutDemo, "components/layout/tabs"),
     ]),
-    accordionSection("Charts & Graphs", "12 components", openSection, toggle, [
+    accordionSection("Charts & Graphs", "13 components", openSection, toggle, [
         preview("Bar Graph", BarGraphDemo, "components/viz/2D-bar-graph"),
       preview("Line Graph", LineGraphDemo, "components/viz/2D-line-graph"),
+      preview("Log Scale", LogScaleDemo, "components/viz/2D-line-graph"),
       preview("Time-Series", TimeSeriesDemo, "components/viz/2D-line-graph"),
       preview("Pie Chart", PieChartDemo, "components/viz/2D-pie-graph"),
       preview("Donut Chart", DonutChartDemo, "components/viz/2D-pie-graph"),
@@ -959,6 +960,24 @@ function LineGraphDemo() {
     showGrid: true,
     lineColor: "#3b82f6",
     title: "Weekly Trend",
+  });
+}
+
+function LogScaleDemo() {
+  return createElement(LineGraph, {
+    data: [
+      { x: 0, y: 1 },
+      { x: 1, y: 10 },
+      { x: 2, y: 100 },
+      { x: 3, y: 1000 },
+      { x: 4, y: 10000 },
+    ],
+    width: 240,
+    height: 200,
+    scaleType: 'log',
+    showGrid: true,
+    lineColor: '#8b5cf6',
+    title: 'Log Scale',
   });
 }
 

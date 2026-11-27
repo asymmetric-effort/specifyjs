@@ -22,6 +22,8 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -59,6 +61,10 @@ export interface BoxPlotProps {
   title?: string;
   /** Padding around chart area in px (default: 60) */
   padding?: number;
+  /** Scale type for the value axis. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // -- Statistics ---------------------------------------------------------------
@@ -190,6 +196,8 @@ export function BoxPlot(props: BoxPlotProps) {
     showGrid = true,
     title,
     padding = 60,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   const isVertical = orientation === 'vertical';
@@ -238,13 +246,21 @@ export function BoxPlot(props: BoxPlotProps) {
   const effectiveBoxWidth = categorySlot * Math.min(Math.max(boxWidth, 0.1), 0.95);
 
   // Map a value to a pixel position along the value axis
-  const scaleValue = useCallback(
+  const scaleValueFn = useCallback(
     (v: number): number => {
+      if (scaleType === 'log') {
+        const logMin = logScaleValue(Math.max(valueExtent.min, 1), 'log', logBase);
+        const logMax = logScaleValue(valueExtent.max, 'log', logBase);
+        const logRange = logMax - logMin;
+        const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+        if (logRange === 0) return valueAxisLength / 2;
+        return ((logV - logMin) / logRange) * valueAxisLength;
+      }
       const range = valueExtent.max - valueExtent.min;
       if (range === 0) return valueAxisLength / 2;
       return ((v - valueExtent.min) / range) * valueAxisLength;
     },
-    [valueExtent, valueAxisLength],
+    [valueExtent, valueAxisLength, scaleType, logBase],
   );
 
   // ---- Grid -----------------------------------------------------------------
@@ -252,12 +268,23 @@ export function BoxPlot(props: BoxPlotProps) {
   const buildGrid = useCallback(() => {
     if (!showGrid) return [];
     const elements: ReturnType<typeof createElement>[] = [];
-    const range = valueExtent.max - valueExtent.min;
-    const step = niceStep(range);
-    const start = Math.ceil(valueExtent.min / step) * step;
 
-    for (let v = start; v <= valueExtent.max; v += step) {
-      const pos = scaleValue(v);
+    let gridValues: number[];
+    if (scaleType === 'log') {
+      gridValues = generateLogTicks(Math.max(valueExtent.min, 1), valueExtent.max, logBase);
+    } else {
+      const range = valueExtent.max - valueExtent.min;
+      const step = niceStep(range);
+      const start = Math.ceil(valueExtent.min / step) * step;
+      gridValues = [];
+      for (let v = start; v <= valueExtent.max; v += step) {
+        gridValues.push(v);
+      }
+    }
+
+    for (let idx = 0; idx < gridValues.length; idx++) {
+      const v = gridValues[idx]!;
+      const pos = scaleValueFn(v);
       const label = String(Math.round(v * 1000) / 1000);
 
       if (isVertical) {
@@ -314,7 +341,7 @@ export function BoxPlot(props: BoxPlotProps) {
     }
 
     return elements;
-  }, [showGrid, valueExtent, scaleValue, isVertical, padding, chartWidth, chartHeight]);
+  }, [showGrid, valueExtent, scaleValueFn, isVertical, padding, chartWidth, chartHeight, scaleType, logBase]);
 
   // ---- Axes -----------------------------------------------------------------
 
@@ -363,11 +390,11 @@ export function BoxPlot(props: BoxPlotProps) {
       const halfBox = effectiveBoxWidth / 2;
 
       if (isVertical) {
-        const q1y = padding + chartHeight - scaleValue(s.q1);
-        const q3y = padding + chartHeight - scaleValue(s.q3);
-        const medY = padding + chartHeight - scaleValue(s.median);
-        const wLowY = padding + chartHeight - scaleValue(s.whiskerLow);
-        const wHighY = padding + chartHeight - scaleValue(s.whiskerHigh);
+        const q1y = padding + chartHeight - scaleValueFn(s.q1);
+        const q3y = padding + chartHeight - scaleValueFn(s.q3);
+        const medY = padding + chartHeight - scaleValueFn(s.median);
+        const wLowY = padding + chartHeight - scaleValueFn(s.whiskerLow);
+        const wHighY = padding + chartHeight - scaleValueFn(s.whiskerHigh);
         const cx = padding + catCenter;
 
         // Whisker low line (vertical)
@@ -454,7 +481,7 @@ export function BoxPlot(props: BoxPlotProps) {
 
         // Mean marker
         if (showMean) {
-          const meanY = padding + chartHeight - scaleValue(s.mean);
+          const meanY = padding + chartHeight - scaleValueFn(s.mean);
           elements.push(
             createElement('circle', {
               key: `mean-${i}`,
@@ -472,7 +499,7 @@ export function BoxPlot(props: BoxPlotProps) {
         // Outliers
         if (showOutliers) {
           for (let j = 0; j < s.outliers.length; j++) {
-            const oy = padding + chartHeight - scaleValue(s.outliers[j]!);
+            const oy = padding + chartHeight - scaleValueFn(s.outliers[j]!);
             elements.push(
               createElement('circle', {
                 key: `out-${i}-${j}`,
@@ -502,11 +529,11 @@ export function BoxPlot(props: BoxPlotProps) {
         );
       } else {
         // Horizontal orientation
-        const q1x = padding + scaleValue(s.q1);
-        const q3x = padding + scaleValue(s.q3);
-        const medX = padding + scaleValue(s.median);
-        const wLowX = padding + scaleValue(s.whiskerLow);
-        const wHighX = padding + scaleValue(s.whiskerHigh);
+        const q1x = padding + scaleValueFn(s.q1);
+        const q3x = padding + scaleValueFn(s.q3);
+        const medX = padding + scaleValueFn(s.median);
+        const wLowX = padding + scaleValueFn(s.whiskerLow);
+        const wHighX = padding + scaleValueFn(s.whiskerHigh);
         const cy = padding + catCenter;
 
         // Whisker low
@@ -591,7 +618,7 @@ export function BoxPlot(props: BoxPlotProps) {
 
         // Mean marker
         if (showMean) {
-          const meanX = padding + scaleValue(s.mean);
+          const meanX = padding + scaleValueFn(s.mean);
           elements.push(
             createElement('circle', {
               key: `mean-${i}`,
@@ -609,7 +636,7 @@ export function BoxPlot(props: BoxPlotProps) {
         // Outliers
         if (showOutliers) {
           for (let j = 0; j < s.outliers.length; j++) {
-            const ox = padding + scaleValue(s.outliers[j]!);
+            const ox = padding + scaleValueFn(s.outliers[j]!);
             elements.push(
               createElement('circle', {
                 key: `out-${i}-${j}`,
@@ -641,7 +668,7 @@ export function BoxPlot(props: BoxPlotProps) {
     }
 
     return elements;
-  }, [data, stats, scaleValue, isVertical, padding, chartWidth, chartHeight,
+  }, [data, stats, scaleValueFn, isVertical, padding, chartWidth, chartHeight,
     categorySlot, effectiveBoxWidth, whiskerColor, showOutliers, showMean, defaultColors]);
 
   // ---- Title ----------------------------------------------------------------

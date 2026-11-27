@@ -22,6 +22,8 @@
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -58,6 +60,10 @@ export interface WaterfallChartProps {
   title?: string;
   /** Padding around chart area in px (default: 60) */
   padding?: number;
+  /** Scale type for the Y axis. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // -- Internal types -----------------------------------------------------------
@@ -134,6 +140,8 @@ export function WaterfallChart(props: WaterfallChartProps) {
     showConnectors = true,
     title,
     padding = 60,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   const chartWidth = width - padding * 2;
@@ -164,9 +172,17 @@ export function WaterfallChart(props: WaterfallChartProps) {
   /** Map a cumulative value to a Y coordinate (top of chart = maxVal). */
   const valueToY = useCallback(
     (v: number) => {
+      if (scaleType === 'log') {
+        const logMin = logScaleValue(Math.max(minVal, 1), 'log', logBase);
+        const logMax = logScaleValue(maxVal, 'log', logBase);
+        const logRange = logMax - logMin;
+        const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+        if (logRange === 0) return padding + chartHeight;
+        return padding + chartHeight - ((logV - logMin) / logRange) * chartHeight;
+      }
       return padding + chartHeight - ((v - minVal) / valueRange) * chartHeight;
     },
-    [padding, chartHeight, minVal, valueRange],
+    [padding, chartHeight, minVal, maxVal, valueRange, scaleType, logBase],
   );
 
   const barSpacing = useMemo(() => {
@@ -182,17 +198,26 @@ export function WaterfallChart(props: WaterfallChartProps) {
   const buildGridLines = useCallback(() => {
     if (!showGrid) return [];
 
-    const step = niceStep(valueRange);
     const lines: ReturnType<typeof createElement>[] = [];
+    let gridValues: number[];
 
-    // Start from the first nice step above minVal
-    const startVal = Math.ceil(minVal / step) * step;
+    if (scaleType === 'log') {
+      gridValues = generateLogTicks(Math.max(minVal, 1), maxVal, logBase);
+    } else {
+      const step = niceStep(valueRange);
+      gridValues = [];
+      const startVal = Math.ceil(minVal / step) * step;
+      for (let v = startVal; v <= maxVal; v += step) {
+        gridValues.push(v);
+      }
+    }
 
-    for (let v = startVal; v <= maxVal; v += step) {
+    for (let idx = 0; idx < gridValues.length; idx++) {
+      const v = gridValues[idx]!;
       const y = valueToY(v);
       lines.push(
         createElement('line', {
-          key: `grid-${v}`,
+          key: `grid-${idx}`,
           x1: String(padding),
           y1: String(y),
           x2: String(padding + chartWidth),
@@ -206,7 +231,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
         createElement(
           'text',
           {
-            key: `grid-label-${v}`,
+            key: `grid-label-${idx}`,
             x: String(padding - 8),
             y: String(y + 4),
             'text-anchor': 'end',
@@ -220,7 +245,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
     }
 
     return lines;
-  }, [showGrid, valueRange, minVal, maxVal, valueToY, padding, chartWidth]);
+  }, [showGrid, valueRange, minVal, maxVal, valueToY, padding, chartWidth, scaleType, logBase]);
 
   // ---- Axes -----------------------------------------------------------------
 

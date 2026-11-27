@@ -96,7 +96,7 @@ export function GanttChart(props: GanttChartProps) {
     tasks = [],
     width = 800,
     height: propHeight,
-    barHeight = 24,
+    barHeight: propBarHeight,
     barGap = 8,
     showGrid = true,
     showLabels = true,
@@ -164,6 +164,19 @@ export function GanttChart(props: GanttChartProps) {
     });
     return copy;
   }, [tasks]);
+
+  // Responsive bar height: when height is provided but barHeight is not,
+  // compute barHeight from available space so rows fill the chart area.
+  const barHeight = useMemo(() => {
+    if (propBarHeight !== undefined) return propBarHeight;
+    if (propHeight !== undefined && sortedTasks.length > 0) {
+      const titleSpace = title ? 20 : 0;
+      const availableHeight = propHeight - padding * 2 - titleSpace - barGap;
+      const perRow = availableHeight / sortedTasks.length;
+      return Math.max(12, Math.min(40, Math.floor(perRow - barGap)));
+    }
+    return 24; // default
+  }, [propBarHeight, propHeight, sortedTasks.length, padding, barGap, title]);
 
   // Auto height
   const computedHeight = propHeight ?? (padding * 2 + sortedTasks.length * (barHeight + barGap) + barGap + 20);

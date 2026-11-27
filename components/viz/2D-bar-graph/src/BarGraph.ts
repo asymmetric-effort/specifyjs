@@ -23,6 +23,8 @@ import {
   useCallback,
 } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -70,6 +72,10 @@ export interface BarGraphProps {
   stacked?: StackedBarDatum[];
   /** Grouped mode — side-by-side bars when using stacked data (default: false) */
   grouped?: boolean;
+  /** Scale type for the value axis. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // -- Scale types --------------------------------------------------------------
@@ -97,14 +103,27 @@ export function useBarGraphScales(
   axisLength: number,
   categoryAxisLength: number,
   barGap: number,
+  scaleType: ScaleType = 'linear',
+  logBase: number = 10,
 ): BarGraphScales {
   return useMemo(() => {
     const barThickness = Math.max(1, (categoryAxisLength - barGap * (count + 1)) / count);
 
-    const valueScale = (v: number): number => {
-      if (maxValue === 0) return 0;
-      return (v / maxValue) * axisLength;
-    };
+    let valueScale: (v: number) => number;
+
+    if (scaleType === 'log') {
+      const logMax = logScaleValue(maxValue, 'log', logBase);
+      valueScale = (v: number): number => {
+        if (maxValue === 0) return 0;
+        const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+        return (logV / logMax) * axisLength;
+      };
+    } else {
+      valueScale = (v: number): number => {
+        if (maxValue === 0) return 0;
+        return (v / maxValue) * axisLength;
+      };
+    }
 
     const categoryScale = (i: number): number => {
       return barGap + i * (barThickness + barGap);
@@ -118,7 +137,7 @@ export function useBarGraphScales(
       valueAxisLength: axisLength,
       categoryAxisLength,
     };
-  }, [count, maxValue, axisLength, categoryAxisLength, barGap]);
+  }, [count, maxValue, axisLength, categoryAxisLength, barGap, scaleType, logBase]);
 }
 
 // -- Helpers ------------------------------------------------------------------
@@ -213,6 +232,8 @@ export function BarGraph(props: BarGraphProps) {
     animate = false,
     stacked,
     grouped = false,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   const isVertical = orientation === 'vertical';
@@ -245,6 +266,8 @@ export function BarGraph(props: BarGraphProps) {
     valueAxisLength,
     categoryAxisLength,
     barGap,
+    scaleType,
+    logBase,
   );
 
   // ---- Grid lines -----------------------------------------------------------
@@ -252,17 +275,28 @@ export function BarGraph(props: BarGraphProps) {
   const buildGridLines = useCallback(() => {
     if (!showGrid) return [];
 
-    const step = niceStep(effectiveMax);
     const lines: ReturnType<typeof createElement>[] = [];
+    let gridValues: number[];
 
-    for (let v = step; v <= effectiveMax; v += step) {
+    if (scaleType === 'log') {
+      gridValues = generateLogTicks(1, effectiveMax, logBase);
+    } else {
+      const step = niceStep(effectiveMax);
+      gridValues = [];
+      for (let v = step; v <= effectiveMax; v += step) {
+        gridValues.push(v);
+      }
+    }
+
+    for (let idx = 0; idx < gridValues.length; idx++) {
+      const v = gridValues[idx]!;
       const pos = scales.valueScale(v);
 
       if (isVertical) {
         const y = padding + chartHeight - pos;
         lines.push(
           createElement('line', {
-            key: `grid-${v}`,
+            key: `grid-${idx}`,
             x1: String(padding),
             y1: String(y),
             x2: String(padding + chartWidth),
@@ -272,12 +306,12 @@ export function BarGraph(props: BarGraphProps) {
             'stroke-dasharray': '4 2',
           }),
         );
-        // grid label
+        // grid label — always show original value
         lines.push(
           createElement(
             'text',
             {
-              key: `grid-label-${v}`,
+              key: `grid-label-${idx}`,
               x: String(padding - 6),
               y: String(y + 4),
               'text-anchor': 'end',
@@ -292,7 +326,7 @@ export function BarGraph(props: BarGraphProps) {
         const x = padding + pos;
         lines.push(
           createElement('line', {
-            key: `grid-${v}`,
+            key: `grid-${idx}`,
             x1: String(x),
             y1: String(padding),
             x2: String(x),
@@ -306,7 +340,7 @@ export function BarGraph(props: BarGraphProps) {
           createElement(
             'text',
             {
-              key: `grid-label-${v}`,
+              key: `grid-label-${idx}`,
               x: String(x),
               y: String(padding + chartHeight + 16),
               'text-anchor': 'middle',
@@ -321,7 +355,7 @@ export function BarGraph(props: BarGraphProps) {
     }
 
     return lines;
-  }, [showGrid, effectiveMax, scales, isVertical, padding, chartWidth, chartHeight, gridColor]);
+  }, [showGrid, effectiveMax, scales, isVertical, padding, chartWidth, chartHeight, gridColor, scaleType, logBase]);
 
   // ---- Axes -----------------------------------------------------------------
 

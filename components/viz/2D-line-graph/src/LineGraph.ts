@@ -8,6 +8,8 @@
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
 import { useVizTheme } from '../../theme/src/index';
+import { scaleValue as logScaleValue, generateLogTicks } from '../../wrapper/src/log-scale';
+import type { ScaleType } from '../../wrapper/src/log-scale';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,6 +57,10 @@ export interface LineGraphProps {
   padding?: number;
   animate?: boolean;
   multiLine?: LineSeries[];
+  /** Scale type for the Y axis. Default: 'linear' */
+  scaleType?: ScaleType;
+  /** Base for logarithmic scale (default: 10) */
+  logBase?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +97,8 @@ function computeScales(
   width: number,
   height: number,
   padding: number,
+  scaleType: ScaleType = 'linear',
+  logBase: number = 10,
 ): ScaleResult {
   if (allPoints.length === 0) {
     return {
@@ -133,12 +141,31 @@ function computeScales(
   const xScale = (v: number): number =>
     padding + ((v - xMin) / (xMax - xMin)) * plotWidth;
 
-  const yScale = (v: number): number =>
-    height - padding - ((v - yMin) / (yMax - yMin)) * plotHeight;
+  let yScale: (v: number) => number;
+  let yTicks: number[];
+
+  if (scaleType === 'log') {
+    const logYMin = logScaleValue(Math.max(yMin, 1), 'log', logBase);
+    const logYMax = logScaleValue(yMax, 'log', logBase);
+    const logRange = logYMax - logYMin;
+
+    yScale = (v: number): number => {
+      const logV = logScaleValue(Math.max(v, 1), 'log', logBase);
+      if (logRange === 0) return height - padding;
+      return height - padding - ((logV - logYMin) / logRange) * plotHeight;
+    };
+
+    yTicks = generateLogTicks(Math.max(yMin, 1), yMax, logBase);
+  } else {
+    yScale = (v: number): number =>
+      height - padding - ((v - yMin) / (yMax - yMin)) * plotHeight;
+
+    const tickCount = 6;
+    yTicks = niceTickValues(yMin, yMax, tickCount);
+  }
 
   const tickCount = 6;
   const xTicks = niceTickValues(xMin, xMax, tickCount);
-  const yTicks = niceTickValues(yMin, yMax, tickCount);
 
   return { xScale, yScale, xTicks, yTicks, xMin, xMax, yMin, yMax };
 }
@@ -152,10 +179,12 @@ export function useLineGraphScales(
   width: number,
   height: number,
   padding: number,
+  scaleType: ScaleType = 'linear',
+  logBase: number = 10,
 ): ScaleResult {
   return useMemo(
-    () => computeScales(data, width, height, padding),
-    [data, width, height, padding],
+    () => computeScales(data, width, height, padding, scaleType, logBase),
+    [data, width, height, padding, scaleType, logBase],
   );
 }
 
@@ -248,6 +277,8 @@ export function LineGraph(props: LineGraphProps) {
     padding = 50,
     animate = false,
     multiLine,
+    scaleType = 'linear' as ScaleType,
+    logBase = 10,
   } = props;
 
   // Collect all points for scale computation
@@ -261,7 +292,7 @@ export function LineGraph(props: LineGraphProps) {
     return pts;
   }, [data, multiLine]);
 
-  const scales = useLineGraphScales(allPoints, width, height, padding);
+  const scales = useLineGraphScales(allPoints, width, height, padding, scaleType, logBase);
   const { xScale, yScale, xTicks, yTicks } = scales;
 
   // ---- Build children array ----

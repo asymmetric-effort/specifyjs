@@ -257,7 +257,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
           x2: sx,
           y2: height - PADDING,
           stroke: gridColor,
-          "stroke-width": 0.5,
+          "stroke-width": theme.lineWidth.grid,
           key: `gx-${i}`,
         }),
       );
@@ -286,7 +286,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
           x2: width - PADDING,
           y2: sy,
           stroke: gridColor,
-          "stroke-width": 0.5,
+          "stroke-width": theme.lineWidth.grid,
           key: `gy-${i}`,
         }),
       );
@@ -318,7 +318,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
         x2: width - PADDING,
         y2: originY,
         stroke: axisColor,
-        "stroke-width": 1,
+        "stroke-width": theme.lineWidth.axis,
         key: "x-axis",
       }),
     );
@@ -329,7 +329,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
         x2: originX,
         y2: height - PADDING,
         stroke: axisColor,
-        "stroke-width": 1,
+        "stroke-width": theme.lineWidth.axis,
         key: "y-axis",
       }),
     );
@@ -394,7 +394,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
         d: segments.join(" "),
         fill: "none",
         stroke: curveColor,
-        "stroke-width": 1.5,
+        "stroke-width": theme.lineWidth.series,
         key: "curve",
       }),
     );

@@ -263,7 +263,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
           r,
           fill: "none",
           stroke: "#e5e7eb",
-          "stroke-width": 1,
+          "stroke-width": theme.lineWidth.grid,
           key: `gc-${i}`,
         }),
       );
@@ -293,7 +293,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
           x2: ex,
           y2: ey,
           stroke: "#e5e7eb",
-          "stroke-width": 1,
+          "stroke-width": theme.lineWidth.grid,
           key: `al-${i}`,
         }),
       );
@@ -325,7 +325,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
       x2: cx + maxRadius,
       y2: cy,
       stroke: "#d1d5db",
-      "stroke-width": 1,
+      "stroke-width": theme.lineWidth.axis,
       key: "x-axis",
     }),
   );
@@ -336,7 +336,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
       x2: cx,
       y2: cy + maxRadius,
       stroke: "#d1d5db",
-      "stroke-width": 1,
+      "stroke-width": theme.lineWidth.axis,
       key: "y-axis",
     }),
   );
@@ -348,7 +348,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
         d: curvePoints,
         fill: "none",
         stroke: curveColor,
-        "stroke-width": 2,
+        "stroke-width": theme.lineWidth.series,
         key: "curve",
       }),
     );

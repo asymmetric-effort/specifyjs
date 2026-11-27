@@ -35,6 +35,7 @@
 - testing: https://specifyjs.asymmetric-effort.com/#/docs/guides/testing
 - troubleshooting: https://specifyjs.asymmetric-effort.com/#/docs/guides/troubleshooting
 - typescript: https://specifyjs.asymmetric-effort.com/#/docs/guides/typescript
+- viz-themes: https://specifyjs.asymmetric-effort.com/#/docs/guides/viz-themes
 - wumpus-world: https://specifyjs.asymmetric-effort.com/#/docs/guides/wumpus-world
 
 ## API Reference

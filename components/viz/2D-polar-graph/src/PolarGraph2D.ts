@@ -13,6 +13,7 @@ import {
   useMemo,
   useRef,
 } from "../../../../core/src/hooks/index";
+import { useVizTheme } from '../../theme/src/index';
 import {
   generateInputs,
   computeSync,
@@ -79,6 +80,7 @@ function polarToCartesian(
 // ---------------------------------------------------------------------------
 
 export function PolarGraph2D(props: PolarGraph2DProps) {
+  const theme = useVizTheme();
   const {
     width = 400,
     height = 400,
@@ -379,7 +381,7 @@ export function PolarGraph2D(props: PolarGraph2DProps) {
       width: "100%",
       viewBox: `0 0 ${width} ${height}`,
       preserveAspectRatio: "xMidYMid meet",
-      style: { cursor: dragState ? "grabbing" : "grab" },
+      style: { cursor: dragState ? "grabbing" : "grab", fontFamily: theme.fontFamily },
       onMouseDown: handleMouseDown,
       onMouseMove: handleMouseMove,
       onMouseUp: handleMouseUp,

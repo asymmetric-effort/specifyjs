@@ -282,10 +282,7 @@ describe('UnityDesktop', () => {
 // UnityApp tests
 // ---------------------------------------------------------------------------
 
-// UnityApp tests require multiple reconciler passes across context boundaries.
-// The self-registration pattern (useEffect → openWindow → scheduleRender) needs
-// a real browser event loop to fully resolve. These are validated via E2E tests.
-describe.skip('UnityApp', () => {
+describe('UnityApp', () => {
   it('renders a DraggableWindow inside UnityDesktop', async () => {
 
     const el = render(
@@ -646,7 +643,7 @@ describe.skip('UnityApp', () => {
 // Integration tests
 // ---------------------------------------------------------------------------
 
-describe.skip('UnityDesktop + UnityApp integration', () => {
+describe('UnityDesktop + UnityApp integration', () => {
   it('full desktop renders with multiple app windows', async () => {
 
     const el = render(

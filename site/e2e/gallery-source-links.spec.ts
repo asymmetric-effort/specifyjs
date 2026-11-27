@@ -41,19 +41,19 @@ async function checkUrl(
   request: import('@playwright/test').APIRequestContext,
   url: string,
 ): Promise<string | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const response = await request.head(url, { timeout: 15_000 });
       if (response.status() < 400) return null;
-      // GitHub sometimes returns 429 for rate limiting — retry once
-      if (response.status() === 429 && attempt === 0) {
-        await new Promise((r) => setTimeout(r, 2000));
+      // GitHub sometimes returns 429/503 — retry with backoff
+      if ((response.status() === 429 || response.status() === 503) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
         continue;
       }
       return `${url} => HTTP ${response.status()}`;
     } catch (err) {
-      if (attempt === 0) {
-        await new Promise((r) => setTimeout(r, 1000));
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
         continue;
       }
       return `${url} => network error: ${(err as Error).message}`;

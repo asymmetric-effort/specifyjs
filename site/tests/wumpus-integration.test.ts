@@ -15,10 +15,7 @@
  * coverage is provided by unit tests (271) + E2E Playwright tests (38).
  */
 
-// Skip until NogginLessDom supports createElementNS
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const SKIP = true;
-if (SKIP) process.exit(0);
+// NogginLessDom now supports createElementNS (v0.0.44+)
 
 import { describe, it, expect, beforeEach, afterEach, createWindow, Document, Element, Node, Event, NodeList } from '@asymmetric-effort/nogginlessdom';
 import { createElement } from '../../core/src/index';

@@ -12,6 +12,7 @@ import {
   useRef,
   useMemo,
 } from "../../../../core/src/hooks/index";
+import { useVizTheme } from '../../theme/src/index';
 import {
   generateInputs,
   computeSync,
@@ -99,6 +100,7 @@ const MAX_RANGE = 1e6;
 // ---------------------------------------------------------------------------
 
 export function CartesianGraph2D(props: CartesianGraph2DProps) {
+  const theme = useVizTheme();
   const {
     width = 400,
     height = 300,
@@ -465,7 +467,7 @@ export function CartesianGraph2D(props: CartesianGraph2DProps) {
       width: "100%",
       viewBox: `0 0 ${width} ${height}`,
       preserveAspectRatio: "xMidYMid meet",
-      style: "user-select: none; touch-action: none;",
+      style: { userSelect: 'none', touchAction: 'none', fontFamily: theme.fontFamily },
       onMouseDown: onMouseDown,
       onMouseMove: onMouseMove,
       onMouseUp: onMouseUp,

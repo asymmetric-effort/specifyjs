@@ -2241,7 +2241,6 @@ function RadarDemo() {
     width: 240,
     height: 280,
     showLabels: true,
-    showDots: true,
     showLegend: true,
   });
 }

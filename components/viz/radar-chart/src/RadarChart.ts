@@ -94,7 +94,7 @@ export function RadarChart(props: RadarChartProps) {
     showLabels = true,
     showValues = false,
     showLegend = true,
-    showDots = true,
+    showDots = theme.points.show,
     gridColor = '#d1d5db',
     title,
   } = props;
@@ -243,7 +243,7 @@ export function RadarChart(props: RadarChartProps) {
               key: `dot-${si}-${i}`,
               cx: String(pt.x),
               cy: String(pt.y),
-              r: '3.5',
+              r: String(theme.points.radius),
               fill: s.color,
               stroke: '#fff',
               'stroke-width': '1.5',

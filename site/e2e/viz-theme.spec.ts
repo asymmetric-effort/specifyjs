@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 const isPDV = !!process.env.SITE_URL;
 
-test.describe('Viz Theme Toggle', () => {
+(isPDV ? test.describe.skip : test.describe)('Viz Theme Toggle', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/#/components');
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 15000 });

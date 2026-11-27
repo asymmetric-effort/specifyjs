@@ -41,7 +41,7 @@ export const crisp: VizTheme = deepFreeze({
   },
   points: {
     show: false,
-    radius: 2,
+    radius: 1.5,
   },
   segments: {
     strokeWidth: 0,

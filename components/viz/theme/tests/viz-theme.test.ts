@@ -223,8 +223,8 @@ describe('crisp theme', () => {
     expect(crisp.points.show).toBe(false);
   });
 
-  it('points.radius is 2 (small if shown via override)', () => {
-    expect(crisp.points.radius).toBe(2);
+  it('points.radius is 1.5 (small if shown via override)', () => {
+    expect(crisp.points.radius).toBe(1.5);
   });
 
   it('segments.strokeWidth is 0 (no borders between pie/donut segments)', () => {

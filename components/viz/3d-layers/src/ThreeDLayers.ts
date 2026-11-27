@@ -20,6 +20,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -181,6 +182,7 @@ function darkenHex(hex: string, factor: number): string {
 // -- Component ----------------------------------------------------------------
 
 export function ThreeDLayers(props: ThreeDLayersProps) {
+  const theme = useVizTheme();
   const {
     layers,
     width = 700,
@@ -270,7 +272,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
         x2: String(xEnd.sx),
         y2: String(xEnd.sy),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
     elements.push(
@@ -281,7 +283,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           x: String(xEnd.sx + 8),
           y: String(xEnd.sy + 4),
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#374151',
         },
         'X',
@@ -298,7 +300,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
         x2: String(yEnd.sx),
         y2: String(yEnd.sy),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
     elements.push(
@@ -309,7 +311,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           x: String(yEnd.sx - 12),
           y: String(yEnd.sy + 4),
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#374151',
         },
         'Y',
@@ -327,7 +329,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
         x2: String(zEnd.sx),
         y2: String(zEnd.sy),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
     elements.push(
@@ -338,7 +340,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           x: String(zEnd.sx - 4),
           y: String(zEnd.sy - 8),
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#374151',
         },
         'Z',
@@ -482,7 +484,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           x2: String(end.sx),
           y2: String(end.sy),
           stroke: gridColor,
-          'stroke-width': '0.3',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '2 2',
           opacity: '0.5',
         }),
@@ -502,7 +504,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           x2: String(end.sx),
           y2: String(end.sy),
           stroke: gridColor,
-          'stroke-width': '0.3',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '2 2',
           opacity: '0.5',
         }),
@@ -549,7 +551,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
             x: String(labelPos.sx + 8),
             y: String(labelPos.sy + 4),
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             'font-weight': 'bold',
             fill: layerColor,
           },
@@ -575,7 +577,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -602,7 +604,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
             y: String(height / 2),
             'text-anchor': 'middle',
             'font-size': '14',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#9ca3af',
           },
           'No layer data',
@@ -619,7 +621,7 @@ export function ThreeDLayers(props: ThreeDLayersProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? '3D layer visualization',
-      style: { fontFamily: 'sans-serif', maxWidth: '100%' },
+      style: { fontFamily: theme.fontFamily, maxWidth: '100%' },
     },
     ...titleEl,
     ...emptyMessage,

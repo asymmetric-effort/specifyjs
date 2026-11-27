@@ -16,6 +16,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -213,6 +214,7 @@ function computePartitionLayout(
 // -- Component ----------------------------------------------------------------
 
 export function Partition(props: PartitionProps) {
+  const theme = useVizTheme();
   const {
     data,
     width = 600,
@@ -254,7 +256,7 @@ export function Partition(props: PartitionProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data to display',
@@ -281,7 +283,7 @@ export function Partition(props: PartitionProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -325,7 +327,7 @@ export function Partition(props: PartitionProps) {
             y: String(r.y + r.h / 2 + (showValues ? -2 : 4)),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#ffffff',
             'pointer-events': 'none',
           },
@@ -345,7 +347,7 @@ export function Partition(props: PartitionProps) {
             y: String(r.y + r.h / 2 + 12),
             'text-anchor': 'middle',
             'font-size': '10',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'rgba(255,255,255,0.8)',
             'pointer-events': 'none',
           },
@@ -364,7 +366,7 @@ export function Partition(props: PartitionProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Partition diagram',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...elements,
   );

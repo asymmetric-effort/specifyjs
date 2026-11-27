@@ -7,6 +7,7 @@
 
 import { createElement, type SpecElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,6 +185,7 @@ export function computeSlices(
 // ---------------------------------------------------------------------------
 
 export function PieGraph(props: PieGraphProps): SpecElement {
+  const theme = useVizTheme();
   const {
     data,
     width = 400,
@@ -235,7 +237,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         x: chartWidth / 2,
         y: 20,
         textAnchor: 'middle',
-        fontFamily: 'sans-serif',
+        fontFamily: theme.fontFamily,
         fontSize: 16,
         fontWeight: 'bold',
         fill: textColor,
@@ -309,7 +311,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             x: labelPos.x,
             y: labelPos.y - (showValues ? 6 : 0),
             textAnchor: 'middle',
-            fontFamily: 'sans-serif',
+            fontFamily: theme.fontFamily,
             fontSize,
             fill: sliceTextColor,
             pointerEvents: 'none',
@@ -324,7 +326,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             x: labelPos.x,
             y: labelPos.y + (showLabels ? 10 : 0),
             textAnchor: 'middle',
-            fontFamily: 'sans-serif',
+            fontFamily: theme.fontFamily,
             fontSize: fontSize - 1,
             fill: sliceTextColor,
             pointerEvents: 'none',
@@ -343,7 +345,7 @@ export function PieGraph(props: PieGraphProps): SpecElement {
         y: cy,
         textAnchor: 'middle',
         dominantBaseline: 'central',
-        fontFamily: 'sans-serif',
+        fontFamily: theme.fontFamily,
         fontSize: 14,
         fontWeight: 'bold',
         fill: textColor,
@@ -379,8 +381,8 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             x: legendX + 18,
             y: itemY,
             dominantBaseline: 'central',
-            fontFamily: 'sans-serif',
-            fontSize: 12,
+            fontFamily: theme.fontFamily,
+            fontSize: theme.fontSize.label,
             fill: textColor,
           }, `${s.label} (${s.percentage.toFixed(1)}%)`),
         );
@@ -412,8 +414,8 @@ export function PieGraph(props: PieGraphProps): SpecElement {
             x: itemX + 18,
             y: itemY,
             dominantBaseline: 'central',
-            fontFamily: 'sans-serif',
-            fontSize: 12,
+            fontFamily: theme.fontFamily,
+            fontSize: theme.fontSize.label,
             fill: textColor,
           }, `${s.label} (${s.percentage.toFixed(1)}%)`),
         );

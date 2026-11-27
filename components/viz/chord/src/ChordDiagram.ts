@@ -19,6 +19,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -310,6 +311,7 @@ function computeChordLayout(
 // -- Component ----------------------------------------------------------------
 
 export function ChordDiagram(props: ChordDiagramProps) {
+  const theme = useVizTheme();
   const {
     matrix,
     labels,
@@ -342,8 +344,8 @@ export function ChordDiagram(props: ChordDiagramProps) {
           x: String(width / 2),
           y: String(height / 2),
           'text-anchor': 'middle',
-          'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-size': theme.fontSize.label,
+          'font-family': theme.fontFamily,
           fill: '#6b7280',
         },
         'No data',
@@ -416,8 +418,8 @@ export function ChordDiagram(props: ChordDiagramProps) {
               x: String(labelPos.x),
               y: String(labelPos.y),
               'text-anchor': textAnchor,
-              'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-size': theme.fontSize.label,
+              'font-family': theme.fontFamily,
               fill: '#374151',
               transform: `rotate(${rotation}, ${labelPos.x}, ${labelPos.y})`,
               'dominant-baseline': 'central',
@@ -474,9 +476,9 @@ export function ChordDiagram(props: ChordDiagramProps) {
           x: String(width / 2),
           y: '24',
           'text-anchor': 'middle',
-          'font-size': '16',
+          'font-size': theme.fontSize.title,
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -499,7 +501,7 @@ export function ChordDiagram(props: ChordDiagramProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Chord diagram',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...ribbonElements,

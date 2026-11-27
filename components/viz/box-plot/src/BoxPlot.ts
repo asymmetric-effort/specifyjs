@@ -21,6 +21,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -176,6 +177,7 @@ function niceStep(range: number): number {
 // -- Component ----------------------------------------------------------------
 
 export function BoxPlot(props: BoxPlotProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
@@ -268,7 +270,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(padding + chartWidth),
             y2: String(y),
             stroke: '#e5e7eb',
-            'stroke-width': '1',
+            'stroke-width': String(theme.lineWidth.grid),
             'stroke-dasharray': '4 2',
           }),
         );
@@ -279,7 +281,7 @@ export function BoxPlot(props: BoxPlotProps) {
             y: String(y + 4),
             'text-anchor': 'end',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           }, label),
         );
@@ -293,7 +295,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(x),
             y2: String(padding + chartHeight),
             stroke: '#e5e7eb',
-            'stroke-width': '1',
+            'stroke-width': String(theme.lineWidth.grid),
             'stroke-dasharray': '4 2',
           }),
         );
@@ -304,7 +306,7 @@ export function BoxPlot(props: BoxPlotProps) {
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           }, label),
         );
@@ -327,7 +329,7 @@ export function BoxPlot(props: BoxPlotProps) {
         x2: String(padding),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -339,7 +341,7 @@ export function BoxPlot(props: BoxPlotProps) {
         x2: String(padding + chartWidth),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -377,7 +379,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(cx),
             y2: String(wLowY),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
         // Whisker low cap
@@ -389,7 +391,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(cx + halfBox * 0.4),
             y2: String(wLowY),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
 
@@ -402,7 +404,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(cx),
             y2: String(wHighY),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
         // Whisker high cap
@@ -414,7 +416,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(cx + halfBox * 0.4),
             y2: String(wHighY),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
 
@@ -430,7 +432,7 @@ export function BoxPlot(props: BoxPlotProps) {
             height: String(Math.max(boxHeight, 1)),
             fill,
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
             opacity: '0.8',
             'aria-label': `${d.label}: Q1=${s.q1.toFixed(1)}, median=${s.median.toFixed(1)}, Q3=${s.q3.toFixed(1)}`,
             role: 'img',
@@ -494,7 +496,7 @@ export function BoxPlot(props: BoxPlotProps) {
             y: String(padding + chartHeight + 18),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#374151',
           }, d.label),
         );
@@ -516,7 +518,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(wLowX),
             y2: String(cy),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
         elements.push(
@@ -527,7 +529,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(wLowX),
             y2: String(cy + halfBox * 0.4),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
 
@@ -540,7 +542,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(wHighX),
             y2: String(cy),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
         elements.push(
@@ -551,7 +553,7 @@ export function BoxPlot(props: BoxPlotProps) {
             x2: String(wHighX),
             y2: String(cy + halfBox * 0.4),
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
           }),
         );
 
@@ -567,7 +569,7 @@ export function BoxPlot(props: BoxPlotProps) {
             height: String(effectiveBoxWidth),
             fill,
             stroke: whiskerColor,
-            'stroke-width': '1.5',
+            'stroke-width': String(theme.lineWidth.series),
             opacity: '0.8',
             'aria-label': `${d.label}: Q1=${s.q1.toFixed(1)}, median=${s.median.toFixed(1)}, Q3=${s.q3.toFixed(1)}`,
             role: 'img',
@@ -631,7 +633,7 @@ export function BoxPlot(props: BoxPlotProps) {
             y: String(cy + 4),
             'text-anchor': 'end',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#374151',
           }, d.label),
         );
@@ -654,7 +656,7 @@ export function BoxPlot(props: BoxPlotProps) {
         'text-anchor': 'middle',
         'font-size': '16',
         'font-weight': 'bold',
-        'font-family': 'sans-serif',
+        'font-family': theme.fontFamily,
         fill: '#111827',
       }, title),
     ];
@@ -676,7 +678,7 @@ export function BoxPlot(props: BoxPlotProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Box plot',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleElements,
     ...gridElements,

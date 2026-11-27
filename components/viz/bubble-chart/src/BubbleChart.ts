@@ -20,6 +20,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -93,6 +94,7 @@ function isFiniteNum(n: number): boolean {
 // -- Component ----------------------------------------------------------------
 
 export function BubbleChart(props: BubbleChartProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
@@ -198,7 +200,7 @@ export function BubbleChart(props: BubbleChartProps) {
           x2: String(x),
           y2: String(padding + chartHeight),
           stroke: '#e5e7eb',
-          'stroke-width': '1',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '4 2',
         }),
       );
@@ -211,7 +213,7 @@ export function BubbleChart(props: BubbleChartProps) {
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(Math.round(v * 1000) / 1000),
@@ -232,7 +234,7 @@ export function BubbleChart(props: BubbleChartProps) {
           x2: String(padding + chartWidth),
           y2: String(y),
           stroke: '#e5e7eb',
-          'stroke-width': '1',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '4 2',
         }),
       );
@@ -245,7 +247,7 @@ export function BubbleChart(props: BubbleChartProps) {
             y: String(y + 4),
             'text-anchor': 'end',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(Math.round(v * 1000) / 1000),
@@ -271,7 +273,7 @@ export function BubbleChart(props: BubbleChartProps) {
         x2: String(padding),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -284,7 +286,7 @@ export function BubbleChart(props: BubbleChartProps) {
         x2: String(padding + chartWidth),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -299,7 +301,7 @@ export function BubbleChart(props: BubbleChartProps) {
             y: String(padding + chartHeight + 40),
             'text-anchor': 'middle',
             'font-size': '13',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#374151',
           },
           xLabel,
@@ -318,7 +320,7 @@ export function BubbleChart(props: BubbleChartProps) {
             y: String(padding + chartHeight / 2),
             'text-anchor': 'middle',
             'font-size': '13',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#374151',
             transform: `rotate(-90, ${padding - 40}, ${padding + chartHeight / 2})`,
           },
@@ -368,7 +370,7 @@ export function BubbleChart(props: BubbleChartProps) {
               y: String(cy - r - 4),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             d.label,
@@ -394,7 +396,7 @@ export function BubbleChart(props: BubbleChartProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -418,7 +420,7 @@ export function BubbleChart(props: BubbleChartProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Bubble chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleElements,
     ...gridElements,

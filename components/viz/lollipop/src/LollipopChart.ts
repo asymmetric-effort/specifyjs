@@ -19,6 +19,7 @@
 
 import { createElement } from "../../../../core/src/index";
 import { useMemo, useCallback } from "../../../../core/src/hooks/index";
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -74,13 +75,14 @@ function niceStep(maxVal: number): number {
 // -- Component ----------------------------------------------------------------
 
 export function LollipopChart(props: LollipopChartProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
     height = 400,
     orientation = "vertical",
     stemColor = "#94a3b8",
-    stemWidth = 2,
+    stemWidth = theme.lineWidth.series,
     dotRadius = 6,
     dotColor = "#3b82f6",
     showGrid = true,
@@ -132,7 +134,7 @@ export function LollipopChart(props: LollipopChartProps) {
             x2: String(padding + chartWidth),
             y2: String(y),
             stroke: "#e5e7eb",
-            "stroke-width": "1",
+            "stroke-width": String(theme.lineWidth.grid),
             "stroke-dasharray": "4 2",
           }),
         );
@@ -145,7 +147,7 @@ export function LollipopChart(props: LollipopChartProps) {
               y: String(y + 4),
               "text-anchor": "end",
               "font-size": "11",
-              "font-family": "sans-serif",
+              "font-family": theme.fontFamily,
               fill: "#6b7280",
             },
             String(v),
@@ -161,7 +163,7 @@ export function LollipopChart(props: LollipopChartProps) {
             x2: String(x),
             y2: String(padding + chartHeight),
             stroke: "#e5e7eb",
-            "stroke-width": "1",
+            "stroke-width": String(theme.lineWidth.grid),
             "stroke-dasharray": "4 2",
           }),
         );
@@ -174,7 +176,7 @@ export function LollipopChart(props: LollipopChartProps) {
               y: String(padding + chartHeight + 16),
               "text-anchor": "middle",
               "font-size": "11",
-              "font-family": "sans-serif",
+              "font-family": theme.fontFamily,
               fill: "#6b7280",
             },
             String(v),
@@ -209,7 +211,7 @@ export function LollipopChart(props: LollipopChartProps) {
           x2: String(padding),
           y2: String(padding + chartHeight),
           stroke: "#374151",
-          "stroke-width": "1.5",
+          "stroke-width": String(theme.lineWidth.axis),
         }),
       );
     } else {
@@ -221,7 +223,7 @@ export function LollipopChart(props: LollipopChartProps) {
           x2: String(padding),
           y2: String(padding + chartHeight),
           stroke: "#374151",
-          "stroke-width": "1.5",
+          "stroke-width": String(theme.lineWidth.axis),
         }),
       );
     }
@@ -295,7 +297,7 @@ export function LollipopChart(props: LollipopChartProps) {
                 y: String(tipY - dotRadius - 4),
                 "text-anchor": "middle",
                 "font-size": "11",
-                "font-family": "sans-serif",
+                "font-family": theme.fontFamily,
                 fill: "#374151",
               },
               String(d.value),
@@ -315,7 +317,7 @@ export function LollipopChart(props: LollipopChartProps) {
               y: String(catLabelY),
               "text-anchor": "end",
               "font-size": "11",
-              "font-family": "sans-serif",
+              "font-family": theme.fontFamily,
               fill: "#374151",
               transform: `rotate(-45, ${catLabelX}, ${catLabelY})`,
             },
@@ -363,7 +365,7 @@ export function LollipopChart(props: LollipopChartProps) {
                 y: String(cy + 4),
                 "text-anchor": "start",
                 "font-size": "11",
-                "font-family": "sans-serif",
+                "font-family": theme.fontFamily,
                 fill: "#374151",
               },
               String(d.value),
@@ -381,7 +383,7 @@ export function LollipopChart(props: LollipopChartProps) {
               y: String(cy + 4),
               "text-anchor": "end",
               "font-size": "11",
-              "font-family": "sans-serif",
+              "font-family": theme.fontFamily,
               fill: "#374151",
             },
             d.label,
@@ -421,7 +423,7 @@ export function LollipopChart(props: LollipopChartProps) {
           "text-anchor": "middle",
           "font-size": "16",
           "font-weight": "bold",
-          "font-family": "sans-serif",
+          "font-family": theme.fontFamily,
           fill: "#111827",
         },
         title,
@@ -442,7 +444,7 @@ export function LollipopChart(props: LollipopChartProps) {
           y: String(height / 2),
           "text-anchor": "middle",
           "font-size": "14",
-          "font-family": "sans-serif",
+          "font-family": theme.fontFamily,
           fill: "#9ca3af",
         },
         "No data",
@@ -467,7 +469,7 @@ export function LollipopChart(props: LollipopChartProps) {
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
       "aria-label": title ?? "Lollipop chart",
-      style: { fontFamily: "sans-serif" },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...gridLines,

@@ -22,6 +22,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -195,6 +196,7 @@ function categoryColor(index: number, explicit?: string): string {
 // -- Component ----------------------------------------------------------------
 
 export function BarGraph(props: BarGraphProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
@@ -266,7 +268,7 @@ export function BarGraph(props: BarGraphProps) {
             x2: String(padding + chartWidth),
             y2: String(y),
             stroke: gridColor,
-            'stroke-width': '1',
+            'stroke-width': String(theme.lineWidth.grid),
             'stroke-dasharray': '4 2',
           }),
         );
@@ -280,7 +282,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(y + 4),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
             },
             String(v),
@@ -296,7 +298,7 @@ export function BarGraph(props: BarGraphProps) {
             x2: String(x),
             y2: String(padding + chartHeight),
             stroke: gridColor,
-            'stroke-width': '1',
+            'stroke-width': String(theme.lineWidth.grid),
             'stroke-dasharray': '4 2',
           }),
         );
@@ -309,7 +311,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(padding + chartHeight + 16),
               'text-anchor': 'middle',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
             },
             String(v),
@@ -336,7 +338,7 @@ export function BarGraph(props: BarGraphProps) {
           x2: String(padding),
           y2: String(padding + chartHeight),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(theme.lineWidth.axis),
         }),
       );
       // Category axis line
@@ -348,7 +350,7 @@ export function BarGraph(props: BarGraphProps) {
           x2: String(padding + chartWidth),
           y2: String(padding + chartHeight),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(theme.lineWidth.axis),
         }),
       );
     } else {
@@ -360,7 +362,7 @@ export function BarGraph(props: BarGraphProps) {
           x2: String(padding + chartWidth),
           y2: String(padding + chartHeight),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(theme.lineWidth.axis),
         }),
       );
       elements.push(
@@ -371,7 +373,7 @@ export function BarGraph(props: BarGraphProps) {
           x2: String(padding),
           y2: String(padding + chartHeight),
           stroke: '#374151',
-          'stroke-width': '1.5',
+          'stroke-width': String(theme.lineWidth.axis),
         }),
       );
     }
@@ -411,7 +413,7 @@ export function BarGraph(props: BarGraphProps) {
           y: String(y - 6),
           'text-anchor': 'middle',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#374151',
         };
       } else {
@@ -431,7 +433,7 @@ export function BarGraph(props: BarGraphProps) {
           y: String(y + scales.barThickness / 2 + 4),
           'text-anchor': 'start',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#374151',
         };
       }
@@ -465,7 +467,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(catLabelY),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
               transform: `rotate(-45, ${catLabelX}, ${catLabelY})`,
             },
@@ -482,7 +484,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(padding + catPos + scales.barThickness / 2 + 4),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             d.label,
@@ -541,7 +543,7 @@ export function BarGraph(props: BarGraphProps) {
                   y: String(y + segLen / 2 + 4),
                   'text-anchor': 'middle',
                   'font-size': '10',
-                  'font-family': 'sans-serif',
+                  'font-family': theme.fontFamily,
                   fill: '#fff',
                 },
                 String(seg.value),
@@ -577,7 +579,7 @@ export function BarGraph(props: BarGraphProps) {
                   y: String(y + scales.barThickness / 2 + 4),
                   'text-anchor': 'middle',
                   'font-size': '10',
-                  'font-family': 'sans-serif',
+                  'font-family': theme.fontFamily,
                   fill: '#fff',
                 },
                 String(seg.value),
@@ -602,7 +604,7 @@ export function BarGraph(props: BarGraphProps) {
                 y: String(padding + chartHeight - totalLen - 6),
                 'text-anchor': 'middle',
                 'font-size': '11',
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 fill: '#374151',
               },
               String(cumulative),
@@ -618,7 +620,7 @@ export function BarGraph(props: BarGraphProps) {
                 y: String(padding + catPos + scales.barThickness / 2 + 4),
                 'text-anchor': 'start',
                 'font-size': '11',
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 fill: '#374151',
               },
               String(cumulative),
@@ -640,7 +642,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(scatLabelY),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
               transform: `rotate(-45, ${scatLabelX}, ${scatLabelY})`,
             },
@@ -657,7 +659,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(padding + catPos + scales.barThickness / 2 + 4),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             item.label,
@@ -722,7 +724,7 @@ export function BarGraph(props: BarGraphProps) {
                   y: String(y - 4),
                   'text-anchor': 'middle',
                   'font-size': '9',
-                  'font-family': 'sans-serif',
+                  'font-family': theme.fontFamily,
                   fill: '#374151',
                 },
                 String(seg.value),
@@ -758,7 +760,7 @@ export function BarGraph(props: BarGraphProps) {
                   y: String(y + subBarThickness / 2 + 3),
                   'text-anchor': 'start',
                   'font-size': '9',
-                  'font-family': 'sans-serif',
+                  'font-family': theme.fontFamily,
                   fill: '#374151',
                 },
                 String(seg.value),
@@ -781,7 +783,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(gcatLabelY),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
               transform: `rotate(-45, ${gcatLabelX}, ${gcatLabelY})`,
             },
@@ -798,7 +800,7 @@ export function BarGraph(props: BarGraphProps) {
               y: String(padding + catPos + scales.barThickness / 2 + 4),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             item.label,
@@ -824,7 +826,7 @@ export function BarGraph(props: BarGraphProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -874,7 +876,7 @@ export function BarGraph(props: BarGraphProps) {
       viewBox: `0 0 ${width} ${height}`,
       preserveAspectRatio: 'xMidYMid meet',
       xmlns: 'http://www.w3.org/2000/svg',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...animDefs,
     ...titleEl,

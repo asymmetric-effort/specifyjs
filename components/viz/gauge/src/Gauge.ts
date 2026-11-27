@@ -21,6 +21,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -108,6 +109,7 @@ function formatNumber(v: number): string {
 // -- Component ----------------------------------------------------------------
 
 export function Gauge(props: GaugeProps) {
+  const theme = useVizTheme();
   const {
     value,
     min = 0,
@@ -178,7 +180,7 @@ export function Gauge(props: GaugeProps) {
         fill: 'none',
         stroke: backgroundColor,
         'stroke-width': String(arcWidth),
-        'stroke-linecap': 'round',
+        'stroke-linecap': theme.lineCap,
       }),
     ];
   }, [cx, cy, midRadius, startAngle, endAngle, backgroundColor, arcWidth]);
@@ -202,7 +204,7 @@ export function Gauge(props: GaugeProps) {
           fill: 'none',
           stroke: colors[i]!,
           'stroke-width': String(arcWidth),
-          'stroke-linecap': i === 0 || i === colors.length - 1 ? 'round' : 'butt',
+          'stroke-linecap': i === 0 || i === colors.length - 1 ? theme.lineCap : 'butt',
           opacity: '0.85',
         }),
       );
@@ -251,7 +253,7 @@ export function Gauge(props: GaugeProps) {
             y: String(labelPt.y + 3),
             'text-anchor': 'middle',
             'font-size': '9',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
             opacity: '0.55',
           }, formatNumber(tickValue)),
@@ -325,7 +327,7 @@ export function Gauge(props: GaugeProps) {
           'text-anchor': 'middle',
           'font-size': '22',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           'aria-label': `Value: ${fullText}`,
         },
@@ -357,8 +359,8 @@ export function Gauge(props: GaugeProps) {
         x: String(cx),
         y: String(labelY),
         'text-anchor': 'middle',
-        'font-size': '13',
-        'font-family': 'sans-serif',
+        'font-size': theme.fontSize.label,
+        'font-family': theme.fontFamily,
         fill: 'currentColor',
         opacity: '0.6',
       }, label),
@@ -381,7 +383,7 @@ export function Gauge(props: GaugeProps) {
         y: String(minPt.y + 18),
         'text-anchor': 'middle',
         'font-size': '11',
-        'font-family': 'sans-serif',
+        'font-family': theme.fontFamily,
         fill: 'currentColor',
         opacity: '0.55',
       }, formatNumber(effectiveMin)),
@@ -394,7 +396,7 @@ export function Gauge(props: GaugeProps) {
         y: String(maxPt.y + 18),
         'text-anchor': 'middle',
         'font-size': '11',
-        'font-family': 'sans-serif',
+        'font-family': theme.fontFamily,
         fill: 'currentColor',
         opacity: '0.55',
       }, formatNumber(effectiveMax)),
@@ -427,7 +429,7 @@ export function Gauge(props: GaugeProps) {
       'aria-valuemin': String(effectiveMin),
       'aria-valuemax': String(effectiveMax),
       'aria-label': ariaDesc,
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...bgArc,
     ...colorSegments,

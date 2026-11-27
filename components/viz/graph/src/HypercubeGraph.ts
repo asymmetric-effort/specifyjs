@@ -22,6 +22,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 import {
   generateHypercube,
   numRotationAngles,
@@ -62,6 +63,7 @@ export interface HypercubeGraphProps {
 // -- Component --------------------------------------------------------------
 
 export function HypercubeGraph(props: HypercubeGraphProps) {
+  const theme = useVizTheme();
   const dim = props.dimension ?? 4;
   const width = props.width ?? 600;
   const height = props.height ?? 600;
@@ -211,7 +213,7 @@ export function HypercubeGraph(props: HypercubeGraphProps) {
       stroke: edgeColor,
       'stroke-width': String(edgeWidth),
       'stroke-opacity': String(opacity),
-      'stroke-linecap': 'round',
+      'stroke-linecap': theme.lineCap,
     });
   });
 

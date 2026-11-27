@@ -15,6 +15,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -256,6 +257,7 @@ function computeLayout(
 // -- Component ----------------------------------------------------------------
 
 export function Sunburst(props: SunburstProps) {
+  const theme = useVizTheme();
   const {
     data,
     width = 500,
@@ -294,7 +296,7 @@ export function Sunburst(props: SunburstProps) {
           y: String(cy),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data to display',
@@ -321,7 +323,7 @@ export function Sunburst(props: SunburstProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -374,7 +376,7 @@ export function Sunburst(props: SunburstProps) {
               y: String(ly + 4),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#ffffff',
               'pointer-events': 'none',
             },
@@ -394,7 +396,7 @@ export function Sunburst(props: SunburstProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Sunburst chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...elements,
   );

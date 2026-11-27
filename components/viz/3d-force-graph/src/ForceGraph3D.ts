@@ -13,6 +13,7 @@
 
 import { createElement } from 'specifyjs';
 import { useRef, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 import type { Vec3 } from '../../../math/src/vec';
 import type { Quaternion } from '../../../math/src/quaternion';
 import type { Color } from '../../3dSpace/src/types';
@@ -230,6 +231,9 @@ export function updateEdgeTransform(
 
 /** ForceGraph3D component. */
 export function ForceGraph3D(props: ForceGraph3DProps) {
+  const theme = useVizTheme();
+  // Theme is consumed by future 3D label/overlay theming; suppress unused warning
+  void theme;
   const {
     width,
     height,

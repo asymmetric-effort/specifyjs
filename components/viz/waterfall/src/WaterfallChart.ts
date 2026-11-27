@@ -21,6 +21,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -119,6 +120,7 @@ function niceStep(maxVal: number): number {
 // -- Component ----------------------------------------------------------------
 
 export function WaterfallChart(props: WaterfallChartProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
@@ -196,7 +198,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
           x2: String(padding + chartWidth),
           y2: String(y),
           stroke: '#e5e7eb',
-          'stroke-width': '1',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '4 2',
         }),
       );
@@ -209,7 +211,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
             y: String(y + 4),
             'text-anchor': 'end',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(v),
@@ -234,7 +236,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
         x2: String(padding),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -248,7 +250,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
         x2: String(padding + chartWidth),
         y2: String(zeroY),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -311,7 +313,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
               y: String(labelY),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             displayValue,
@@ -329,7 +331,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
             'font-size': '10',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#374151',
           },
           b.label,
@@ -352,7 +354,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
               x2: String(nextX),
               y2: String(connectorY),
               stroke: connectorColor,
-              'stroke-width': '1',
+              'stroke-width': String(theme.lineWidth.grid),
               'stroke-dasharray': '3 2',
             }),
           );
@@ -377,7 +379,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -398,7 +400,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data',
@@ -423,7 +425,7 @@ export function WaterfallChart(props: WaterfallChartProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Waterfall chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...gridLines,

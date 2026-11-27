@@ -18,6 +18,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -108,6 +109,7 @@ const DEFAULT_COLOR_SCALE = ['#3b82f6', '#fbbf24', '#ef4444'];
 // -- Component ----------------------------------------------------------------
 
 export function HeatMap(props: HeatMapProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     rowLabels,
@@ -198,7 +200,7 @@ export function HeatMap(props: HeatMapProps) {
                 'text-anchor': 'middle',
                 'dominant-baseline': 'central',
                 'font-size': String(Math.min(11, cellWidth * 0.3, cellHeight * 0.4)),
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 fill: textColor,
               },
               String(Math.round(value * 100) / 100),
@@ -232,7 +234,7 @@ export function HeatMap(props: HeatMapProps) {
               'text-anchor': 'end',
               'dominant-baseline': 'central',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
             },
             label,
@@ -256,7 +258,7 @@ export function HeatMap(props: HeatMapProps) {
               y: String(y),
               'text-anchor': 'middle',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
             },
             label,
@@ -283,7 +285,7 @@ export function HeatMap(props: HeatMapProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -311,7 +313,7 @@ export function HeatMap(props: HeatMapProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.6',
         },
@@ -335,7 +337,7 @@ export function HeatMap(props: HeatMapProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Heat map',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEls,
     ...cellEls,

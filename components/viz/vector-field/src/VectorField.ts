@@ -26,6 +26,7 @@ import {
   useRef,
   useEffect,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -241,6 +242,8 @@ function drawCanvasVectorField(
     maxMagnitude: number;
     title?: string;
     tickFontSize: number;
+    fontFamily: string;
+    lineCap: 'round' | 'butt';
   },
 ): void {
   const {
@@ -249,7 +252,7 @@ function drawCanvasVectorField(
     showGrid, showAxes,
     colorByMagnitude, colorScale, arrowColor, arrowWidth,
     effectiveArrowScale, maxMagnitude,
-    title, tickFontSize,
+    title, tickFontSize, fontFamily, lineCap,
   } = options;
 
   // Coordinate transforms
@@ -262,7 +265,7 @@ function drawCanvasVectorField(
   // Draw title
   if (title) {
     ctx.save();
-    ctx.font = 'bold 16px sans-serif';
+    ctx.font = `bold 16px ${fontFamily}`;
     ctx.fillStyle = '#111827';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -275,7 +278,7 @@ function drawCanvasVectorField(
     ctx.save();
     ctx.strokeStyle = '#e5e7eb';
     ctx.lineWidth = 0.5;
-    ctx.font = `${tickFontSize}px sans-serif`;
+    ctx.font = `${tickFontSize}px ${fontFamily}`;
     ctx.fillStyle = '#6b7280';
 
     // Vertical grid lines
@@ -375,7 +378,7 @@ function drawCanvasVectorField(
     ctx.save();
     ctx.strokeStyle = color;
     ctx.lineWidth = arrowWidth;
-    ctx.lineCap = 'round';
+    ctx.lineCap = lineCap;
     ctx.beginPath();
     ctx.moveTo(px, py);
     ctx.lineTo(endX, endY);
@@ -410,6 +413,7 @@ function drawCanvasVectorField(
 // -- Component ----------------------------------------------------------------
 
 export function VectorField(props: VectorFieldProps) {
+  const theme = useVizTheme();
   const {
     data,
     vectorFunction,
@@ -522,6 +526,8 @@ export function VectorField(props: VectorFieldProps) {
           maxMagnitude,
           title,
           tickFontSize,
+          fontFamily: theme.fontFamily,
+          lineCap: theme.lineCap,
         });
       });
 
@@ -535,7 +541,7 @@ export function VectorField(props: VectorFieldProps) {
       xMin, xMax, yMin, yMax, xSpan, ySpan,
       showGrid, showAxes, colorByMagnitude, colorScale,
       arrowColor, arrowWidth, effectiveArrowScale, maxMagnitude,
-      title, tickFontSize,
+      title, tickFontSize, theme.fontFamily,
     ]);
 
     return createElement('canvas', {
@@ -544,7 +550,7 @@ export function VectorField(props: VectorFieldProps) {
       height,
       role: 'img',
       'aria-label': title ?? 'Vector field plot',
-      style: { fontFamily: 'sans-serif', maxWidth: '100%' },
+      style: { fontFamily: theme.fontFamily, maxWidth: '100%' },
     });
   }
 
@@ -570,7 +576,7 @@ export function VectorField(props: VectorFieldProps) {
           x2: String(px),
           y2: String(padding + chartHeight),
           stroke: '#e5e7eb',
-          'stroke-width': '0.5',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
 
@@ -584,7 +590,7 @@ export function VectorField(props: VectorFieldProps) {
             y: String(padding + chartHeight + 16),
             'text-anchor': 'middle',
             'font-size': String(tickFontSize),
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(Math.round(xVal * 100) / 100),
@@ -605,7 +611,7 @@ export function VectorField(props: VectorFieldProps) {
           x2: String(padding + chartWidth),
           y2: String(py),
           stroke: '#e5e7eb',
-          'stroke-width': '0.5',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
 
@@ -619,7 +625,7 @@ export function VectorField(props: VectorFieldProps) {
             y: String(py + 4),
             'text-anchor': 'end',
             'font-size': String(tickFontSize),
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(Math.round(yVal * 100) / 100),
@@ -728,7 +734,7 @@ export function VectorField(props: VectorFieldProps) {
           y2: String(endY),
           stroke: color,
           'stroke-width': String(arrowWidth),
-          'stroke-linecap': 'round',
+          'stroke-linecap': theme.lineCap,
         }),
       );
 
@@ -777,7 +783,7 @@ export function VectorField(props: VectorFieldProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -801,7 +807,7 @@ export function VectorField(props: VectorFieldProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Vector field plot',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...gridEls,

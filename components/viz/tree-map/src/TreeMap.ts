@@ -15,6 +15,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -285,6 +286,7 @@ function squarifiedLayout(root: TreeMapNode, x: number, y: number, w: number, h:
 // -- Component ----------------------------------------------------------------
 
 export function TreeMap(props: TreeMapProps) {
+  const theme = useVizTheme();
   const {
     data,
     width = 600,
@@ -325,7 +327,7 @@ export function TreeMap(props: TreeMapProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data to display',
@@ -354,7 +356,7 @@ export function TreeMap(props: TreeMapProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -396,7 +398,7 @@ export function TreeMap(props: TreeMapProps) {
             x: String(r.x + 4),
             y: String(r.y + 12),
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#ffffff',
             'pointer-events': 'none',
           },
@@ -415,7 +417,7 @@ export function TreeMap(props: TreeMapProps) {
             x: String(r.x + 4),
             y: String(r.y + 24),
             'font-size': '10',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'rgba(255,255,255,0.8)',
             'pointer-events': 'none',
           },
@@ -434,7 +436,7 @@ export function TreeMap(props: TreeMapProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Treemap chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...elements,
   );

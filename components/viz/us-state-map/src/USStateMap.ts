@@ -11,6 +11,7 @@
 
 import { createElement } from "../../../../core/src/index";
 import { useMemo, useCallback } from "../../../../core/src/hooks/index";
+import { useVizTheme } from "../../theme/src/index";
 import { US_STATE_PATHS } from "./us-state-paths";
 
 // -- Props --------------------------------------------------------------------
@@ -41,6 +42,7 @@ export interface USStateMapProps {
 // -- Component ----------------------------------------------------------------
 
 export function USStateMap(props: USStateMapProps) {
+  const theme = useVizTheme();
   const {
     width = 959,
     height = 593,
@@ -163,7 +165,7 @@ export function USStateMap(props: USStateMapProps) {
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
       "aria-label": title,
-      style: { fontFamily: "sans-serif" },
+      style: { fontFamily: theme.fontFamily },
     },
     titleElement,
     ...stateElements,

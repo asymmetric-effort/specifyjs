@@ -7,6 +7,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -227,12 +228,13 @@ function renderPointShape(
 // ---------------------------------------------------------------------------
 
 export function LineGraph(props: LineGraphProps) {
+  const theme = useVizTheme();
   const {
     data,
     width = 600,
     height = 400,
     lineColor = '#3b82f6',
-    lineWidth = 2,
+    lineWidth = theme.lineWidth.series,
     pointRadius = 4,
     pointColor = '#3b82f6',
     pointShape = 'circle' as PointShape,
@@ -317,7 +319,7 @@ export function LineGraph(props: LineGraphProps) {
       x2: width - padding,
       y2: height - padding,
       stroke: '#374151',
-      'stroke-width': 1,
+      'stroke-width': theme.lineWidth.axis,
       key: 'x-axis',
     }),
   );
@@ -329,7 +331,7 @@ export function LineGraph(props: LineGraphProps) {
       x2: padding,
       y2: height - padding,
       stroke: '#374151',
-      'stroke-width': 1,
+      'stroke-width': theme.lineWidth.axis,
       key: 'y-axis',
     }),
   );
@@ -354,7 +356,7 @@ export function LineGraph(props: LineGraphProps) {
           x: px,
           y: height - padding + 18,
           'text-anchor': 'end',
-          'font-size': 11,
+          'font-size': theme.fontSize.axis,
           fill: '#6b7280',
           transform: `rotate(-45, ${px}, ${height - padding + 18})`,
           key: `xlabel-${i}`,
@@ -384,7 +386,7 @@ export function LineGraph(props: LineGraphProps) {
           x: padding - 10,
           y: py + 4,
           'text-anchor': 'end',
-          'font-size': 11,
+          'font-size': theme.fontSize.axis,
           fill: '#6b7280',
           key: `ylabel-${i}`,
         },
@@ -440,7 +442,7 @@ export function LineGraph(props: LineGraphProps) {
       stroke: color,
       'stroke-width': seriesLineWidth,
       'stroke-linejoin': 'round',
-      'stroke-linecap': 'round',
+      'stroke-linecap': theme.lineCap,
       key: `${keyPrefix}-line`,
     };
 
@@ -576,7 +578,7 @@ export function LineGraph(props: LineGraphProps) {
           {
             x: lx + swatchWidth + swatchTextGap,
             y: ly + 12,
-            'font-size': 12,
+            'font-size': theme.fontSize.label,
             fill: '#374151',
             key: `legend-text-${i}`,
           },
@@ -601,7 +603,7 @@ export function LineGraph(props: LineGraphProps) {
           x: width / 2,
           y: height - 8,
           'text-anchor': 'middle',
-          'font-size': 13,
+          'font-size': theme.fontSize.label,
           fill: '#374151',
           key: 'x-axis-label',
         },
@@ -618,7 +620,7 @@ export function LineGraph(props: LineGraphProps) {
           x: 14,
           y: height / 2,
           'text-anchor': 'middle',
-          'font-size': 13,
+          'font-size': theme.fontSize.label,
           fill: '#374151',
           transform: `rotate(-90, 14, ${height / 2})`,
           key: 'y-axis-label',

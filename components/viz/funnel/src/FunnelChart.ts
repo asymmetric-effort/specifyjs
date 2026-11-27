@@ -21,6 +21,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -71,6 +72,7 @@ const DEFAULT_COLORS = [
 // -- Component ----------------------------------------------------------------
 
 export function FunnelChart(props: FunnelChartProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 600,
@@ -171,9 +173,9 @@ export function FunnelChart(props: FunnelChartProps) {
               x: String(labelX),
               y: String(labelY - (showValues || showPercentage ? 6 : 0)),
               'text-anchor': 'start',
-              'font-size': '12',
+              'font-size': theme.fontSize.axis,
               'font-weight': 'bold',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             d.label,
@@ -201,7 +203,7 @@ export function FunnelChart(props: FunnelChartProps) {
               y: String(labelY + (showLabels ? 10 : 4)),
               'text-anchor': 'start',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
             },
             valueText,
@@ -273,7 +275,7 @@ export function FunnelChart(props: FunnelChartProps) {
               'text-anchor': 'middle',
               'font-size': '11',
               'font-weight': 'bold',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             d.label,
@@ -301,7 +303,7 @@ export function FunnelChart(props: FunnelChartProps) {
               y: String(labelY + 14),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
             },
             valueText,
@@ -327,7 +329,7 @@ export function FunnelChart(props: FunnelChartProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -348,7 +350,7 @@ export function FunnelChart(props: FunnelChartProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data',
@@ -371,7 +373,7 @@ export function FunnelChart(props: FunnelChartProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Funnel chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...funnelEls,

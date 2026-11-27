@@ -19,6 +19,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -277,6 +278,7 @@ function computeLayout(
 // -- Component ----------------------------------------------------------------
 
 export function DecompositionTree(props: DecompositionTreeProps) {
+  const theme = useVizTheme();
   const {
     data,
     width = 800,
@@ -311,7 +313,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#6b7280',
         },
         'No data',
@@ -434,7 +436,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
             'text-anchor': 'middle',
             'font-size': '11',
             'font-weight': 'bold',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#fff',
             'pointer-events': 'none',
           },
@@ -453,7 +455,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
               y: String(node.y + nodeHeight / 2 + 12),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'rgba(255,255,255,0.85)',
               'pointer-events': 'none',
             },
@@ -480,7 +482,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -503,7 +505,7 @@ export function DecompositionTree(props: DecompositionTreeProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Decomposition tree',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...connectorElements,

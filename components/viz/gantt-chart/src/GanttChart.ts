@@ -21,6 +21,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -90,6 +91,7 @@ function taskColor(index: number, explicit?: string): string {
 // -- Component ----------------------------------------------------------------
 
 export function GanttChart(props: GanttChartProps) {
+  const theme = useVizTheme();
   const {
     tasks = [],
     width = 800,
@@ -123,7 +125,7 @@ export function GanttChart(props: GanttChartProps) {
           y: String((propHeight ?? 100) / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.4',
         },
@@ -196,7 +198,7 @@ export function GanttChart(props: GanttChartProps) {
           x2: String(x),
           y2: String(chartBottom),
           stroke: '#e5e7eb',
-          'stroke-width': '1',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '4 2',
         }),
       );
@@ -223,7 +225,7 @@ export function GanttChart(props: GanttChartProps) {
             y: String(axisY),
             'text-anchor': 'middle',
             'font-size': '10',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
             opacity: '0.6',
           },
@@ -242,7 +244,7 @@ export function GanttChart(props: GanttChartProps) {
           y: String(axisY),
           'text-anchor': 'end',
           'font-size': '10',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.4',
           'font-style': 'italic',
@@ -279,7 +281,7 @@ export function GanttChart(props: GanttChartProps) {
                 x: String(padding),
                 y: String(y + barHeight / 2 - 12),
                 'font-size': '9',
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 'font-weight': 'bold',
                 fill: 'currentColor',
                 opacity: '0.4',
@@ -318,7 +320,7 @@ export function GanttChart(props: GanttChartProps) {
               y: String(y + barHeight / 2 + 4),
               'text-anchor': 'end',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
             },
             task.label.length > 16 ? task.label.substring(0, 14) + '..' : task.label,
@@ -337,7 +339,7 @@ export function GanttChart(props: GanttChartProps) {
               y: String(y + barHeight / 2 + 4),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#ffffff',
             },
             `${task.start}-${task.start + task.duration}`,
@@ -363,7 +365,7 @@ export function GanttChart(props: GanttChartProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -387,7 +389,7 @@ export function GanttChart(props: GanttChartProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Gantt chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...gridLines,

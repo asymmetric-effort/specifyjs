@@ -17,6 +17,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -116,6 +117,7 @@ function formatNum(v: number): string {
 // -- Component ----------------------------------------------------------------
 
 export function Histogram(props: HistogramProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     bins: numBins = 10,
@@ -167,7 +169,7 @@ export function Histogram(props: HistogramProps) {
           x2: String(padding + chartWidth),
           y2: String(y),
           stroke: '#e5e7eb',
-          'stroke-width': '1',
+          'stroke-width': String(theme.lineWidth.grid),
           'stroke-dasharray': '4 2',
         }),
       );
@@ -180,7 +182,7 @@ export function Histogram(props: HistogramProps) {
             y: String(y + 4),
             'text-anchor': 'end',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           String(v),
@@ -205,7 +207,7 @@ export function Histogram(props: HistogramProps) {
         x2: String(padding),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -218,7 +220,7 @@ export function Histogram(props: HistogramProps) {
         x2: String(padding + chartWidth),
         y2: String(padding + chartHeight),
         stroke: '#374151',
-        'stroke-width': '1.5',
+        'stroke-width': String(theme.lineWidth.axis),
       }),
     );
 
@@ -263,7 +265,7 @@ export function Histogram(props: HistogramProps) {
               y: String(y - 4),
               'text-anchor': 'middle',
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#374151',
             },
             String(bin.count),
@@ -286,7 +288,7 @@ export function Histogram(props: HistogramProps) {
               y: String(padding + chartHeight + 14),
               'text-anchor': 'middle',
               'font-size': '9',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
             },
             label,
@@ -308,7 +310,7 @@ export function Histogram(props: HistogramProps) {
             y: String(padding + chartHeight + 14),
             'text-anchor': 'middle',
             'font-size': '9',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#6b7280',
           },
           formatNum(lastBin.max),
@@ -335,7 +337,7 @@ export function Histogram(props: HistogramProps) {
             'text-anchor': 'middle',
             'font-size': '16',
             'font-weight': 'bold',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: '#111827',
           },
           title,
@@ -352,8 +354,8 @@ export function Histogram(props: HistogramProps) {
             x: String(padding + chartWidth / 2),
             y: String(height - 8),
             'text-anchor': 'middle',
-            'font-size': '12',
-            'font-family': 'sans-serif',
+            'font-size': theme.fontSize.label,
+            'font-family': theme.fontFamily,
             fill: '#374151',
           },
           xLabel,
@@ -370,8 +372,8 @@ export function Histogram(props: HistogramProps) {
             x: String(14),
             y: String(padding + chartHeight / 2),
             'text-anchor': 'middle',
-            'font-size': '12',
-            'font-family': 'sans-serif',
+            'font-size': theme.fontSize.label,
+            'font-family': theme.fontFamily,
             fill: '#374151',
             transform: `rotate(-90 14 ${padding + chartHeight / 2})`,
           },
@@ -396,7 +398,7 @@ export function Histogram(props: HistogramProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#9ca3af',
         },
         'No data',
@@ -421,7 +423,7 @@ export function Histogram(props: HistogramProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Histogram',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEls,
     ...gridLines,

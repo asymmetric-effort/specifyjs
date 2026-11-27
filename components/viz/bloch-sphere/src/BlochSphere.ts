@@ -31,6 +31,7 @@ import {
   useCallback,
   useRef,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -192,6 +193,7 @@ export function applyGate(state: BlochState, op: GateOp): BlochState {
 // ---------------------------------------------------------------------------
 
 export function BlochSphere(props: BlochSphereProps) {
+  const theme = useVizTheme();
   const {
     state: externalState,
     gates,
@@ -312,7 +314,7 @@ export function BlochSphere(props: BlochSphereProps) {
     elements.push(createElement('text', {
       key: 'title', x: String(cx), y: '24',
       'text-anchor': 'middle', 'font-size': '14', 'font-weight': 'bold',
-      'font-family': 'sans-serif', fill: '#374151',
+      'font-family': theme.fontFamily, fill: '#374151',
     }, title));
   }
 
@@ -328,7 +330,7 @@ export function BlochSphere(props: BlochSphereProps) {
     }
     elements.push(createElement('path', {
       key: 'eq', d: eqPts.join(' '), fill: 'none',
-      stroke: wireframeColor, 'stroke-width': '0.8', opacity: '0.5',
+      stroke: wireframeColor, 'stroke-width': String(theme.lineWidth.grid), opacity: '0.5',
     }));
 
     // XZ meridian (y=0)
@@ -340,7 +342,7 @@ export function BlochSphere(props: BlochSphereProps) {
     }
     elements.push(createElement('path', {
       key: 'xz', d: xzPts.join(' '), fill: 'none',
-      stroke: wireframeColor, 'stroke-width': '0.8', opacity: '0.4',
+      stroke: wireframeColor, 'stroke-width': String(theme.lineWidth.grid), opacity: '0.4',
     }));
 
     // YZ meridian (x=0)
@@ -352,7 +354,7 @@ export function BlochSphere(props: BlochSphereProps) {
     }
     elements.push(createElement('path', {
       key: 'yz', d: yzPts.join(' '), fill: 'none',
-      stroke: wireframeColor, 'stroke-width': '0.8', opacity: '0.4',
+      stroke: wireframeColor, 'stroke-width': String(theme.lineWidth.grid), opacity: '0.4',
     }));
   }
 
@@ -369,7 +371,7 @@ export function BlochSphere(props: BlochSphereProps) {
     elements.push(createElement('line', {
       key: `axis-${ax.id}`, x1: String(neg.sx), y1: String(neg.sy),
       x2: String(pos.sx), y2: String(pos.sy),
-      stroke: ax.color, 'stroke-width': '0.8', opacity: '0.4',
+      stroke: ax.color, 'stroke-width': String(theme.lineWidth.axis), opacity: '0.4',
       'stroke-dasharray': '3 3',
     }));
   }
@@ -406,8 +408,8 @@ export function BlochSphere(props: BlochSphereProps) {
     }
     elements.push(createElement('path', {
       key: 'trail', d: trailParts.join(' '), fill: 'none',
-      stroke: trailColor, 'stroke-width': '1.5', opacity: '0.5',
-      'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+      stroke: trailColor, 'stroke-width': String(theme.lineWidth.series), opacity: '0.5',
+      'stroke-linecap': theme.lineCap, 'stroke-linejoin': 'round',
     }));
   }
 
@@ -422,7 +424,7 @@ export function BlochSphere(props: BlochSphereProps) {
       key: 'vec-line',
       x1: String(origin.sx), y1: String(origin.sy),
       x2: String(tip.sx), y2: String(tip.sy),
-      stroke: vectorColor, 'stroke-width': '2.5', 'stroke-linecap': 'round',
+      stroke: vectorColor, 'stroke-width': String(theme.lineWidth.series), 'stroke-linecap': theme.lineCap,
     }));
 
     // State point
@@ -438,7 +440,7 @@ export function BlochSphere(props: BlochSphereProps) {
     elements.push(createElement('text', {
       key: 'state-label',
       x: String(width - 10), y: String(height - 10),
-      'text-anchor': 'end', 'font-size': '10', 'font-family': 'monospace',
+      'text-anchor': 'end', 'font-size': '10', 'font-family': theme.fontFamilyMono,
       fill: '#64748b',
     }, `\u03b8=${tDeg}\u00b0 \u03c6=${pDeg}\u00b0`));
   }
@@ -452,7 +454,7 @@ export function BlochSphere(props: BlochSphereProps) {
     role: 'img',
     'aria-label': title ?? 'Bloch sphere quantum state visualization',
     style: {
-      fontFamily: 'sans-serif',
+      fontFamily: theme.fontFamily,
       cursor: interactive ? (draggingRef.current ? 'grabbing' : 'grab') : 'default',
     },
     onMouseDown: interactive ? onMouseDown : undefined,

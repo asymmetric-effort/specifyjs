@@ -21,6 +21,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -67,6 +68,7 @@ const FALLBACK_COLOR = '#666';
 // -- Component ----------------------------------------------------------------
 
 export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     colorMap,
@@ -154,7 +156,7 @@ export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
           'text-anchor': 'middle',
           'font-size': '14',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#e2e8f0',
         },
         title,
@@ -185,7 +187,7 @@ export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
           x2: String(x),
           y2: String(originY + totalHeight + cellGap / 2),
           stroke: gridColor,
-          'stroke-width': '0.5',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
     }
@@ -201,7 +203,7 @@ export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
           x2: String(originX + totalWidth + cellGap / 2),
           y2: String(y),
           stroke: gridColor,
-          'stroke-width': '0.5',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
     }
@@ -232,7 +234,7 @@ export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
             y: String(y),
             'text-anchor': 'middle',
             'font-size': '10',
-            'font-family': 'monospace',
+            'font-family': theme.fontFamilyMono,
             fill: '#94a3b8',
           },
           String(c),
@@ -253,7 +255,7 @@ export function DiscreteCartesian2D(props: DiscreteCartesian2DProps) {
             y: String(y),
             'text-anchor': 'end',
             'font-size': '10',
-            'font-family': 'monospace',
+            'font-family': theme.fontFamilyMono,
             fill: '#94a3b8',
           },
           String(r),

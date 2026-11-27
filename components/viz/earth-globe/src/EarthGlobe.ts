@@ -23,6 +23,7 @@ import {
   useMemo,
   useCallback,
 } from "../../../../core/src/hooks/index";
+import { useVizTheme } from "../../theme/src/index";
 import { COUNTRIES } from "./globe-data";
 import type { CountryData } from "./globe-data";
 
@@ -225,6 +226,7 @@ export function buildGraticuleLines(
 // -- Component ----------------------------------------------------------------
 
 export function EarthGlobe(props: EarthGlobeProps) {
+  const theme = useVizTheme();
   const {
     width = 400,
     height = 400,
@@ -453,7 +455,7 @@ export function EarthGlobe(props: EarthGlobeProps) {
       d,
       fill: "none",
       stroke: graticuleColor,
-      "stroke-width": "0.5",
+      "stroke-width": String(theme.lineWidth.grid),
     }),
   );
 
@@ -513,7 +515,7 @@ export function EarthGlobe(props: EarthGlobeProps) {
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
       "aria-label": title,
-      style: { fontFamily: "sans-serif", userSelect: "none" },
+      style: { fontFamily: theme.fontFamily, userSelect: "none" },
     },
     defs,
     ocean,

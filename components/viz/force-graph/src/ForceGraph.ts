@@ -17,6 +17,7 @@
  */
 
 import { createElement } from "../../../../core/src/index";
+import { useVizTheme } from '../../theme/src/index';
 import {
   useState,
   useEffect,
@@ -392,6 +393,7 @@ function kineticEnergy(simNodes: SimNode[]): number {
 // -- Component ----------------------------------------------------------------
 
 export function ForceGraph(props: ForceGraphProps) {
+  const theme = useVizTheme();
   const {
     nodes,
     edges,
@@ -432,9 +434,9 @@ export function ForceGraph(props: ForceGraphProps) {
               x: String(width / 2),
               y: String(height / 2),
               "text-anchor": "middle",
-              "font-size": "16",
+              "font-size": theme.fontSize.title,
               "font-weight": "bold",
-              "font-family": "sans-serif",
+              "font-family": theme.fontFamily,
               fill: "#111827",
             },
             title,
@@ -445,8 +447,8 @@ export function ForceGraph(props: ForceGraphProps) {
               x: String(width / 2),
               y: String(height / 2),
               "text-anchor": "middle",
-              "font-size": "14",
-              "font-family": "sans-serif",
+              "font-size": theme.fontSize.label,
+              "font-family": theme.fontFamily,
               fill: "#6b7280",
             },
             "No data",
@@ -765,8 +767,8 @@ export function ForceGraph(props: ForceGraphProps) {
               x: String(n.x),
               y: String(n.y + nodeRadius + 14),
               "text-anchor": "middle",
-              "font-size": "11",
-              "font-family": "sans-serif",
+              "font-size": theme.fontSize.label,
+              "font-family": theme.fontFamily,
               fill: "#374151",
               "pointer-events": "none",
             },
@@ -791,9 +793,9 @@ export function ForceGraph(props: ForceGraphProps) {
           x: String(width / 2),
           y: "24",
           "text-anchor": "middle",
-          "font-size": "16",
+          "font-size": theme.fontSize.title,
           "font-weight": "bold",
-          "font-family": "sans-serif",
+          "font-family": theme.fontFamily,
           fill: "#111827",
         },
         title,
@@ -826,7 +828,7 @@ export function ForceGraph(props: ForceGraphProps) {
           stroke: tc.color ?? '#3b82f6',
           'stroke-width': String(tc.width ?? 1),
           opacity: String(tc.opacity ?? 0.5),
-          'stroke-linecap': 'round',
+          'stroke-linecap': theme.lineCap,
           'stroke-linejoin': 'round',
         }),
       );
@@ -853,7 +855,7 @@ export function ForceGraph(props: ForceGraphProps) {
       xmlns: "http://www.w3.org/2000/svg",
       role: "img",
       "aria-label": title ?? "Force-directed graph — drag nodes to move, double-click to lock",
-      style: { fontFamily: "sans-serif", cursor: draggingIdRef.current ? "grabbing" : "default" },
+      style: { fontFamily: theme.fontFamily, cursor: draggingIdRef.current ? "grabbing" : "default" },
       onMouseMove: handleMouseMove,
       onMouseUp: handleMouseUp,
       onMouseLeave: handleMouseLeaveGraph,

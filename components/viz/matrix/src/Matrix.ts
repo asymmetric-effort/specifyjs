@@ -19,6 +19,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -96,6 +97,7 @@ const DEFAULT_COLOR_SCALE = ['#f0f9ff', '#3b82f6', '#1e3a8a'];
 // -- Component ----------------------------------------------------------------
 
 export function Matrix(props: MatrixProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     labels,
@@ -230,7 +232,7 @@ export function Matrix(props: MatrixProps) {
                 'dominant-baseline': 'central',
                 'font-size': String(Math.max(8, fontSize)),
                 'font-weight': isDiagonal && showDiagonal ? 'bold' : 'normal',
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 fill: textColor,
               },
               String(Math.round(value * 100) / 100),
@@ -265,7 +267,7 @@ export function Matrix(props: MatrixProps) {
               'text-anchor': 'end',
               'dominant-baseline': 'central',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
             },
             label,
@@ -289,7 +291,7 @@ export function Matrix(props: MatrixProps) {
               y: String(y),
               'text-anchor': 'middle',
               'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
             },
             label,
@@ -316,7 +318,7 @@ export function Matrix(props: MatrixProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -344,7 +346,7 @@ export function Matrix(props: MatrixProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.6',
         },
@@ -368,7 +370,7 @@ export function Matrix(props: MatrixProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Matrix visualization',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEls,
     ...cellEls,

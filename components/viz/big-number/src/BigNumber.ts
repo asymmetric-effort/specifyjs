@@ -20,6 +20,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -88,6 +89,7 @@ function formatTrend(trend: number): string {
 // -- Component ----------------------------------------------------------------
 
 export function BigNumber(props: BigNumberProps) {
+  const theme = useVizTheme();
   const {
     value,
     label,
@@ -161,7 +163,7 @@ export function BigNumber(props: BigNumberProps) {
           'dominant-baseline': 'central',
           'font-size': String(valueFontSize),
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: valueColor,
           'aria-label': `Value: ${fullText}`,
         },
@@ -199,8 +201,8 @@ export function BigNumber(props: BigNumberProps) {
           x: String(width / 2),
           y: String(labelY),
           'text-anchor': 'middle',
-          'font-size': '13',
-          'font-family': 'sans-serif',
+          'font-size': theme.fontSize.label,
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.6',
         },
@@ -255,8 +257,8 @@ export function BigNumber(props: BigNumberProps) {
           x: String(arrowX + arrowSize + 4),
           y: String(arrowY2 + arrowSize * 0.7),
           'text-anchor': 'start',
-          'font-size': '12',
-          'font-family': 'sans-serif',
+          'font-size': theme.fontSize.label,
+          'font-family': theme.fontFamily,
           fill: trendColor,
           'aria-label': `Trend: ${fullTrendText}`,
         },
@@ -343,7 +345,7 @@ export function BigNumber(props: BigNumberProps) {
         fill: 'none',
         stroke: '#3b82f6',
         'stroke-width': '1.5',
-        'stroke-linecap': 'round',
+        'stroke-linecap': theme.lineCap,
         'stroke-linejoin': 'round',
       }),
     );
@@ -370,7 +372,7 @@ export function BigNumber(props: BigNumberProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': ariaDesc,
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...bgElements,
     ...sparkElements,

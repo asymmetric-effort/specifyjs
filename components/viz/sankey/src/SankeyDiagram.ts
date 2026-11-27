@@ -20,6 +20,7 @@ import {
   useMemo,
   useCallback,
 } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -341,6 +342,7 @@ function computeLayout(
 // -- Component ----------------------------------------------------------------
 
 export function SankeyDiagram(props: SankeyDiagramProps) {
+  const theme = useVizTheme();
   const {
     nodes,
     links,
@@ -374,8 +376,8 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
           x: String(width / 2),
           y: String(height / 2),
           'text-anchor': 'middle',
-          'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-size': theme.fontSize.label,
+          'font-family': theme.fontFamily,
           fill: '#6b7280',
         },
         'No data',
@@ -427,8 +429,8 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
               x: String(midX),
               y: String((link.sourceY + link.targetY) / 2 - 4),
               'text-anchor': 'middle',
-              'font-size': '9',
-              'font-family': 'sans-serif',
+              'font-size': theme.fontSize.axis,
+              'font-family': theme.fontFamily,
               fill: '#6b7280',
               'pointer-events': 'none',
             },
@@ -487,8 +489,8 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
               x: String(finalX),
               y: String(node.y + node.height / 2 + 4),
               'text-anchor': finalAnchor,
-              'font-size': '11',
-              'font-family': 'sans-serif',
+              'font-size': theme.fontSize.label,
+              'font-family': theme.fontFamily,
               fill: '#374151',
               'pointer-events': 'none',
             },
@@ -513,9 +515,9 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
           x: String(width / 2),
           y: String(padding / 2 + 4),
           'text-anchor': 'middle',
-          'font-size': '16',
+          'font-size': theme.fontSize.title,
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: '#111827',
         },
         title,
@@ -538,7 +540,7 @@ export function SankeyDiagram(props: SankeyDiagramProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Sankey diagram',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEl,
     ...linkElements,

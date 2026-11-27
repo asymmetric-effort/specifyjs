@@ -21,6 +21,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -121,13 +122,14 @@ function simpleHash(str: string): number {
 // -- Component ----------------------------------------------------------------
 
 export function WordCloud(props: WordCloudProps) {
+  const theme = useVizTheme();
   const {
     words = [],
     width = 600,
     height = 400,
     minFontSize = 10,
     maxFontSize = 64,
-    fontFamily = 'sans-serif',
+    fontFamily = theme.fontFamily,
     colors = DEFAULT_COLORS,
     rotations = DEFAULT_ROTATIONS,
     padding = 4,

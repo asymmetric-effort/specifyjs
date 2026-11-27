@@ -16,6 +16,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Props --------------------------------------------------------------------
 
@@ -194,6 +195,7 @@ function computePivot(
 // -- Component ----------------------------------------------------------------
 
 export function PivotTable(props: PivotTableProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     rows = [],
@@ -227,7 +229,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.4',
         },
@@ -272,7 +274,7 @@ export function PivotTable(props: PivotTableProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -315,7 +317,7 @@ export function PivotTable(props: PivotTableProps) {
         y: String(startY + cellH / 2 + 4),
         'text-anchor': 'middle',
         'font-size': '10',
-        'font-family': 'sans-serif',
+        'font-family': theme.fontFamily,
         'font-weight': 'bold',
         fill: '#ffffff',
       },
@@ -341,7 +343,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(startY + cellH / 2 + 4),
           'text-anchor': 'middle',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           'font-weight': 'bold',
           fill: '#ffffff',
         },
@@ -361,7 +363,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(startY + cellH / 2 + 4),
           'text-anchor': 'middle',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           'font-weight': 'bold',
           fill: '#ffffff',
         },
@@ -404,7 +406,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(rowY + cellH / 2 + 4),
           'text-anchor': 'middle',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           'font-weight': 'bold',
           fill: '#ffffff',
         },
@@ -429,7 +431,7 @@ export function PivotTable(props: PivotTableProps) {
           height: String(cellH),
           fill: 'none',
           stroke: '#e5e7eb',
-          'stroke-width': '0.5',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
 
@@ -443,7 +445,7 @@ export function PivotTable(props: PivotTableProps) {
             y: String(rowY + cellH / 2 + 4),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
           },
           value !== undefined ? formatNumber(value) : '-',
@@ -476,7 +478,7 @@ export function PivotTable(props: PivotTableProps) {
             y: String(rowY + cellH / 2 + 4),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             'font-weight': 'bold',
             fill: '#1e40af',
           },
@@ -512,7 +514,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(totalRowY + cellH / 2 + 4),
           'text-anchor': 'middle',
           'font-size': '11',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           'font-weight': 'bold',
           fill: '#1e40af',
         },
@@ -535,7 +537,7 @@ export function PivotTable(props: PivotTableProps) {
             y: String(totalRowY + cellH / 2 + 4),
             'text-anchor': 'middle',
             'font-size': '11',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             'font-weight': 'bold',
             fill: '#1e40af',
           },
@@ -555,7 +557,7 @@ export function PivotTable(props: PivotTableProps) {
           y: String(totalRowY + cellH / 2 + 4),
           'text-anchor': 'middle',
           'font-size': '12',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           'font-weight': 'bold',
           fill: '#1e3a8a',
         },
@@ -574,7 +576,7 @@ export function PivotTable(props: PivotTableProps) {
       height: String(tableH),
       fill: 'none',
       stroke: '#d1d5db',
-      'stroke-width': '1',
+      'stroke-width': String(theme.lineWidth.axis),
     }),
   );
 
@@ -587,7 +589,7 @@ export function PivotTable(props: PivotTableProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'table',
       'aria-label': title ?? 'Pivot table',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...elements,
   );

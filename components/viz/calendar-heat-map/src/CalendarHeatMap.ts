@@ -18,6 +18,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -118,6 +119,7 @@ const DEFAULT_COLOR_SCALE = ['#9be9a8', '#40c463', '#30a14e', '#216e39'];
 // -- Component ----------------------------------------------------------------
 
 export function CalendarHeatMap(props: CalendarHeatMapProps) {
+  const theme = useVizTheme();
   const {
     data = [],
     width = 800,
@@ -245,7 +247,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
               x: String(x),
               y: String(titleHeight + monthLabelHeight - 2),
               'font-size': '10',
-              'font-family': 'sans-serif',
+              'font-family': theme.fontFamily,
               fill: 'currentColor',
               opacity: '0.6',
             },
@@ -281,7 +283,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
             'text-anchor': 'end',
             'dominant-baseline': 'central',
             'font-size': '10',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
             opacity: '0.6',
           },
@@ -307,7 +309,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
           'text-anchor': 'middle',
           'font-size': '14',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -335,7 +337,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.6',
         },
@@ -360,7 +362,7 @@ export function CalendarHeatMap(props: CalendarHeatMapProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Calendar heat map',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEls,
     ...monthEls,

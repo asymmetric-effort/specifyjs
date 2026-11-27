@@ -3,6 +3,7 @@
 
 import { createElement } from 'specifyjs';
 import { useState, useEffect, useRef, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 import type { Vec3 } from '../../../math/src/vec';
 import type { RenderPipeline } from './render-pipeline';
 import type { LightingModel } from './lighting-model';
@@ -126,6 +127,7 @@ function createPipeline(preference: 'webgl' | 'cpu' | 'auto', canvas: HTMLCanvas
  * runs a requestAnimationFrame loop for continuous rendering.
  */
 export function Space3D(props: Space3DProps) {
+  useVizTheme();
   const {
     width,
     height,

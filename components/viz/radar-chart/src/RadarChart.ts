@@ -18,6 +18,7 @@
 
 import { createElement } from 'specifyjs';
 import { useMemo, useCallback } from 'specifyjs/hooks';
+import { useVizTheme } from '../../theme/src/index';
 
 // -- Data types ---------------------------------------------------------------
 
@@ -83,6 +84,7 @@ function polarToCartesian(
 // -- Component ----------------------------------------------------------------
 
 export function RadarChart(props: RadarChartProps) {
+  const theme = useVizTheme();
   const {
     axes = [],
     series = [],
@@ -149,7 +151,7 @@ export function RadarChart(props: RadarChartProps) {
           points: points.join(' '),
           fill: 'none',
           stroke: gridColor,
-          'stroke-width': lvl === levels ? '1.5' : '0.5',
+          'stroke-width': lvl === levels ? String(theme.lineWidth.axis) : String(theme.lineWidth.grid),
           'stroke-dasharray': lvl === levels ? 'none' : '3 2',
         }),
       );
@@ -167,7 +169,7 @@ export function RadarChart(props: RadarChartProps) {
           x2: String(end.x),
           y2: String(end.y),
           stroke: gridColor,
-          'stroke-width': '0.75',
+          'stroke-width': String(theme.lineWidth.grid),
         }),
       );
     }
@@ -203,7 +205,7 @@ export function RadarChart(props: RadarChartProps) {
             'text-anchor': anchor,
             dy,
             'font-size': '12',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
           },
           axes[i]?.label ?? `Axis ${i}`,
@@ -259,7 +261,7 @@ export function RadarChart(props: RadarChartProps) {
                 y: String(pt.y - 8),
                 'text-anchor': 'middle',
                 'font-size': '10',
-                'font-family': 'sans-serif',
+                'font-family': theme.fontFamily,
                 fill: s.color,
               },
               String(Math.round(val * 100) / 100),
@@ -286,7 +288,7 @@ export function RadarChart(props: RadarChartProps) {
           points: polyPoints.join(' '),
           fill: 'none',
           stroke: s.color,
-          'stroke-width': '2',
+          'stroke-width': String(theme.lineWidth.series),
           'stroke-linejoin': 'round',
         }),
       );
@@ -332,7 +334,7 @@ export function RadarChart(props: RadarChartProps) {
             x: String(x + 16),
             y: String(legendY + 10),
             'font-size': '12',
-            'font-family': 'sans-serif',
+            'font-family': theme.fontFamily,
             fill: 'currentColor',
           },
           s.label,
@@ -357,7 +359,7 @@ export function RadarChart(props: RadarChartProps) {
           'text-anchor': 'middle',
           'font-size': '16',
           'font-weight': 'bold',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
         },
         title,
@@ -385,7 +387,7 @@ export function RadarChart(props: RadarChartProps) {
           y: String(height / 2),
           'text-anchor': 'middle',
           'font-size': '14',
-          'font-family': 'sans-serif',
+          'font-family': theme.fontFamily,
           fill: 'currentColor',
           opacity: '0.6',
         },
@@ -411,7 +413,7 @@ export function RadarChart(props: RadarChartProps) {
       xmlns: 'http://www.w3.org/2000/svg',
       role: 'img',
       'aria-label': title ?? 'Radar chart',
-      style: { fontFamily: 'sans-serif' },
+      style: { fontFamily: theme.fontFamily },
     },
     ...titleEls,
     ...gridEls,

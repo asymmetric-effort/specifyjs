@@ -1,0 +1,8 @@
+{
+  "name": "@specifyjs/viz-theme",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Visualization theme system for SpecifyJS — casual and crisp rendering modes",
+  "license": "MIT",
+  "main": "src/index.ts"
+}

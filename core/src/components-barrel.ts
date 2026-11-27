@@ -111,3 +111,5 @@ export * from '../../components/viz/vector-field/src/index';
 export * from '../../components/viz/waterfall/src/index';
 export * from '../../components/viz/word-cloud/src/index';
 export * from '../../components/viz/2D-discrete-cartesian/src/index';
+
+export * from '../../components/viz/theme/src/index';

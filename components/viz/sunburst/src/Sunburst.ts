@@ -266,7 +266,7 @@ export function Sunburst(props: SunburstProps) {
     showLabels = true,
     colors = DEFAULT_COLORS,
     strokeColor = '#ffffff',
-    strokeWidth = 1,
+    strokeWidth = theme.segments.strokeWidth,
     title,
   } = props;
 
@@ -343,8 +343,8 @@ export function Sunburst(props: SunburstProps) {
         key: `arc-${i}`,
         d,
         fill: seg.color,
-        stroke: strokeColor,
-        'stroke-width': String(strokeWidth),
+        stroke: strokeWidth > 0 ? strokeColor : 'none',
+        'stroke-width': strokeWidth > 0 ? String(strokeWidth) : undefined,
         role: 'graphics-symbol',
         'aria-label': `${seg.label}: ${seg.value}`,
       }),

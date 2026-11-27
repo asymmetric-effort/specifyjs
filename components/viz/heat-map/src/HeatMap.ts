@@ -121,7 +121,7 @@ export function HeatMap(props: HeatMapProps) {
     maxValue: propMax,
     showValues = false,
     cellBorderColor = '#fff',
-    cellBorderWidth = 1,
+    cellBorderWidth = theme.segments.strokeWidth,
     title,
     padding = 60,
   } = props;
@@ -183,8 +183,8 @@ export function HeatMap(props: HeatMapProps) {
             width: String(cellWidth),
             height: String(cellHeight),
             fill: fillColor,
-            stroke: cellBorderColor,
-            'stroke-width': String(cellBorderWidth),
+            stroke: cellBorderWidth > 0 ? cellBorderColor : 'none',
+            'stroke-width': cellBorderWidth > 0 ? String(cellBorderWidth) : undefined,
           }),
         );
 

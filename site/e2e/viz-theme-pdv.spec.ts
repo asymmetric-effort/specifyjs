@@ -20,10 +20,8 @@ async function getThemeSelect(page: import('@playwright/test').Page) {
 
 test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/#/components', { waitUntil: 'networkidle' });
+    await page.goto('/#/components', { waitUntil: 'domcontentloaded', timeout: 30000 });
     await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 30000 });
-    // Wait for JS hydration
-    await page.waitForTimeout(1000);
     // Open Charts & Graphs accordion
     const chartsHeader = page.locator('button', { hasText: 'Charts & Graphs' });
     await chartsHeader.scrollIntoViewIfNeeded();

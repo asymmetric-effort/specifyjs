@@ -10,10 +10,20 @@ import { test, expect } from '@playwright/test';
  * NOT skipped in PDV — these verify deployed production quality.
  */
 
+/** Helper: get the theme select dropdown, scrolling to it and waiting for visibility */
+async function getThemeSelect(page: import('@playwright/test').Page) {
+  const select = page.locator('[data-testid="viz-theme-toggle"] select');
+  await select.scrollIntoViewIfNeeded();
+  await expect(select).toBeVisible({ timeout: 15000 });
+  return select;
+}
+
 test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/#/components', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 20000 });
+    await page.goto('/#/components', { waitUntil: 'networkidle' });
+    await expect(page.locator('.dialog-body')).toBeVisible({ timeout: 30000 });
+    // Wait for JS hydration
+    await page.waitForTimeout(1000);
     // Open Charts & Graphs accordion
     const chartsHeader = page.locator('button', { hasText: 'Charts & Graphs' });
     await chartsHeader.scrollIntoViewIfNeeded();
@@ -23,7 +33,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
 
   test('casual theme: line chart SVG uses sans-serif font', async ({ page }) => {
     // Ensure casual is selected (default)
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    const select = await getThemeSelect(page);
     if (await select.count() > 0) {
       await select.selectOption('casual');
       await page.waitForTimeout(300);
@@ -38,8 +48,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   });
 
   test('crisp theme: line chart SVG uses Inter font stack', async ({ page }) => {
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
-    await expect(select).toBeVisible({ timeout: 10000 });
+    const select = await getThemeSelect(page);
     await select.selectOption('crisp');
     await page.waitForTimeout(500);
 
@@ -54,8 +63,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   });
 
   test('crisp theme: line chart has no visible data point circles', async ({ page }) => {
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
-    await expect(select).toBeVisible({ timeout: 10000 });
+    const select = await getThemeSelect(page);
     await select.selectOption('crisp');
     await page.waitForTimeout(500);
 
@@ -70,7 +78,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   });
 
   test('casual theme: line chart has visible data point circles', async ({ page }) => {
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
+    const select = await getThemeSelect(page);
     if (await select.count() > 0) {
       await select.selectOption('casual');
       await page.waitForTimeout(300);
@@ -83,8 +91,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   });
 
   test('crisp theme: pie chart slices have no white stroke borders', async ({ page }) => {
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
-    await expect(select).toBeVisible({ timeout: 10000 });
+    const select = await getThemeSelect(page);
     await select.selectOption('crisp');
     await page.waitForTimeout(500);
 
@@ -109,8 +116,7 @@ test.describe('Viz Theme PDV — Chart Rendering Verification', () => {
   });
 
   test('theme toggle changes SVG attributes (not just dropdown value)', async ({ page }) => {
-    const select = page.locator('[data-testid="viz-theme-toggle"] select');
-    await expect(select).toBeVisible({ timeout: 10000 });
+    const select = await getThemeSelect(page);
 
     // Read a font-family in casual
     await select.selectOption('casual');
